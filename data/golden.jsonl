@@ -1,0 +1,11 @@
+{"id": "C01", "title": "查询 todo 列表成功", "path": "/todos", "method": "GET", "query": {"limit": 10}, "path_params": {}, "body": null, "category": "positive", "expect_status": 200}
+{"id": "C02", "title": "limit 上边界有效", "path": "/todos", "method": "GET", "query": {"limit": 100}, "path_params": {}, "body": null, "category": "boundary", "expect_status": 200}
+{"id": "C03", "title": "limit 越界下限", "path": "/todos", "method": "GET", "query": {"limit": 0}, "path_params": {}, "body": null, "category": "boundary", "expect_status": 422}
+{"id": "C04", "title": "limit 类型错误", "path": "/todos", "method": "GET", "query": {"limit": "abc"}, "path_params": {}, "body": null, "category": "negative", "expect_status": 422}
+{"id": "C05", "title": "创建 todo 成功", "path": "/todos", "method": "POST", "query": {}, "path_params": {}, "body": {"title": "task", "done": true}, "category": "positive", "expect_status": 201}
+{"id": "C06", "title": "仅必填字段创建成功", "path": "/todos", "method": "POST", "query": {}, "path_params": {}, "body": {"title": "task"}, "category": "boundary", "expect_status": 201}
+{"id": "C07", "title": "缺少 title", "path": "/todos", "method": "POST", "query": {}, "path_params": {}, "body": {"done": true}, "category": "negative", "expect_status": 422}
+{"id": "C08", "title": "done 类型错误", "path": "/todos", "method": "POST", "query": {}, "path_params": {}, "body": {"title": "task", "done": "yes"}, "category": "negative", "expect_status": 422}
+{"id": "C09", "title": "按 id 查询 todo 成功", "path": "/todos/{id}", "method": "GET", "query": {}, "path_params": {"id": 1}, "body": null, "category": "positive", "expect_status": 200}
+{"id": "C10", "title": "id 边界不存在", "path": "/todos/{id}", "method": "GET", "query": {}, "path_params": {"id": 0}, "body": null, "category": "boundary", "expect_status": 404}
+{"id": "C11", "title": "id 类型错误", "path": "/todos/{id}", "method": "GET", "query": {}, "path_params": {"id": "abc"}, "body": null, "category": "negative", "expect_status": 422}

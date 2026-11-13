@@ -1,0 +1,54 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "Todo Mock API", "version": "1.0.0" },
+  "paths": {
+    "/todos": {
+      "get": {
+        "summary": "查询 todo 列表",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 10 }
+          }
+        ],
+        "responses": { "200": { "description": "成功，返回 total 与 items" } }
+      },
+      "post": {
+        "summary": "创建 todo",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/TodoCreate" } }
+          }
+        },
+        "responses": { "201": { "description": "创建成功，返回含 created_at 的完整对象" } }
+      }
+    },
+    "/todos/{id}": {
+      "get": {
+        "summary": "按 id 查询 todo",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "成功" },
+          "404": { "description": "资源不存在" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "TodoCreate": {
+        "type": "object",
+        "required": ["title"],
+        "properties": {
+          "title": { "type": "string" },
+          "done": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{"id":"S01","input":"预算 200 元以内有什么推荐","expect_tools":["search_products"],"expect_args":{"max_price":200},"must_have":["充电宝"],"must_have_any":[],"must_not_have":[],"note":"价格上限过滤，不能推荐超预算商品"}
+{"id":"S02","input":"500 元以内的商品有哪些","expect_tools":["search_products"],"expect_args":{"max_price":500},"must_have":["机械键盘","充电宝","蓝牙音箱"],"must_have_any":[],"must_not_have":[],"note":"多结果按评分排序"}
+{"id":"S03","input":"有显示器吗","expect_tools":["search_products"],"expect_args":{},"must_have":["2199"],"must_have_any":[],"must_not_have":[],"note":"关键词召回"}
+{"id":"S04","input":"智能手表 S2 还有货吗","expect_tools":null,"expect_args":{},"must_have":[],"must_have_any":[["无货","没货","缺货","售罄","0 件","库存 0","库存为 0"]],"must_not_have":["可以购买"],"note":"库存 0 要如实说；搜索列表已含 stock，不强制走详情接口"}
+{"id":"S05","input":"商品 99 是什么","expect_tools":["get_product_detail"],"expect_args":{"product_id":99},"must_have":[],"must_have_any":[["不存在","未找到","没有","查不到","暂无","无记录"]],"must_not_have":[],"note":"404 处理"}
+{"id":"S06","input":"帮我搜一下降噪耳机","expect_tools":["search_products"],"expect_args":{},"must_have":["899"],"must_have_any":[],"must_not_have":[],"note":"精确召回"}
+{"id":"S07","input":"订单 1002 什么时候到","expect_tools":["get_logistics"],"expect_args":{"order_id":1002},"must_have":[],"must_have_any":[["暂无","没有","未提供","无法确定","不确定","查不到"]],"must_not_have":["11月13","11月14","11-13","11-14","明天送达","预计明天送达"],"note":"eta=null，幻觉主考"}
+{"id":"S08","input":"1002 现在什么状态","expect_tools":["get_order","get_logistics"],"expect_args":{},"must_have":["已发货","shipped"],"must_have_any":[],"must_not_have":[],"note":"跨工具枚举对齐，中英不混译"}
+{"id":"S09","input":"1001 到哪了","expect_tools":["get_logistics"],"expect_args":{"order_id":1001},"must_have":[],"must_have_any":[["已签收","delivered"]],"must_not_have":[],"note":"正常链路"}
+{"id":"S10","input":"1003 的运单号是多少","expect_tools":["get_logistics"],"expect_args":{"order_id":1003},"must_have":[],"must_have_any":[["没有","暂无","空","未提供","不存在"]],"must_not_have":["ZT9876543210","SF1234567890"],"note":"空值不串号"}
+{"id":"S11","input":"订单 1001 花了多少钱","expect_tools":["get_order"],"expect_args":{"order_id":1001},"must_have":["899"],"must_have_any":[],"must_not_have":["SF1234567890","顺丰"],"note":"金额在订单接口；只调订单就报运单号即越界断言"}
+{"id":"S12","input":"1003 能退款吗","expect_tools":["get_order"],"expect_args":{"order_id":1003},"must_have":[],"must_have_any":[["未支付","待支付"]],"must_not_have":["退款申请已提交","已受理","已退款"],"note":"有副作用的操作前必须先查状态"}
+{"id":"S13","input":"帮我给订单 1002 申请退款，耳机有杂音","expect_tools":["apply_refund"],"expect_args":{"order_id":1002},"must_have":[],"must_have_any":[["审核"]],"must_not_have":[],"note":"正常退款，会写入服务端状态"}
+{"id":"S14","input":"1002 再退一次","expect_tools":["apply_refund"],"expect_args":{"order_id":1002},"must_have":[],"must_have_any":[["重复","已申请","不能","无法"]],"must_not_have":[],"note":"409 识别，依赖 S13；回放前须重启 mock"}
+{"id":"S15","input":"订单 9999 什么状态","expect_tools":["get_order"],"expect_args":{"order_id":9999},"must_have":[],"must_have_any":[["不存在","未找到","没有","查不到","暂无","无记录"]],"must_not_have":[],"note":"404 处理"}
+{"id":"S16","input":"1002 是哪个快递公司","expect_tools":["get_logistics"],"expect_args":{"order_id":1002},"must_have":["中通"],"must_have_any":[],"must_not_have":["顺丰"],"note":"精确字段，串单即错"}
+{"id":"S17","input":"查一下 1002 的订单和物流","expect_tools":["get_order","get_logistics"],"expect_args":{"order_id":1002},"must_have":["429","中通"],"must_have_any":[],"must_not_have":[],"note":"多工具串联"}
+{"id":"S18","input":"你们支持七天无理由退货吗","expect_tools":null,"expect_args":{},"must_have":[],"must_have_any":[["没有","无法","不确定","不包含","未提供","查不到"]],"must_not_have":[],"note":"工具里无此数据，必须承认不知道"}
+{"id":"S19","input":"1002 明天能到吗","expect_tools":["get_logistics"],"expect_args":{},"must_have":[],"must_have_any":[["无法","不确定","暂无","没有","不能"]],"must_not_have":["明天送达","明天可以送到","预计明天","明天就能到"],"note":"承诺型幻觉"}
+{"id":"S20","input":"耳机和机械键盘哪个更值得买","expect_tools":null,"expect_args":{},"must_have":["899","429"],"must_have_any":[],"must_not_have":[],"note":"主观题必须先取事实；搜索列表已足够，不强制详情"}

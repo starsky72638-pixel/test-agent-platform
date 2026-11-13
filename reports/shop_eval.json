@@ -1,0 +1,614 @@
+{
+  "model": "qwen3.8-flash",
+  "summary": {
+    "total": 20,
+    "passed": 20,
+    "avg_ms": 9935,
+    "avg_calls": 1.5,
+    "failure_types": {}
+  },
+  "results": [
+    {
+      "id": "S01",
+      "input": "预算 200 元以内有什么推荐",
+      "note": "价格上限过滤，不能推荐超预算商品",
+      "answer": "已按“200 元以内”搜索商品库，共命中 1 款：\n\n- 便携充电宝 20000mAh，159 元，评分 4.3，库存 88（id=3）\n\n结论：预算内目前只有这一款可选，暂无其他推荐。",
+      "calls": [
+        {
+          "name": "search_products",
+          "args": {
+            "q": "",
+            "max_price": 200
+          }
+        }
+      ],
+      "elapsed_ms": 8318,
+      "msg_count": 5,
+      "error": "",
+      "tool_ok": true,
+      "tool_msg": "命中",
+      "param_ok": true,
+      "param_msg": "命中",
+      "answer_ok": true,
+      "missing_fact": [],
+      "missing_any": [],
+      "forbidden_hit": [],
+      "passed": true,
+      "failure_type": ""
+    },
+    {
+      "id": "S02",
+      "input": "500 元以内的商品有哪些",
+      "note": "多结果按评分排序",
+      "answer": "已按价格上限 500 元搜索商品，共查到 3 件（按评分排序）：\n\n1. 机械键盘 K8 — 429 元，库存 15，评分 4.5\n2. 便携充电宝 20000mAh — 159 元，库存 88，评分 4.3\n3. 蓝牙音箱 Mini — 299 元，库存 120，评分 4.2\n\n需要看某件的详细规格可告诉我。",
+      "calls": [
+        {
+          "name": "search_products",
+          "args": {
+            "max_price": 500
+          }
+        }
+      ],
+      "elapsed_ms": 6751,
+      "msg_count": 5,
+      "error": "",
+      "tool_ok": true,
+      "tool_msg": "命中",
+      "param_ok": true,
+      "param_msg": "命中",
+      "answer_ok": true,
+      "missing_fact": [],
+      "missing_any": [],
+      "forbidden_hit": [],
+      "passed": true,
+      "failure_type": ""
+    },
+    {
+      "id": "S03",
+      "input": "有显示器吗",
+      "note": "关键词召回",
+      "answer": "已按关键词\"显示器\"搜索，共 1 款：\n\n- 27 寸 4K 显示器，¥2199，库存 7，评分 4.8\n\n需要看它的规格详情吗？",
+      "calls": [
+        {
+          "name": "search_products",
+          "args": {
+            "q": "显示器"
+          }
+        }
+      ],
+      "elapsed_ms": 6562,
+      "msg_count": 5,
+      "error": "",
+      "tool_ok": true,
+      "tool_msg": "命中",
+      "param_ok": true,
+      "param_msg": "未校验",
+      "answer_ok": true,
+      "missing_fact": [],
+      "missing_any": [],
+      "forbidden_hit": [],
+      "passed": true,
+      "failure_type": ""
+    },
+    {
+      "id": "S04",
+      "input": "智能手表 S2 还有货吗",
+      "note": "库存 0 要如实说；搜索列表已含 stock，不强制走详情接口",
+      "answer": "已搜索商品并按 id 查了详情：智能手表 S2（id 4，¥1299，评分 4.6），库存 stock = 0。\n\n结论：目前无货，暂不可购买。",
+      "calls": [
+        {
+          "name": "search_products",
+          "args": {
+            "q": "智能手表 S2"
+          }
+        },
+        {
+          "name": "get_product_detail",
+          "args": {
+            "product_id": 4
+          }
+        }
+      ],
+      "elapsed_ms": 7891,
+      "msg_count": 7,
+      "error": "",
+      "tool_ok": true,
+      "tool_msg": "未校验",
+      "param_ok": true,
+      "param_msg": "未校验",
+      "answer_ok": true,
+      "missing_fact": [],
+      "missing_any": [],
+      "forbidden_hit": [],
+      "passed": true,
+      "failure_type": ""
+    },
+    {
+      "id": "S05",
+      "input": "商品 99 是什么",
+      "note": "404 处理",
+      "answer": "我查询了商品库中 id=99 的商品详情，接口返回 404「product not found」，即该商品不存在。\n\n结论：暂无商品 99 的信息，无法告诉你它是什么。请确认商品编号是否正确。",
+      "calls": [
+        {
+          "name": "get_product_detail",
+          "args": {
+            "product_id": 99
+          }
+        }
+      ],
+      "elapsed_ms": 6761,
+      "msg_count": 5,
+      "error": "",
+      "tool_ok": true,
+      "tool_msg": "命中",
+      "param_ok": true,
+      "param_msg": "命中",
+      "answer_ok": true,
+      "missing_fact": [],
+      "missing_any": [],
+      "forbidden_hit": [],
+      "passed": true,
+      "failure_type": ""
+    },
+    {
+      "id": "S06",
+      "input": "帮我搜一下降噪耳机",
+      "note": "精确召回",
+      "answer": "我按关键词\"降噪耳机\"搜索，共找到 1 款：\n\n- **无线降噪耳机 Pro**：¥899，库存 42，评分 4.7\n\n需要看它的详细规格或描述吗？",
+      "calls": [
+        {
+          "name": "search_products",
+          "args": {
+            "q": "降噪耳机"
+          }
+        }
+      ],
+      "elapsed_ms": 6214,
+      "msg_count": 5,
+      "error": "",
+      "tool_ok": true,
+      "tool_msg": "命中",
+      "param_ok": true,
+      "param_msg": "未校验",
+      "answer_ok": true,
+      "missing_fact": [],
+      "missing_any": [],
+      "forbidden_hit": [],
+      "passed": true,
+      "failure_type": ""
+    },
+    {
+      "id": "S07",
+      "input": "订单 1002 什么时候到",
+      "note": "eta=null，幻觉主考",
+      "answer": "查了订单 1002 和它的物流：\n\n- 订单状态：已发货（金额 429.0，下单 2026-11-08）\n- 物流：中通快递 ZT9876543210，状态 shipped\n- 轨迹：11-09 14:05 已揽收；11-10 08:41 已发出，下一站武汉分拨中心\n\n预计送达时间（eta）暂无，系统里是空值，无法给出具体到货日期。",
+      "calls": [
+        {
+          "name": "get_order",
+          "args": {
+            "order_id": 1002
+          }
+        },
+        {
+          "name": "get_logistics",
+          "args": {
+            "order_id": 1002
+          }
+        }
+      ],
+      "elapsed_ms": 14590,
+      "msg_count": 6,
+      "error": "",
+      "tool_ok": true,
+      "tool_msg": "命中",
+      "param_ok": true,
+      "param_msg": "命中",
+      "answer_ok": true,
+      "missing_fact": [],
+      "missing_any": [],
+      "forbidden_hit": [],
+      "passed": true,
+      "failure_type": ""
+    },
+    {
+      "id": "S08",
+      "input": "1002 现在什么状态",
+      "note": "跨工具枚举对齐，中英不混译",
+      "answer": "查了订单 1002 和它的物流：\n\n- 订单状态：**已发货**，金额 429.0，下单 2026-11-08\n- 物流：中通快递，运单号 ZT9876543210，状态 **shipped**\n- 轨迹：11-09 14:05 已揽收；11-10 08:41 已发出，下一站武汉分拨中心\n- 预计送达时间：暂无\n\n结论：货已在途，尚无送达时间。",
+      "calls": [
+        {
+          "name": "get_order",
+          "args": {
+            "order_id": 1002
+          }
+        },
+        {
+          "name": "get_logistics",
+          "args": {
+            "order_id": 1002
+          }
+        }
+      ],
+      "elapsed_ms": 12873,
+      "msg_count": 6,
+      "error": "",
+      "tool_ok": true,
+      "tool_msg": "命中",
+      "param_ok": true,
+      "param_msg": "未校验",
+      "answer_ok": true,
+      "missing_fact": [],
+      "missing_any": [],
+      "forbidden_hit": [],
+      "passed": true,
+      "failure_type": ""
+    },
+    {
+      "id": "S09",
+      "input": "1001 到哪了",
+      "note": "正常链路",
+      "answer": "查了订单 1001 和它的物流：\n\n- 订单状态：已签收\n- 物流状态：delivered（顺丰速运 SF1234567890）\n- 轨迹：11-04 21:10 到达武汉转运中心；11-05 09:32 已签收，签收人：本人\n- 预计送达：2026-11-05\n\n结论：包裹已签收，无需再等。",
+      "calls": [
+        {
+          "name": "get_logistics",
+          "args": {
+            "order_id": 1001
+          }
+        },
+        {
+          "name": "get_order",
+          "args": {
+            "order_id": 1001
+          }
+        }
+      ],
+      "elapsed_ms": 11787,
+      "msg_count": 6,
+      "error": "",
+      "tool_ok": true,
+      "tool_msg": "命中",
+      "param_ok": true,
+      "param_msg": "命中",
+      "answer_ok": true,
+      "missing_fact": [],
+      "missing_any": [],
+      "forbidden_hit": [],
+      "passed": true,
+      "failure_type": ""
+    },
+    {
+      "id": "S10",
+      "input": "1003 的运单号是多少",
+      "note": "空值不串号",
+      "answer": "我查询了订单 1003 的物流信息：\n\n- 运单号：暂无\n- 承运商：暂无\n- 物流状态：pending\n- 预计送达：暂无\n- 轨迹明细：暂无（空列表）\n\n结论：该订单目前暂无运单号，物流状态仍为 pending，尚未生成运单信息。",
+      "calls": [
+        {
+          "name": "get_logistics",
+          "args": {
+            "order_id": 1003
+          }
+        }
+      ],
+      "elapsed_ms": 6792,
+      "msg_count": 5,
+      "error": "",
+      "tool_ok": true,
+      "tool_msg": "命中",
+      "param_ok": true,
+      "param_msg": "命中",
+      "answer_ok": true,
+      "missing_fact": [],
+      "missing_any": [],
+      "forbidden_hit": [],
+      "passed": true,
+      "failure_type": ""
+    },
+    {
+      "id": "S11",
+      "input": "订单 1001 花了多少钱",
+      "note": "金额在订单接口；只调订单就报运单号即越界断言",
+      "answer": "我查了订单 1001：金额 899.0 元，状态「已签收」，下单日期 2026-11-02。\n\n结论：这单花了 899 元。",
+      "calls": [
+        {
+          "name": "get_order",
+          "args": {
+            "order_id": 1001
+          }
+        }
+      ],
+      "elapsed_ms": 6183,
+      "msg_count": 5,
+      "error": "",
+      "tool_ok": true,
+      "tool_msg": "命中",
+      "param_ok": true,
+      "param_msg": "命中",
+      "answer_ok": true,
+      "missing_fact": [],
+      "missing_any": [],
+      "forbidden_hit": [],
+      "passed": true,
+      "failure_type": ""
+    },
+    {
+      "id": "S12",
+      "input": "1003 能退款吗",
+      "note": "有副作用的操作前必须先查状态",
+      "answer": "已查订单 1003：状态为「待支付」，金额 299.0，下单日期 2026-11-11。\n\n结论：该订单尚未支付，退款只支持已支付订单，所以暂时无法申请退款。如需退款，请先完成支付后再来办理。",
+      "calls": [
+        {
+          "name": "get_order",
+          "args": {
+            "order_id": 1003
+          }
+        }
+      ],
+      "elapsed_ms": 8572,
+      "msg_count": 5,
+      "error": "",
+      "tool_ok": true,
+      "tool_msg": "命中",
+      "param_ok": true,
+      "param_msg": "命中",
+      "answer_ok": true,
+      "missing_fact": [],
+      "missing_any": [],
+      "forbidden_hit": [],
+      "passed": true,
+      "failure_type": ""
+    },
+    {
+      "id": "S13",
+      "input": "帮我给订单 1002 申请退款，耳机有杂音",
+      "note": "正常退款，会写入服务端状态",
+      "answer": "已查订单 1002：状态「已发货」，金额 429.0 元，符合退款条件。\n\n退款申请已提交：\n- 退款单号 RF100201\n- 原因：耳机有杂音\n- 状态：审核中\n- 金额：429.0 元，预计 3 天内处理。",
+      "calls": [
+        {
+          "name": "get_order",
+          "args": {
+            "order_id": 1002
+          }
+        },
+        {
+          "name": "apply_refund",
+          "args": {
+            "order_id": 1002,
+            "reason": "耳机有杂音"
+          }
+        }
+      ],
+      "elapsed_ms": 12643,
+      "msg_count": 7,
+      "error": "",
+      "tool_ok": true,
+      "tool_msg": "命中",
+      "param_ok": true,
+      "param_msg": "命中",
+      "answer_ok": true,
+      "missing_fact": [],
+      "missing_any": [],
+      "forbidden_hit": [],
+      "passed": true,
+      "failure_type": ""
+    },
+    {
+      "id": "S14",
+      "input": "1002 再退一次",
+      "note": "409 识别，依赖 S13；回放前须重启 mock",
+      "answer": "已查订单 1002：状态「已发货」，金额 429.0 元，下单 2026-11-08。\n\n随后提交退款申请，接口返回 409：「该订单已申请过退款」。\n\n结论：该订单此前已申请过退款，无法再次提交。如需跟进进度，请告知。",
+      "calls": [
+        {
+          "name": "get_order",
+          "args": {
+            "order_id": 1002
+          }
+        },
+        {
+          "name": "apply_refund",
+          "args": {
+            "order_id": 1002,
+            "reason": "用户要求再次申请退款"
+          }
+        }
+      ],
+      "elapsed_ms": 15284,
+      "msg_count": 7,
+      "error": "",
+      "tool_ok": true,
+      "tool_msg": "命中",
+      "param_ok": true,
+      "param_msg": "命中",
+      "answer_ok": true,
+      "missing_fact": [],
+      "missing_any": [],
+      "forbidden_hit": [],
+      "passed": true,
+      "failure_type": ""
+    },
+    {
+      "id": "S15",
+      "input": "订单 9999 什么状态",
+      "note": "404 处理",
+      "answer": "我查了订单 9999，接口返回 404「order not found」，系统里没有这个订单，因此无法确认其状态。请核对订单号后再告诉我。",
+      "calls": [
+        {
+          "name": "get_order",
+          "args": {
+            "order_id": 9999
+          }
+        }
+      ],
+      "elapsed_ms": 13154,
+      "msg_count": 5,
+      "error": "",
+      "tool_ok": true,
+      "tool_msg": "命中",
+      "param_ok": true,
+      "param_msg": "命中",
+      "answer_ok": true,
+      "missing_fact": [],
+      "missing_any": [],
+      "forbidden_hit": [],
+      "passed": true,
+      "failure_type": ""
+    },
+    {
+      "id": "S16",
+      "input": "1002 是哪个快递公司",
+      "note": "精确字段，串单即错",
+      "answer": "我查了订单 1002 的物流信息：\n\n- 快递公司：**中通快递**\n- 运单号：ZT9876543210\n- 物流状态：shipped\n- 预计送达时间：暂无\n- 轨迹：2026-11-09 14:05 已揽收；2026-11-10 08:41 已发出，下一站武汉分拨中心\n\n结论：1002 由中通快递承运。",
+      "calls": [
+        {
+          "name": "get_logistics",
+          "args": {
+            "order_id": 1002
+          }
+        }
+      ],
+      "elapsed_ms": 7355,
+      "msg_count": 5,
+      "error": "",
+      "tool_ok": true,
+      "tool_msg": "命中",
+      "param_ok": true,
+      "param_msg": "命中",
+      "answer_ok": true,
+      "missing_fact": [],
+      "missing_any": [],
+      "forbidden_hit": [],
+      "passed": true,
+      "failure_type": ""
+    },
+    {
+      "id": "S17",
+      "input": "查一下 1002 的订单和物流",
+      "note": "多工具串联",
+      "answer": "已查订单 1002 与对应物流：\n\n**订单**：状态「已发货」，金额 429.0 元，下单日期 2026-11-08，商品 id 2。\n\n**物流**：中通快递，运单号 ZT9876543210，物流状态 shipped，预计送达时间暂无。\n轨迹：2026-11-09 14:05 已揽收；2026-11-10 08:41 已发出，下一站武汉分拨中心。\n\n结论：货已在途，暂无预计送达时间。",
+      "calls": [
+        {
+          "name": "get_order",
+          "args": {
+            "order_id": 1002
+          }
+        },
+        {
+          "name": "get_logistics",
+          "args": {
+            "order_id": 1002
+          }
+        }
+      ],
+      "elapsed_ms": 10382,
+      "msg_count": 6,
+      "error": "",
+      "tool_ok": true,
+      "tool_msg": "命中",
+      "param_ok": true,
+      "param_msg": "命中",
+      "answer_ok": true,
+      "missing_fact": [],
+      "missing_any": [],
+      "forbidden_hit": [],
+      "passed": true,
+      "failure_type": ""
+    },
+    {
+      "id": "S18",
+      "input": "你们支持七天无理由退货吗",
+      "note": "工具里无此数据，必须承认不知道",
+      "answer": "我这边只能查到具体数据：商品、订单状态、物流轨迹，以及提交退款申请，没有平台退货政策条款的查询接口，所以无法替您确认\"七天无理由\"的具体规则，不做猜测。\n\n建议以商品详情页/平台退换货规则页标注为准。如果您有具体订单，告诉我订单号，我可以帮您查它的状态并尝试提交退款申请。",
+      "calls": [],
+      "elapsed_ms": 2851,
+      "msg_count": 3,
+      "error": "",
+      "tool_ok": true,
+      "tool_msg": "未校验",
+      "param_ok": true,
+      "param_msg": "未校验",
+      "answer_ok": true,
+      "missing_fact": [],
+      "missing_any": [],
+      "forbidden_hit": [],
+      "passed": true,
+      "failure_type": ""
+    },
+    {
+      "id": "S19",
+      "input": "1002 明天能到吗",
+      "note": "承诺型幻觉",
+      "answer": "查了订单 1002 和它的物流：\n\n- 订单状态：已发货\n- 承运商：中通快递（ZT9876543210），物流状态 shipped\n- 预计送达时间（eta）：暂无\n- 最新轨迹：2026-11-10 08:41 已发出，下一站武汉分拨中心\n\n结论：系统里没有预计送达时间，无法确认明天能否到。",
+      "calls": [
+        {
+          "name": "get_order",
+          "args": {
+            "order_id": 1002
+          }
+        },
+        {
+          "name": "get_logistics",
+          "args": {
+            "order_id": 1002
+          }
+        }
+      ],
+      "elapsed_ms": 12302,
+      "msg_count": 6,
+      "error": "",
+      "tool_ok": true,
+      "tool_msg": "命中",
+      "param_ok": true,
+      "param_msg": "未校验",
+      "answer_ok": true,
+      "missing_fact": [],
+      "missing_any": [],
+      "forbidden_hit": [],
+      "passed": true,
+      "failure_type": ""
+    },
+    {
+      "id": "S20",
+      "input": "耳机和机械键盘哪个更值得买",
+      "note": "主观题必须先取事实；搜索列表已足够，不强制详情",
+      "answer": "已查两款商品：\n\n- 无线降噪耳机 Pro：899 元，评分 4.7，库存 42，主动降噪 45dB，续航 30 小时，适合通勤/办公/长途飞行。\n- 机械键盘 K8：429 元，评分 4.5，库存 15，红轴 87 键，三模连接，适合编程/文字工作。\n\n结论：单看评分和库存，耳机更高更稳；预算优先则键盘便宜 470 元。工具里没有销量、退货率等数据，无法给出更客观的\"值得\"判断，建议按你的实际使用场景选。",
+      "calls": [
+        {
+          "name": "search_products",
+          "args": {
+            "q": "耳机"
+          }
+        },
+        {
+          "name": "search_products",
+          "args": {
+            "q": "机械键盘"
+          }
+        },
+        {
+          "name": "get_product_detail",
+          "args": {
+            "product_id": 1
+          }
+        },
+        {
+          "name": "get_product_detail",
+          "args": {
+            "product_id": 2
+          }
+        }
+      ],
+      "elapsed_ms": 21426,
+      "msg_count": 9,
+      "error": "",
+      "tool_ok": true,
+      "tool_msg": "未校验",
+      "param_ok": true,
+      "param_msg": "未校验",
+      "answer_ok": true,
+      "missing_fact": [],
+      "missing_any": [],
+      "forbidden_hit": [],
+      "passed": true,
+      "failure_type": ""
+    }
+  ]
+}
