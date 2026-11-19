@@ -2,5 +2,11 @@
 __pycache__/
 *.py[cod]
 .env
+!.env.example
 .idea/
+.pytest_cache/
 pip_install.log
+*.log
+runs/adhoc/
+htmlcov/
+.mypy_cache/
