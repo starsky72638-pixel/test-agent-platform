@@ -1,0 +1,28 @@
+{
+  "run": "C:\\Users\\lenovo\\PycharmProjects\\test_agent\\runs\\full-cold\\20261118-000730",
+  "groups": [
+    "fit"
+  ],
+  "min_answer": 6,
+  "tasks": 43,
+  "total": {
+    "sft": 22,
+    "failed": 4,
+    "duplicates": 0
+  },
+  "by_group": {
+    "fit": {
+      "traces": 26,
+      "sft": 22,
+      "failed": 4,
+      "dropped": {},
+      "duplicates": 0
+    }
+  },
+  "failure_types": {
+    "wrong_fact": 1,
+    "missing_tool": 1,
+    "wrong_arg": 1,
+    "forbidden_action": 1
+  }
+}

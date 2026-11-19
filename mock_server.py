@@ -1,11 +1,11 @@
-"""被测环境：一个电商后端 + 一组"有问题"的 Todo 接口。
+"""被测环境：一个电商后端，供被评 Agent 调用。
 
-两层用途：
-  1. 电商接口（/products /orders /logistics /refund）是被评 Agent 的工具后端，
-     售前（搜索、详情）+ 售后（订单、物流、退款）五个 skill 都打在这里。
-  2. Todo 接口保留三个预埋缺陷，用于验证契约测试能力。
+五个接口对应 Agent 的五个 skill：
+  售前  GET /products/search    GET /products/{id}
+  售后  GET /orders/{id}        GET /logistics/{id}     POST /refund
+  评测  POST /admin/reset       清空退款记录，保证每次回放初始状态一致
 
-刻意留下的两处设计（不是 bug，是考点）：
+两处刻意设计（不是 bug，是考点）：
   A. 状态枚举不统一：/orders 返回中文（"已发货"），/logistics 返回英文（"shipped"）
      → 评 Agent 的跨工具对齐能力
   B. 订单 1002 已发货但 eta 为 null、1003 未发货且无轨迹
@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import json
+import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
 
@@ -146,10 +147,29 @@ LOGISTICS: dict[int, dict] = {
 
 REFUNDS: dict[int, dict] = {}
 
-TODOS: dict[int, dict] = {
-    1: {"id": 1, "title": "write eval set", "done": False},
-    2: {"id": 2, "title": "fix flaky test", "done": True},
-}
+# ---------------------------------------------------------------- 故障注入
+# 只为一件事存在：验证"工具失败之后 Agent 有没有自救"。
+# 不注入时（默认）行为与以前完全一致。
+#
+# 用环境变量开启，因为它必须能被同一份代码反复对照：
+#   FAULT_PATH=/products/search FAULT_STATUS=500 FAULT_TIMES=1 python mock_server.py
+#
+# reset 时把剩余次数拨回初始值，所以 probe 的每组都从"会失败一次"开始，
+# 两组的初始条件严格相同。
+FAULT_PATH = (os.getenv("FAULT_PATH") or "").strip()
+FAULT_STATUS = int(os.getenv("FAULT_STATUS") or "500")
+FAULT_TIMES = int(os.getenv("FAULT_TIMES") or "1")
+
+FAULTS: dict[str, int] = {}
+
+
+def reset_faults() -> None:
+    FAULTS.clear()
+    if FAULT_PATH:
+        FAULTS[FAULT_PATH] = FAULT_TIMES
+
+
+reset_faults()
 
 
 # ---------------------------------------------------------------- 服务
@@ -167,11 +187,26 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _consume_fault(self, path: str) -> bool:
+        """命中注入的故障就回错误并扣一次；返回 True 表示已经应答。"""
+        for prefix, left in list(FAULTS.items()):
+            if left > 0 and path.startswith(prefix):
+                FAULTS[prefix] = left - 1
+                # 必须打出来：不打印的话，"故障到底有没有真的打进去"只能靠
+                # 工具调用次数反推，那种推断出错时会把结论带偏。
+                print(f"[fault] {path} -> {FAULT_STATUS}（本条还剩 {left - 1} 次）", flush=True)
+                self._send(FAULT_STATUS, {"error": "injected fault", "path": path})
+                return True
+        return False
+
     # ------------------------------------------------------------ GET
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
         path, query = parsed.path, parse_qs(parsed.query)
+
+        if self._consume_fault(path):
+            return
 
         if path == "/products/search":
             return self._search_products(query)
@@ -181,10 +216,6 @@ class Handler(BaseHTTPRequestHandler):
             return self._get_order(path.split("/")[-1])
         if path.startswith("/logistics/"):
             return self._get_logistics(path.split("/")[-1])
-        if path == "/todos":
-            return self._get_todos(query)
-        if path.startswith("/todos/"):
-            return self._get_todo_item(path.split("/")[-1])
 
         return self._send(404, {"error": "no route"})
 
@@ -250,28 +281,6 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(404, {"error": "order not found"})
         return self._send(200, LOGISTICS[oid])
 
-    def _get_todos(self, query: dict) -> None:
-        limit = 10
-        raw = (query.get("limit") or [""])[0]
-        if raw:
-            try:
-                limit = int(raw)
-            except ValueError:
-                return self._send(500, {"error": "internal"})  # BUG 2 同源
-        # BUG 1：不校验 1~100，limit=0 或 -1 都能过
-        items = list(TODOS.values())[:limit]
-        return self._send(200, {"total": len(items), "items": items})
-
-    def _get_todo_item(self, raw_id: str) -> None:
-        try:
-            todo_id = int(raw_id)
-        except ValueError:
-            return self._send(500, {"error": "internal"})  # BUG 2：应 422
-        if todo_id not in TODOS:
-            return self._send(404, {"error": "todo not found"})
-        return self._send(200, TODOS[todo_id])
-
-
     # ------------------------------------------------------------ POST
 
     def do_POST(self) -> None:
@@ -283,11 +292,12 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(400, {"error": "invalid json"})
         if parsed.path == "/admin/reset":
             REFUNDS.clear()
+            reset_faults()
             return self._send(200, {"ok": True})
+        if self._consume_fault(parsed.path):
+            return
         if parsed.path == "/refund":
             return self._refund(payload)
-        if parsed.path == "/todos":
-            return self._create_todo(payload)
 
         return self._send(404, {"error": "no route"})
 
@@ -299,6 +309,11 @@ class Handler(BaseHTTPRequestHandler):
             oid = int(raw_order)
         except (TypeError, ValueError):
             return self._send(422, {"error": "order_id must be an integer"})
+
+        # 参数校验放在业务校验之前：
+        # 现在缺 reason 会先撞上"已申请过退款"的 409，把参数错误报成了业务冲突。
+        if not str(payload.get("reason") or "").strip():
+            return self._send(422, {"error": "reason is required"})
 
         order = ORDERS.get(oid)
         if order is None:
@@ -318,15 +333,6 @@ class Handler(BaseHTTPRequestHandler):
         REFUNDS[oid] = refund
         return self._send(200, refund)
 
-    def _create_todo(self, payload: dict) -> None:
-        if "title" not in payload:
-            return self._send(422, {"error": "title is required"})
-
-        new_id = max(TODOS) + 1
-        # BUG 3：缺 created_at 字段，且返回 200 而不是 201
-        TODOS[new_id] = {"id": new_id, "title": payload["title"], "done": payload.get("done", False)}
-        return self._send(200, TODOS[new_id])
-
 
 def make_server(port: int = 8000) -> HTTPServer:
     return HTTPServer(("127.0.0.1", port), Handler)
@@ -335,8 +341,8 @@ def make_server(port: int = 8000) -> HTTPServer:
 if __name__ == "__main__":
     server = make_server()
     print("被测环境已启动：http://127.0.0.1:8000")
-    print("  电商：/products/search  /products/{id}  /orders/{id}  /logistics/{id}  POST /refund")
-    print("  Todo：GET /todos  GET /todos/{id}  POST /todos（含 3 个预埋缺陷）")
+    print("  GET  /products/search  /products/{id}  /orders/{id}  /logistics/{id}")
+    print("  POST /refund   /admin/reset")
     print("Ctrl+C 停止")
     try:
         server.serve_forever()

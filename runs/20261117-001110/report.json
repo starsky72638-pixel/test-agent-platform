@@ -1,0 +1,743 @@
+{
+  "run": {
+    "stamp": "20261117-001110",
+    "agent": "cold",
+    "agent_name": "shop-cold",
+    "max_steps": 6,
+    "top_k": 6,
+    "min_score": null,
+    "fit_limit": 0,
+    "holdout_limit": 0,
+    "fit_tasks": [
+      "S01",
+      "S02",
+      "S03",
+      "S05",
+      "S06",
+      "S07",
+      "S08",
+      "S10",
+      "S11",
+      "S13",
+      "S15",
+      "S17",
+      "M01",
+      "M02",
+      "M04",
+      "M06",
+      "M08",
+      "H01",
+      "H03",
+      "H05",
+      "H07",
+      "H09",
+      "H11",
+      "H12",
+      "H13"
+    ],
+    "holdout_tasks": [
+      "S04",
+      "S09",
+      "S12",
+      "S14",
+      "S16",
+      "S18",
+      "S19",
+      "S20",
+      "M03",
+      "M05",
+      "M07",
+      "M09",
+      "H02",
+      "H04",
+      "H06",
+      "H08",
+      "H10"
+    ],
+    "store": "C:\\Users\\lenovo\\PycharmProjects\\test_agent\\runs\\20261117-001110\\experiences.jsonl",
+    "record_outcome": true
+  },
+  "learn": {
+    "stage": "learn",
+    "elapsed_ms": 317924,
+    "fit_tasks": 25,
+    "judged": 25,
+    "passed": 21,
+    "by_failure": {
+      "missing_tool": 2,
+      "forbidden_action": 1,
+      "wrong_order": 1
+    },
+    "candidates": 2,
+    "kept": 2,
+    "rejected": [],
+    "warnings": [],
+    "errors": [],
+    "experiences": [
+      {
+        "exp_id": "exp-3a30913c112a",
+        "failure_type": "missing_tool",
+        "pattern": "missing_tool|get_order|single",
+        "action": "遇到这类问题时必须调用 get_order；只做其中一部分查询就作答，会被判为漏查。",
+        "guard": "已经查到的部分不能代替没查的那部分。",
+        "support": 3,
+        "tags": [
+          "我给",
+          "有杂",
+          "机有",
+          "杂音",
+          "申请",
+          "给订",
+          "耳机",
+          "订单",
+          "请退",
+          "退款"
+        ],
+        "shape": "single",
+        "evidence": [
+          {
+            "trace_id": "S13-0ec25f2a",
+            "task_id": "S13",
+            "turn": 1,
+            "failure_type": "missing_tool",
+            "quote": "已为订单 1002 提交退款申请，信息如下：\n\n- 退款单号：RF100201\n- 退款原因：耳机有杂音\n- 退款金额：429.00 元\n- 当前状态：审核中\n- 预计处理时长：3 天\n\n审核结果出来后如有需要，我可以再帮你查询进度。",
+            "agent": "shop-cold",
+            "detail": "工具:缺 get_order | 顺序:未校验，get_order 一次都没调"
+          }
+        ]
+      },
+      {
+        "exp_id": "exp-56d434f43f4a",
+        "failure_type": "forbidden_action",
+        "pattern": "forbidden_action|apply_refund|single",
+        "action": "不要调用 apply_refund，除非用户明确要求执行这个动作。",
+        "guard": "查到相关信息不等于可以替用户下决定。",
+        "support": 2,
+        "tags": [
+          "不想",
+          "想要",
+          "我给",
+          "申请",
+          "箱不",
+          "给订",
+          "要了",
+          "订单",
+          "请退",
+          "退款",
+          "音箱"
+        ],
+        "shape": "single",
+        "evidence": [
+          {
+            "trace_id": "H11-91537da2",
+            "task_id": "H11",
+            "turn": 1,
+            "failure_type": "forbidden_action",
+            "quote": "订单 1003 的退款申请**没有提交成功**。\n\n查询结果：\n- 订单 1003 状态：**待支付**，金额 299.0，下单日期 2026-11-11\n- 退款接口返回：**订单未支付，无法退款**\n\n也就是说这笔订单还没有实际付款，所以不存在可退的款项，只有已支付的订单才能申请退款。\n\n如果你确实不再需要这个音箱",
+            "agent": "shop-cold",
+            "detail": "工具:禁止调用 apply_refund | 禁调:apply_refund"
+          }
+        ]
+      }
+    ],
+    "store": {
+      "file": "C:\\Users\\lenovo\\PycharmProjects\\test_agent\\runs\\20261117-001110\\experiences.jsonl",
+      "lines": 2,
+      "total": 2,
+      "active": 2,
+      "retired": 0,
+      "by_failure": {
+        "missing_tool": 1,
+        "forbidden_action": 1
+      },
+      "injected_total": 0,
+      "support_total": 2,
+      "contradict_total": 0
+    }
+  },
+  "verify": {
+    "stage": "verify",
+    "baseline": {
+      "label": "baseline",
+      "elapsed_ms": 268026,
+      "total": 17,
+      "passed": 13,
+      "rate": 0.7647,
+      "by_failure": {
+        "hallucination": 1,
+        "infra_error": 1,
+        "wrong_arg": 1,
+        "wrong_fact": 1
+      },
+      "errors": [],
+      "per_task": {
+        "H02": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products",
+            "search_products"
+          ]
+        },
+        "H04": {
+          "passed": false,
+          "failure_type": "wrong_fact",
+          "fail_turn": 1,
+          "calls": [
+            "get_order",
+            "get_logistics"
+          ]
+        },
+        "H06": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order",
+            "get_logistics"
+          ]
+        },
+        "H08": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products"
+          ]
+        },
+        "H10": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": []
+        },
+        "M03": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order"
+          ]
+        },
+        "M05": {
+          "passed": false,
+          "failure_type": "hallucination",
+          "fail_turn": 1,
+          "calls": [
+            "search_products",
+            "search_products"
+          ]
+        },
+        "M07": {
+          "passed": false,
+          "failure_type": "wrong_arg",
+          "fail_turn": 3,
+          "calls": [
+            "search_products",
+            "get_product_detail",
+            "get_product_detail",
+            "get_product_detail",
+            "search_products",
+            "get_product_detail",
+            "search_products"
+          ]
+        },
+        "M09": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products",
+            "get_order",
+            "get_logistics",
+            "get_order",
+            "get_logistics",
+            "get_logistics",
+            "search_products",
+            "search_products",
+            "get_order"
+          ]
+        },
+        "S04": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products"
+          ]
+        },
+        "S09": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_logistics",
+            "get_order"
+          ]
+        },
+        "S12": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order"
+          ]
+        },
+        "S14": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order",
+            "apply_refund",
+            "apply_refund"
+          ]
+        },
+        "S16": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_logistics"
+          ]
+        },
+        "S18": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": []
+        },
+        "S19": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order",
+            "get_logistics"
+          ]
+        },
+        "S20": {
+          "passed": false,
+          "failure_type": "infra_error",
+          "fail_turn": null,
+          "calls": []
+        }
+      },
+      "hits": {}
+    },
+    "injected": {
+      "label": "injected",
+      "elapsed_ms": 362843,
+      "total": 17,
+      "passed": 14,
+      "rate": 0.8235,
+      "by_failure": {
+        "infra_error": 1,
+        "wrong_arg": 1,
+        "wrong_fact": 1
+      },
+      "errors": [],
+      "per_task": {
+        "H02": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products",
+            "search_products"
+          ]
+        },
+        "H04": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order",
+            "get_logistics"
+          ]
+        },
+        "H06": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order",
+            "get_logistics"
+          ]
+        },
+        "H08": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products"
+          ]
+        },
+        "H10": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": []
+        },
+        "M03": {
+          "passed": false,
+          "failure_type": "infra_error",
+          "fail_turn": null,
+          "calls": []
+        },
+        "M05": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": []
+        },
+        "M07": {
+          "passed": false,
+          "failure_type": "wrong_arg",
+          "fail_turn": 3,
+          "calls": [
+            "search_products",
+            "search_products",
+            "search_products"
+          ]
+        },
+        "M09": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products",
+            "get_order",
+            "get_logistics",
+            "get_order",
+            "get_logistics",
+            "get_logistics",
+            "search_products",
+            "search_products",
+            "get_order"
+          ]
+        },
+        "S04": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products"
+          ]
+        },
+        "S09": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order",
+            "get_logistics"
+          ]
+        },
+        "S12": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order",
+            "get_logistics"
+          ]
+        },
+        "S14": {
+          "passed": false,
+          "failure_type": "wrong_fact",
+          "fail_turn": 1,
+          "calls": [
+            "get_order",
+            "apply_refund",
+            "apply_refund"
+          ]
+        },
+        "S16": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_logistics"
+          ]
+        },
+        "S18": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": []
+        },
+        "S19": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_logistics",
+            "get_order"
+          ]
+        },
+        "S20": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products",
+            "search_products",
+            "get_product_detail",
+            "get_product_detail"
+          ]
+        }
+      },
+      "hits": {
+        "H02": {
+          "ids": [],
+          "chars": 0
+        },
+        "H04": {
+          "ids": [],
+          "chars": 0
+        },
+        "H06": {
+          "ids": [],
+          "chars": 0
+        },
+        "H08": {
+          "ids": [],
+          "chars": 0
+        },
+        "H10": {
+          "ids": [],
+          "chars": 0
+        },
+        "M03": {
+          "ids": [],
+          "chars": 0
+        },
+        "M05": {
+          "ids": [],
+          "chars": 0
+        },
+        "M07": {
+          "ids": [],
+          "chars": 0
+        },
+        "M09": {
+          "ids": [],
+          "chars": 0
+        },
+        "S04": {
+          "ids": [],
+          "chars": 0
+        },
+        "S09": {
+          "ids": [],
+          "chars": 0
+        },
+        "S12": {
+          "ids": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ],
+          "chars": 190
+        },
+        "S14": {
+          "ids": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ],
+          "chars": 190
+        },
+        "S16": {
+          "ids": [],
+          "chars": 0
+        },
+        "S18": {
+          "ids": [],
+          "chars": 0
+        },
+        "S19": {
+          "ids": [],
+          "chars": 0
+        },
+        "S20": {
+          "ids": [
+            "exp-3a30913c112a"
+          ],
+          "chars": 134
+        }
+      }
+    },
+    "delta": {
+      "baseline_rate": 0.7647,
+      "injected_rate": 0.8235,
+      "rate_delta": 0.0588,
+      "baseline_passed": 13,
+      "injected_passed": 14,
+      "flips_up": 3,
+      "flips_down": 2,
+      "coverage_rate": 0.1765
+    },
+    "flips": {
+      "up": [
+        "H04",
+        "M05",
+        "S20"
+      ],
+      "down": [
+        "M03",
+        "S14"
+      ],
+      "same_pass": [
+        "H02",
+        "H06",
+        "H08",
+        "H10",
+        "M09",
+        "S04",
+        "S09",
+        "S12",
+        "S16",
+        "S18",
+        "S19"
+      ],
+      "same_fail": [
+        "M07"
+      ]
+    },
+    "coverage": [
+      {
+        "task_id": "H02",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "H04",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "H06",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "H08",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "H10",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "M03",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "M05",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "M07",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "M09",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "S04",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "S09",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "S12",
+        "injected": true,
+        "exp_ids": [
+          "exp-3a30913c112a",
+          "exp-56d434f43f4a"
+        ],
+        "chars": 190
+      },
+      {
+        "task_id": "S14",
+        "injected": true,
+        "exp_ids": [
+          "exp-3a30913c112a",
+          "exp-56d434f43f4a"
+        ],
+        "chars": 190
+      },
+      {
+        "task_id": "S16",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "S18",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "S19",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "S20",
+        "injected": true,
+        "exp_ids": [
+          "exp-3a30913c112a"
+        ],
+        "chars": 134
+      }
+    ],
+    "hit_counts": {
+      "exp-3a30913c112a": 3,
+      "exp-56d434f43f4a": 2
+    },
+    "memory": {
+      "touched": 5,
+      "retired": 0
+    }
+  },
+  "store_after": {
+    "file": "C:\\Users\\lenovo\\PycharmProjects\\test_agent\\runs\\20261117-001110\\experiences.jsonl",
+    "lines": 12,
+    "total": 2,
+    "active": 2,
+    "retired": 0,
+    "by_failure": {
+      "missing_tool": 1,
+      "forbidden_action": 1
+    },
+    "injected_total": 5,
+    "support_total": 5,
+    "contradict_total": 2
+  }
+}

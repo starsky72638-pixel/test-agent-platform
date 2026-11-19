@@ -1,0 +1,363 @@
+{
+  "run": {
+    "stamp": "20261117-233252",
+    "agent": "shop-cold",
+    "agent_requested": "cold",
+    "max_steps": 6,
+    "top_k": 6,
+    "min_score": null,
+    "fit_limit": 0,
+    "holdout_limit": 0,
+    "fit_tasks": [
+      "M01",
+      "M02",
+      "M04",
+      "M06",
+      "M08",
+      "M10"
+    ],
+    "holdout_tasks": [
+      "M03",
+      "M05",
+      "M07",
+      "M09"
+    ],
+    "store": "runs\\m10-search\\20261117-233252\\experiences.jsonl",
+    "record_outcome": true
+  },
+  "learn": {
+    "stage": "learn",
+    "elapsed_ms": 172885,
+    "fit_tasks": 6,
+    "judged": 6,
+    "passed": 4,
+    "by_failure": {
+      "missing_tool": 1,
+      "wrong_arg": 1
+    },
+    "candidates": 2,
+    "kept": 2,
+    "rejected": [],
+    "warnings": [],
+    "errors": [],
+    "experiences": [
+      {
+        "exp_id": "exp-011b486a50fb",
+        "failure_type": "missing_tool",
+        "pattern": "missing_tool|get_order|multi",
+        "action": "遇到这类问题时必须调用 get_order；只做其中一部分查询就作答，会被判为漏查。",
+        "guard": "已经查到的部分不能代替没查的那部分。",
+        "support": 2,
+        "tags": [
+          "一共",
+          "两个",
+          "个订",
+          "了多",
+          "充电",
+          "共多",
+          "加起",
+          "单加",
+          "单花",
+          "多少",
+          "宝多",
+          "宝有",
+          "少钱",
+          "有货",
+          "来一",
+          "电宝",
+          "花了",
+          "订单",
+          "货吗",
+          "起来",
+          "那两",
+          "那单"
+        ],
+        "shape": "multi",
+        "evidence": [
+          {
+            "trace_id": "M08-e81a4034",
+            "task_id": "M08",
+            "turn": 5,
+            "failure_type": "missing_tool",
+            "quote": "两单合计 **1328.0 元**：\n\n- 1001：899.0 元（已签收）\n- 1002：429.0 元（已发货）",
+            "agent": "shop-cold",
+            "detail": "工具:缺 get_order | 参数:错 order_id=1001"
+          }
+        ]
+      },
+      {
+        "exp_id": "exp-c8e70cd9d11b",
+        "failure_type": "wrong_arg",
+        "pattern": "wrong_arg|max_price|multi",
+        "action": "调用工具时 max_price 必须带上具体值：本轮用户说了就按本轮的，本轮没提但前面说过的，沿用最近一次的值，不能退回更早的旧值；换关键词继续搜时，之前的限制仍然有效；不能留空，也不能凭空猜。",
+        "guard": "参数不是可选项，漏了就等于查错范围。",
+        "support": 3,
+        "tags": [
+          "个显",
+          "么推",
+          "什么",
+          "以内",
+          "内有",
+          "再帮",
+          "我搜",
+          "推荐",
+          "提到",
+          "搜个",
+          "显示",
+          "有什",
+          "示器",
+          "能提",
+          "那能",
+          "预算"
+        ],
+        "shape": "multi",
+        "evidence": [
+          {
+            "trace_id": "M10-5ed3d764",
+            "task_id": "M10",
+            "turn": 3,
+            "failure_type": "wrong_arg",
+            "quote": "按关键词\"显示器\"搜下来，**全站只有 1 款**：\n\n**27 寸 4K 显示器 —— ¥2199，评分 4.8，库存 7**\n- 分辨率 3840×2160，刷新率 60Hz\n- 接口：HDMI2.1 ×2 / DP1.4\n- 出厂校色 ΔE<2，支持 65W 反向供电\n- 适用：设计、剪辑、多窗口办公\n\n我又用\"",
+            "agent": "shop-cold",
+            "detail": "参数:错 max_price=2500"
+          }
+        ]
+      }
+    ],
+    "store": {
+      "file": "runs\\m10-search\\20261117-233252\\experiences.jsonl",
+      "lines": 2,
+      "total": 2,
+      "active": 2,
+      "retired": 0,
+      "by_failure": {
+        "missing_tool": 1,
+        "wrong_arg": 1
+      },
+      "injected_total": 0,
+      "support_total": 2,
+      "contradict_total": 0
+    }
+  },
+  "verify": {
+    "stage": "verify",
+    "baseline": {
+      "label": "baseline",
+      "elapsed_ms": 137154,
+      "total": 4,
+      "passed": 2,
+      "rate": 0.5,
+      "by_failure": {
+        "hallucination": 1,
+        "wrong_arg": 1
+      },
+      "errors": [],
+      "per_task": {
+        "M03": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order"
+          ]
+        },
+        "M05": {
+          "passed": false,
+          "failure_type": "hallucination",
+          "fail_turn": 1,
+          "calls": [
+            "search_products",
+            "search_products"
+          ]
+        },
+        "M07": {
+          "passed": false,
+          "failure_type": "wrong_arg",
+          "fail_turn": 3,
+          "calls": [
+            "search_products",
+            "get_product_detail",
+            "get_product_detail",
+            "get_product_detail",
+            "search_products",
+            "get_product_detail",
+            "search_products"
+          ]
+        },
+        "M09": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products",
+            "get_order",
+            "get_logistics",
+            "get_order",
+            "get_logistics",
+            "search_products",
+            "search_products",
+            "get_order"
+          ]
+        }
+      },
+      "hits": {}
+    },
+    "injected": {
+      "label": "injected",
+      "elapsed_ms": 133853,
+      "total": 4,
+      "passed": 3,
+      "rate": 0.75,
+      "by_failure": {
+        "hallucination": 1
+      },
+      "errors": [],
+      "per_task": {
+        "M03": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order",
+            "get_logistics"
+          ]
+        },
+        "M05": {
+          "passed": false,
+          "failure_type": "hallucination",
+          "fail_turn": 1,
+          "calls": [
+            "search_products",
+            "search_products"
+          ]
+        },
+        "M07": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products",
+            "search_products",
+            "search_products"
+          ]
+        },
+        "M09": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products",
+            "get_order",
+            "get_logistics",
+            "get_order",
+            "get_logistics",
+            "get_order",
+            "get_logistics",
+            "search_products",
+            "search_products",
+            "get_order"
+          ]
+        }
+      },
+      "hits": {
+        "M03": {
+          "ids": [],
+          "chars": 0
+        },
+        "M05": {
+          "ids": [],
+          "chars": 0
+        },
+        "M07": {
+          "ids": [
+            "exp-c8e70cd9d11b"
+          ],
+          "chars": 268
+        },
+        "M09": {
+          "ids": [
+            "exp-011b486a50fb",
+            "exp-c8e70cd9d11b"
+          ],
+          "chars": 333
+        }
+      }
+    },
+    "delta": {
+      "baseline_rate": 0.5,
+      "injected_rate": 0.75,
+      "rate_delta": 0.25,
+      "baseline_passed": 2,
+      "injected_passed": 3,
+      "flips_up": 1,
+      "flips_down": 0,
+      "coverage_rate": 0.5
+    },
+    "flips": {
+      "up": [
+        "M07"
+      ],
+      "down": [],
+      "same_pass": [
+        "M03",
+        "M09"
+      ],
+      "same_fail": [
+        "M05"
+      ]
+    },
+    "coverage": [
+      {
+        "task_id": "M03",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "M05",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "M07",
+        "injected": true,
+        "exp_ids": [
+          "exp-c8e70cd9d11b"
+        ],
+        "chars": 268
+      },
+      {
+        "task_id": "M09",
+        "injected": true,
+        "exp_ids": [
+          "exp-011b486a50fb",
+          "exp-c8e70cd9d11b"
+        ],
+        "chars": 333
+      }
+    ],
+    "hit_counts": {
+      "exp-c8e70cd9d11b": 2,
+      "exp-011b486a50fb": 1
+    },
+    "memory": {
+      "touched": 3,
+      "retired": 0
+    }
+  },
+  "store_after": {
+    "file": "runs\\m10-search\\20261117-233252\\experiences.jsonl",
+    "lines": 8,
+    "total": 2,
+    "active": 2,
+    "retired": 0,
+    "by_failure": {
+      "missing_tool": 1,
+      "wrong_arg": 1
+    },
+    "injected_total": 3,
+    "support_total": 5,
+    "contradict_total": 0
+  }
+}

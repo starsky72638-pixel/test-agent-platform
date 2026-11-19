@@ -1,0 +1,383 @@
+{
+  "run": {
+    "stamp": "20261117-193648",
+    "agent": "cold",
+    "agent_name": "shop-cold",
+    "max_steps": 6,
+    "top_k": 6,
+    "min_score": null,
+    "fit_limit": 0,
+    "holdout_limit": 6,
+    "fit_tasks": [
+      "S01",
+      "S02",
+      "S03",
+      "S05",
+      "S06",
+      "S07",
+      "S08",
+      "S10",
+      "S11",
+      "S13",
+      "S15",
+      "S17",
+      "M01",
+      "M02",
+      "M04",
+      "M06",
+      "M08",
+      "H01",
+      "H03",
+      "H05",
+      "H07",
+      "H09",
+      "H11",
+      "H12",
+      "H13"
+    ],
+    "holdout_tasks": [
+      "S04",
+      "S09",
+      "S12",
+      "S14",
+      "S16",
+      "S18"
+    ],
+    "store": "C:\\Users\\lenovo\\PycharmProjects\\test_agent\\runs\\20261117-193648\\experiences.jsonl",
+    "record_outcome": true
+  },
+  "learn": {
+    "stage": "learn",
+    "elapsed_ms": 328838,
+    "fit_tasks": 25,
+    "judged": 25,
+    "passed": 23,
+    "by_failure": {
+      "missing_tool": 2
+    },
+    "candidates": 1,
+    "kept": 1,
+    "rejected": [],
+    "warnings": [],
+    "errors": [],
+    "experiences": [
+      {
+        "exp_id": "exp-011b486a50fb",
+        "failure_type": "missing_tool",
+        "pattern": "missing_tool|get_order|multi",
+        "action": "遇到这类问题时必须调用 get_order；只做其中一部分查询就作答，会被判为漏查。",
+        "guard": "已经查到的部分不能代替没查的那部分。",
+        "support": 2,
+        "tags": [
+          "一共",
+          "一次",
+          "两个",
+          "个订",
+          "了多",
+          "交一",
+          "充电",
+          "共多",
+          "再帮",
+          "加起",
+          "单加",
+          "单花",
+          "多少",
+          "宝多",
+          "宝有",
+          "少钱",
+          "我提",
+          "提交",
+          "有杂",
+          "有货",
+          "机有",
+          "杂音",
+          "来一",
+          "申请",
+          "电宝",
+          "耳机",
+          "花了",
+          "订单",
+          "请退",
+          "货吗",
+          "起来",
+          "退款"
+        ],
+        "shape": "multi",
+        "evidence": [
+          {
+            "trace_id": "M08-52557a38",
+            "task_id": "M08",
+            "turn": 5,
+            "failure_type": "missing_tool",
+            "quote": "两个订单合计 **1328 元**。\n\n| 订单号 | 金额 | 状态 |\n|---|---|---|\n| 1001 | 899 元 | 已签收 |\n| 1002 | 429 元 | 已发货 |\n| **合计** | **1328 元** | |",
+            "agent": "shop-cold",
+            "detail": "工具:缺 get_order | 参数:错 order_id=1001"
+          },
+          {
+            "trace_id": "H12-840166fb",
+            "task_id": "H12",
+            "turn": 1,
+            "failure_type": "missing_tool",
+            "quote": "退款申请未能提交：**该订单已申请过退款**（系统返回 409）。\n\n订单 1002 已经存在一条退款申请，同一订单不能重复申请，所以我这边没有再新建记录。你反馈的\"耳机有杂音\"这个原因也没有被写入新的申请。\n\n如果需要，我可以帮你查一下订单 1002 的当前状态，你告诉我要不要查。",
+            "agent": "shop-cold",
+            "detail": "工具:缺 get_order | 顺序:未校验，get_order 一次都没调 | 缺任一:审核"
+          }
+        ]
+      }
+    ],
+    "store": {
+      "file": "C:\\Users\\lenovo\\PycharmProjects\\test_agent\\runs\\20261117-193648\\experiences.jsonl",
+      "lines": 1,
+      "total": 1,
+      "active": 1,
+      "retired": 0,
+      "by_failure": {
+        "missing_tool": 1
+      },
+      "injected_total": 0,
+      "support_total": 2,
+      "contradict_total": 0
+    }
+  },
+  "verify": {
+    "stage": "verify",
+    "baseline": {
+      "label": "baseline",
+      "elapsed_ms": 59809,
+      "total": 6,
+      "passed": 6,
+      "rate": 1.0,
+      "by_failure": {},
+      "errors": [],
+      "per_task": {
+        "S04": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products",
+            "get_product_detail"
+          ]
+        },
+        "S09": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_logistics",
+            "get_order"
+          ]
+        },
+        "S12": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order"
+          ]
+        },
+        "S14": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order",
+            "apply_refund",
+            "apply_refund"
+          ]
+        },
+        "S16": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_logistics"
+          ]
+        },
+        "S18": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": []
+        }
+      },
+      "hits": {}
+    },
+    "injected": {
+      "label": "injected",
+      "elapsed_ms": 76827,
+      "total": 6,
+      "passed": 5,
+      "rate": 0.8333,
+      "by_failure": {
+        "wrong_fact": 1
+      },
+      "errors": [],
+      "per_task": {
+        "S04": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products"
+          ]
+        },
+        "S09": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_logistics",
+            "get_order"
+          ]
+        },
+        "S12": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order"
+          ]
+        },
+        "S14": {
+          "passed": false,
+          "failure_type": "wrong_fact",
+          "fail_turn": 1,
+          "calls": [
+            "get_order",
+            "get_logistics",
+            "apply_refund",
+            "apply_refund",
+            "get_order"
+          ]
+        },
+        "S16": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_logistics"
+          ]
+        },
+        "S18": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": []
+        }
+      },
+      "hits": {
+        "S04": {
+          "ids": [],
+          "chars": 0
+        },
+        "S09": {
+          "ids": [],
+          "chars": 0
+        },
+        "S12": {
+          "ids": [],
+          "chars": 0
+        },
+        "S14": {
+          "ids": [
+            "exp-011b486a50fb"
+          ],
+          "chars": 213
+        },
+        "S16": {
+          "ids": [],
+          "chars": 0
+        },
+        "S18": {
+          "ids": [],
+          "chars": 0
+        }
+      }
+    },
+    "delta": {
+      "baseline_rate": 1.0,
+      "injected_rate": 0.8333,
+      "rate_delta": -0.1667,
+      "baseline_passed": 6,
+      "injected_passed": 5,
+      "flips_up": 0,
+      "flips_down": 1,
+      "coverage_rate": 0.1667
+    },
+    "flips": {
+      "up": [],
+      "down": [
+        "S14"
+      ],
+      "same_pass": [
+        "S04",
+        "S09",
+        "S12",
+        "S16",
+        "S18"
+      ],
+      "same_fail": []
+    },
+    "coverage": [
+      {
+        "task_id": "S04",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "S09",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "S12",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "S14",
+        "injected": true,
+        "exp_ids": [
+          "exp-011b486a50fb"
+        ],
+        "chars": 213
+      },
+      {
+        "task_id": "S16",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "S18",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      }
+    ],
+    "hit_counts": {
+      "exp-011b486a50fb": 1
+    },
+    "memory": {
+      "touched": 1,
+      "retired": 0
+    }
+  },
+  "store_after": {
+    "file": "C:\\Users\\lenovo\\PycharmProjects\\test_agent\\runs\\20261117-193648\\experiences.jsonl",
+    "lines": 3,
+    "total": 1,
+    "active": 1,
+    "retired": 0,
+    "by_failure": {
+      "missing_tool": 1
+    },
+    "injected_total": 1,
+    "support_total": 2,
+    "contradict_total": 1
+  }
+}

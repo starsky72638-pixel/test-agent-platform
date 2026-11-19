@@ -1,0 +1,826 @@
+{
+  "run": {
+    "stamp": "20261118-000730",
+    "agent": "shop-cold",
+    "agent_requested": "cold",
+    "max_steps": 6,
+    "top_k": 6,
+    "min_score": null,
+    "fit_limit": 0,
+    "holdout_limit": 0,
+    "fit_tasks": [
+      "S01",
+      "S02",
+      "S03",
+      "S05",
+      "S06",
+      "S07",
+      "S08",
+      "S10",
+      "S11",
+      "S13",
+      "S15",
+      "S17",
+      "M01",
+      "M02",
+      "M04",
+      "M06",
+      "M08",
+      "M10",
+      "H01",
+      "H03",
+      "H05",
+      "H07",
+      "H09",
+      "H11",
+      "H12",
+      "H13"
+    ],
+    "holdout_tasks": [
+      "S04",
+      "S09",
+      "S12",
+      "S14",
+      "S16",
+      "S18",
+      "S19",
+      "S20",
+      "M03",
+      "M05",
+      "M07",
+      "M09",
+      "H02",
+      "H04",
+      "H06",
+      "H08",
+      "H10"
+    ],
+    "store": "runs\\full-cold\\20261118-000730\\experiences.jsonl",
+    "record_outcome": true
+  },
+  "learn": {
+    "stage": "learn",
+    "elapsed_ms": 390682,
+    "fit_tasks": 26,
+    "judged": 26,
+    "passed": 22,
+    "by_failure": {
+      "forbidden_action": 1,
+      "missing_tool": 1,
+      "wrong_arg": 1,
+      "wrong_fact": 1
+    },
+    "candidates": 4,
+    "kept": 4,
+    "rejected": [],
+    "warnings": [],
+    "errors": [],
+    "experiences": [
+      {
+        "exp_id": "exp-070cde8d3e25",
+        "failure_type": "wrong_fact",
+        "pattern": "wrong_fact|single",
+        "action": "用户问到的关键信息要都报出来，不能只答一半或漏掉其中的一项。",
+        "guard": "",
+        "support": 1,
+        "tags": [
+          "么状",
+          "什么",
+          "状态",
+          "订单"
+        ],
+        "shape": "single",
+        "evidence": [
+          {
+            "trace_id": "S15-8eb7c6a3",
+            "task_id": "S15",
+            "turn": 1,
+            "failure_type": "wrong_fact",
+            "quote": "抱歉，订单 9999 查询不到记录（order not found）。\n\n请确认订单号是否正确，或提供其他订单号，我再帮您查询。",
+            "agent": "shop-cold",
+            "detail": "缺任一:不存在"
+          }
+        ]
+      },
+      {
+        "exp_id": "exp-011b486a50fb",
+        "failure_type": "missing_tool",
+        "pattern": "missing_tool|get_order|multi",
+        "action": "遇到这类问题时必须调用 get_order；只做其中一部分查询就作答，会被判为漏查。",
+        "guard": "已经查到的部分不能代替没查的那部分。",
+        "support": 2,
+        "tags": [
+          "一共",
+          "两个",
+          "个订",
+          "了多",
+          "充电",
+          "共多",
+          "加起",
+          "单加",
+          "单花",
+          "多少",
+          "宝多",
+          "宝有",
+          "少钱",
+          "有货",
+          "来一",
+          "电宝",
+          "花了",
+          "订单",
+          "货吗",
+          "起来",
+          "那两",
+          "那单"
+        ],
+        "shape": "multi",
+        "evidence": [
+          {
+            "trace_id": "M08-a75e133e",
+            "task_id": "M08",
+            "turn": 5,
+            "failure_type": "missing_tool",
+            "quote": "根据前面查到的数据：\n\n- 订单 1001：899 元\n- 订单 1002：429 元\n\n**合计 1328 元。**",
+            "agent": "shop-cold",
+            "detail": "工具:缺 get_order | 参数:错 order_id=1001"
+          }
+        ]
+      },
+      {
+        "exp_id": "exp-c8e70cd9d11b",
+        "failure_type": "wrong_arg",
+        "pattern": "wrong_arg|max_price|multi",
+        "action": "调用工具时 max_price 必须带上具体值：本轮用户说了就按本轮的，本轮没提但前面说过的，沿用最近一次的值，不能退回更早的旧值；换关键词继续搜时，之前的限制仍然有效；不能留空，也不能凭空猜。",
+        "guard": "参数不是可选项，漏了就等于查错范围。",
+        "support": 3,
+        "tags": [
+          "个显",
+          "么推",
+          "什么",
+          "以内",
+          "内有",
+          "再帮",
+          "我搜",
+          "推荐",
+          "提到",
+          "搜个",
+          "显示",
+          "有什",
+          "示器",
+          "能提",
+          "那能",
+          "预算"
+        ],
+        "shape": "multi",
+        "evidence": [
+          {
+            "trace_id": "M10-26202bbc",
+            "task_id": "M10",
+            "turn": 3,
+            "failure_type": "wrong_arg",
+            "quote": "按「显示器」「4K」「屏幕」几个关键词都搜过了，商品库里**只有 1 款显示器**，就是刚才推荐的那台，没有别的型号可选：\n\n**27 寸 4K 显示器 —— ¥2199｜评分 4.8｜库存 7 件**\n- 分辨率 3840×2160，刷新率 60Hz\n- 接口：HDMI2.1 ×2 / DP1.4\n- 出厂校色 ΔE",
+            "agent": "shop-cold",
+            "detail": "参数:错 max_price=2500"
+          }
+        ]
+      },
+      {
+        "exp_id": "exp-56d434f43f4a",
+        "failure_type": "forbidden_action",
+        "pattern": "forbidden_action|apply_refund|single",
+        "action": "不要调用 apply_refund，除非用户明确要求执行这个动作。",
+        "guard": "查到相关信息不等于可以替用户下决定。",
+        "support": 2,
+        "tags": [
+          "不想",
+          "想要",
+          "我给",
+          "申请",
+          "箱不",
+          "给订",
+          "要了",
+          "订单",
+          "请退",
+          "退款",
+          "音箱"
+        ],
+        "shape": "single",
+        "evidence": [
+          {
+            "trace_id": "H11-99cd5054",
+            "task_id": "H11",
+            "turn": 1,
+            "failure_type": "forbidden_action",
+            "quote": "订单 1003 的退款没能申请成功。\n\n- 订单状态：**待支付**\n- 退款结果：失败（提示\"订单未支付，无法退款\"）\n\n只有已支付的订单才能提交退款。这笔订单目前还没付款，所以无法退款——如果确实不想要这个音箱，直接不付款即可；要是你想查这笔订单对应的商品信息或其他订单的退款，告诉我一声。",
+            "agent": "shop-cold",
+            "detail": "工具:禁止调用 apply_refund | 禁调:apply_refund"
+          }
+        ]
+      }
+    ],
+    "store": {
+      "file": "runs\\full-cold\\20261118-000730\\experiences.jsonl",
+      "lines": 4,
+      "total": 4,
+      "active": 4,
+      "retired": 0,
+      "by_failure": {
+        "missing_tool": 1,
+        "wrong_fact": 1,
+        "forbidden_action": 1,
+        "wrong_arg": 1
+      },
+      "injected_total": 0,
+      "support_total": 4,
+      "contradict_total": 0
+    }
+  },
+  "verify": {
+    "stage": "verify",
+    "baseline": {
+      "label": "baseline",
+      "elapsed_ms": 232853,
+      "total": 17,
+      "passed": 14,
+      "rate": 0.8235,
+      "by_failure": {
+        "hallucination": 1,
+        "missing_tool": 1,
+        "wrong_arg": 1
+      },
+      "errors": [],
+      "per_task": {
+        "H02": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products",
+            "search_products"
+          ]
+        },
+        "H04": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order",
+            "get_logistics"
+          ]
+        },
+        "H06": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order",
+            "get_logistics"
+          ]
+        },
+        "H08": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products"
+          ]
+        },
+        "H10": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": []
+        },
+        "M03": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order"
+          ]
+        },
+        "M05": {
+          "passed": false,
+          "failure_type": "hallucination",
+          "fail_turn": 1,
+          "calls": [
+            "search_products",
+            "search_products"
+          ]
+        },
+        "M07": {
+          "passed": false,
+          "failure_type": "wrong_arg",
+          "fail_turn": 3,
+          "calls": [
+            "search_products",
+            "search_products",
+            "search_products"
+          ]
+        },
+        "M09": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products",
+            "get_logistics",
+            "get_logistics",
+            "get_order",
+            "search_products",
+            "search_products",
+            "get_order"
+          ]
+        },
+        "S04": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products"
+          ]
+        },
+        "S09": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_logistics"
+          ]
+        },
+        "S12": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order"
+          ]
+        },
+        "S14": {
+          "passed": false,
+          "failure_type": "missing_tool",
+          "fail_turn": 1,
+          "calls": [
+            "apply_refund",
+            "apply_refund"
+          ]
+        },
+        "S16": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_logistics"
+          ]
+        },
+        "S18": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": []
+        },
+        "S19": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order",
+            "get_logistics"
+          ]
+        },
+        "S20": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products",
+            "search_products",
+            "get_product_detail",
+            "get_product_detail"
+          ]
+        }
+      },
+      "hits": {}
+    },
+    "injected": {
+      "label": "injected",
+      "elapsed_ms": 298508,
+      "total": 17,
+      "passed": 16,
+      "rate": 0.9412,
+      "by_failure": {
+        "wrong_fact": 1
+      },
+      "errors": [],
+      "per_task": {
+        "H02": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products",
+            "search_products"
+          ]
+        },
+        "H04": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order",
+            "get_logistics"
+          ]
+        },
+        "H06": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order",
+            "get_logistics"
+          ]
+        },
+        "H08": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products"
+          ]
+        },
+        "H10": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products"
+          ]
+        },
+        "M03": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order"
+          ]
+        },
+        "M05": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": []
+        },
+        "M07": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products",
+            "search_products",
+            "search_products"
+          ]
+        },
+        "M09": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products",
+            "get_order",
+            "get_logistics",
+            "get_product_detail",
+            "get_order",
+            "get_logistics",
+            "get_logistics",
+            "get_order",
+            "search_products",
+            "search_products",
+            "get_order"
+          ]
+        },
+        "S04": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products"
+          ]
+        },
+        "S09": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_logistics",
+            "get_order"
+          ]
+        },
+        "S12": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order"
+          ]
+        },
+        "S14": {
+          "passed": false,
+          "failure_type": "wrong_fact",
+          "fail_turn": 1,
+          "calls": [
+            "get_order",
+            "apply_refund",
+            "apply_refund"
+          ]
+        },
+        "S16": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_logistics"
+          ]
+        },
+        "S18": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": []
+        },
+        "S19": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order",
+            "get_logistics"
+          ]
+        },
+        "S20": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products",
+            "search_products",
+            "get_product_detail",
+            "get_product_detail"
+          ]
+        }
+      },
+      "hits": {
+        "H02": {
+          "ids": [],
+          "chars": 0
+        },
+        "H04": {
+          "ids": [],
+          "chars": 0
+        },
+        "H06": {
+          "ids": [],
+          "chars": 0
+        },
+        "H08": {
+          "ids": [],
+          "chars": 0
+        },
+        "H10": {
+          "ids": [],
+          "chars": 0
+        },
+        "M03": {
+          "ids": [],
+          "chars": 0
+        },
+        "M05": {
+          "ids": [],
+          "chars": 0
+        },
+        "M07": {
+          "ids": [
+            "exp-c8e70cd9d11b"
+          ],
+          "chars": 268
+        },
+        "M09": {
+          "ids": [
+            "exp-011b486a50fb",
+            "exp-c8e70cd9d11b"
+          ],
+          "chars": 333
+        },
+        "S04": {
+          "ids": [],
+          "chars": 0
+        },
+        "S09": {
+          "ids": [],
+          "chars": 0
+        },
+        "S12": {
+          "ids": [
+            "exp-56d434f43f4a"
+          ],
+          "chars": 204
+        },
+        "S14": {
+          "ids": [
+            "exp-011b486a50fb"
+          ],
+          "chars": 213
+        },
+        "S16": {
+          "ids": [],
+          "chars": 0
+        },
+        "S18": {
+          "ids": [],
+          "chars": 0
+        },
+        "S19": {
+          "ids": [],
+          "chars": 0
+        },
+        "S20": {
+          "ids": [],
+          "chars": 0
+        }
+      }
+    },
+    "delta": {
+      "baseline_rate": 0.8235,
+      "injected_rate": 0.9412,
+      "rate_delta": 0.1177,
+      "baseline_passed": 14,
+      "injected_passed": 16,
+      "flips_up": 2,
+      "flips_down": 0,
+      "coverage_rate": 0.2353
+    },
+    "flips": {
+      "up": [
+        "M05",
+        "M07"
+      ],
+      "down": [],
+      "same_pass": [
+        "H02",
+        "H04",
+        "H06",
+        "H08",
+        "H10",
+        "M03",
+        "M09",
+        "S04",
+        "S09",
+        "S12",
+        "S16",
+        "S18",
+        "S19",
+        "S20"
+      ],
+      "same_fail": [
+        "S14"
+      ]
+    },
+    "coverage": [
+      {
+        "task_id": "H02",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "H04",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "H06",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "H08",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "H10",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "M03",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "M05",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "M07",
+        "injected": true,
+        "exp_ids": [
+          "exp-c8e70cd9d11b"
+        ],
+        "chars": 268
+      },
+      {
+        "task_id": "M09",
+        "injected": true,
+        "exp_ids": [
+          "exp-011b486a50fb",
+          "exp-c8e70cd9d11b"
+        ],
+        "chars": 333
+      },
+      {
+        "task_id": "S04",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "S09",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "S12",
+        "injected": true,
+        "exp_ids": [
+          "exp-56d434f43f4a"
+        ],
+        "chars": 204
+      },
+      {
+        "task_id": "S14",
+        "injected": true,
+        "exp_ids": [
+          "exp-011b486a50fb"
+        ],
+        "chars": 213
+      },
+      {
+        "task_id": "S16",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "S18",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "S19",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "S20",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      }
+    ],
+    "hit_counts": {
+      "exp-011b486a50fb": 2,
+      "exp-c8e70cd9d11b": 2,
+      "exp-56d434f43f4a": 1
+    },
+    "memory": {
+      "touched": 5,
+      "retired": 0
+    }
+  },
+  "store_after": {
+    "file": "runs\\full-cold\\20261118-000730\\experiences.jsonl",
+    "lines": 14,
+    "total": 4,
+    "active": 4,
+    "retired": 0,
+    "by_failure": {
+      "missing_tool": 1,
+      "wrong_fact": 1,
+      "forbidden_action": 1,
+      "wrong_arg": 1
+    },
+    "injected_total": 5,
+    "support_total": 8,
+    "contradict_total": 1
+  }
+}

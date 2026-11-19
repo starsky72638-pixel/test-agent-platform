@@ -1,46 +1,248 @@
 {
   "model": "qwen3.8-flash",
+  "golden": "shop_eval.jsonl",
   "summary": {
     "total": 20,
+    "valid": 20,
+    "infra_error": 0,
     "passed": 20,
-    "avg_ms": 9935,
-    "avg_calls": 1.5,
-    "failure_types": {}
+    "avg_ms": 8119,
+    "avg_calls": 1.6,
+    "failure_types": {},
+    "fail_turns": []
   },
   "results": [
     {
       "id": "S01",
       "input": "预算 200 元以内有什么推荐",
+      "turns": [
+        "预算 200 元以内有什么推荐"
+      ],
       "note": "价格上限过滤，不能推荐超预算商品",
-      "answer": "已按“200 元以内”搜索商品库，共命中 1 款：\n\n- 便携充电宝 20000mAh，159 元，评分 4.3，库存 88（id=3）\n\n结论：预算内目前只有这一款可选，暂无其他推荐。",
+      "elapsed_ms": 4939,
+      "error": "",
+      "has_claims": false,
+      "train_messages": [
+        {
+          "role": "system",
+          "content": "你是电商平台客服助手，只能依据工具返回的数据回答。\n\n规则：\n1. 涉及商品、订单、物流、退款的事实，必须先调工具查，不许凭印象作答。\n2. 工具返回什么就用什么。字段为 null、空列表、压根没有该字段，就如实说\"暂无\"，\n   禁止推测、补全或给出示例值。\n3. 状态值原样复述：订单状态是中文（已签收/已发货/待支付），\n   物流状态是英文（delivered/shipped/pending），不要翻译或改写。\n4. 先说查了什么、查到什么，再给结论。查不到就说查不到，不要换个接口瞎猜。\n5. 多轮对话延续上下文：用户说\"那个\"\"第一个\"\"它\"\"那 1001 呢\"\"算了\"时，\n   指代前面已经出现过的实体，沿用之前查到的 id 和参数，不要让用户重复说明。\n   追问轮也要点名：答\"多少钱\"\"有货吗\"时说清是哪个商品、哪个订单，不能只甩一个价格或状态。\n6. 用户提到了预算、品类、商品名中的任意一项，就直接调工具搜，不要反问。\n   只给预算、连品类都没说的（比如\"三百块能买点啥\"），也算给了条件——\n   直接搜出来再筛，不要问用户\"想买什么类别\"。\n   只有这三项完全没有时（例如\"我想买个礼物送人\"），才反问一句问预算。\n7. 用户改口径就以最新一次为准：给了新预算、新订单号、新商品，旧值立即失效，\n   换对象后必须重新查；上一轮\"查不到/不存在\"的结论不能顺延到新对象上。\n8. 用户问\"什么状态\"\"到哪了\"\"怎么样了\"这类没分清订单还是物流的问题时，\n   订单状态和物流状态各查一次，两边都报；只查一边就答，等于只答了一半。\n9. 中文回答，不超过 150 字。\n10. 提交退款前必须先查订单状态，看到「待支付」不要提交，\n   直接说明订单还没付款、无需退款。只有本轮工具返回过退款单、\n   或服务端明确返回「已申请过退款」，才可以说已申请过并停止重复提交；\n   用户说「再退一次」不等于你已知情，不能凭这句话认定此前申请过。\n11. 「已提交」「已申请」「已办理」「已取消」这类\"已经做完\"的说法，\n   只能在本轮工具真的返回成功之后讲。查了状态不等于动作已经完成，\n   没调工具就不要说做过，工具报错就说没办成——不许把\"我这就去办\"写成\"已办好\"。"
+        },
+        {
+          "role": "user",
+          "content": "预算 200 元以内有什么推荐"
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "call_a83732953e8d434e94eb15c9",
+              "type": "function",
+              "function": {
+                "name": "search_products",
+                "arguments": "{\"max_price\": 200}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 3, \"title\": \"便携充电宝 20000mAh\", \"price\": 159.0, \"stock\": 88, \"rating\": 4.3}]}",
+          "tool_call_id": "call_a83732953e8d434e94eb15c9"
+        },
+        {
+          "role": "assistant",
+          "content": "我按\"200 元以内\"搜了一遍，结果只匹配到 1 款商品：\n\n**便携充电宝 20000mAh**（id=3）\n- 价格：159.0 元\n- 库存：88 件\n- 评分：4.3\n\n预算内暂无其他可选商品。要看它的详细规格和适用场景吗？"
+        }
+      ],
+      "trace_id": "e76e9e24a566",
+      "rounds": [
+        {
+          "turn": 1,
+          "input": "预算 200 元以内有什么推荐",
+          "answer": "我按\"200 元以内\"搜了一遍，结果只匹配到 1 款商品：\n\n**便携充电宝 20000mAh**（id=3）\n- 价格：159.0 元\n- 库存：88 件\n- 评分：4.3\n\n预算内暂无其他可选商品。要看它的详细规格和适用场景吗？",
+          "calls": [
+            {
+              "name": "search_products",
+              "args": {
+                "max_price": 200
+              }
+            }
+          ],
+          "outputs": {
+            "search_products": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 3, \"title\": \"便携充电宝 20000mAh\", \"price\": 159.0, \"stock\": 88, \"rating\": 4.3}]}"
+          },
+          "tool_results": [
+            {
+              "call_id": "call_a83732953e8d434e94eb15c9",
+              "name": "search_products",
+              "args": {
+                "max_price": 200
+              },
+              "output": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 3, \"title\": \"便携充电宝 20000mAh\", \"price\": 159.0, \"stock\": 88, \"rating\": 4.3}]}"
+            }
+          ],
+          "msg_count": 5,
+          "status": "ok",
+          "steps": 2,
+          "sent_msgs": 4,
+          "judged": true,
+          "tool_ok": true,
+          "tool_msg": "命中",
+          "param_ok": true,
+          "param_msg": "命中",
+          "order_ok": true,
+          "order_msg": "未校验",
+          "ground_ok": true,
+          "ungrounded": [],
+          "answer_ok": true,
+          "missing_fact": [],
+          "missing_any": [],
+          "forbidden_hit": [],
+          "non_answer": false,
+          "over_calls": [],
+          "invalid_tools": [],
+          "passed": true,
+          "failure_type": ""
+        }
+      ],
+      "answer": "我按\"200 元以内\"搜了一遍，结果只匹配到 1 款商品：\n\n**便携充电宝 20000mAh**（id=3）\n- 价格：159.0 元\n- 库存：88 件\n- 评分：4.3\n\n预算内暂无其他可选商品。要看它的详细规格和适用场景吗？",
       "calls": [
         {
           "name": "search_products",
           "args": {
-            "q": "",
             "max_price": 200
           }
         }
       ],
-      "elapsed_ms": 8318,
+      "outputs": {
+        "search_products": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 3, \"title\": \"便携充电宝 20000mAh\", \"price\": 159.0, \"stock\": 88, \"rating\": 4.3}]}"
+      },
+      "tool_results": [
+        {
+          "call_id": "call_a83732953e8d434e94eb15c9",
+          "name": "search_products",
+          "args": {
+            "max_price": 200
+          },
+          "output": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 3, \"title\": \"便携充电宝 20000mAh\", \"price\": 159.0, \"stock\": 88, \"rating\": 4.3}]}"
+        }
+      ],
       "msg_count": 5,
-      "error": "",
+      "passed": true,
+      "failure_type": "",
+      "fail_turn": null,
       "tool_ok": true,
-      "tool_msg": "命中",
       "param_ok": true,
-      "param_msg": "命中",
+      "order_ok": true,
+      "ground_ok": true,
       "answer_ok": true,
+      "tool_msg": "",
+      "param_msg": "",
+      "order_msg": "",
+      "ungrounded": [],
+      "forbidden_hit": [],
+      "forbidden_tools": [],
       "missing_fact": [],
       "missing_any": [],
-      "forbidden_hit": [],
-      "passed": true,
-      "failure_type": ""
+      "invalid_tools": [],
+      "over_calls": []
     },
     {
       "id": "S02",
       "input": "500 元以内的商品有哪些",
-      "note": "多结果按评分排序",
-      "answer": "已按价格上限 500 元搜索商品，共查到 3 件（按评分排序）：\n\n1. 机械键盘 K8 — 429 元，库存 15，评分 4.5\n2. 便携充电宝 20000mAh — 159 元，库存 88，评分 4.3\n3. 蓝牙音箱 Mini — 299 元，库存 120，评分 4.2\n\n需要看某件的详细规格可告诉我。",
+      "turns": [
+        "500 元以内的商品有哪些"
+      ],
+      "note": "多结果按评分排序。must_not_have 抓『编造业务范围』：本店只有耳机/键盘/手表/充电宝/音箱五类，第 2 次跑时它列了服饰鞋包、家居用品、美妆护肤、书籍文具四个不存在的品类。已知边界：若它回答『本店没有家居类』这种否定说法也会被误判，概率低但存在",
+      "elapsed_ms": 5421,
+      "error": "",
+      "has_claims": true,
+      "train_messages": [
+        {
+          "role": "system",
+          "content": "你是电商平台客服助手，只能依据工具返回的数据回答。\n\n规则：\n1. 涉及商品、订单、物流、退款的事实，必须先调工具查，不许凭印象作答。\n2. 工具返回什么就用什么。字段为 null、空列表、压根没有该字段，就如实说\"暂无\"，\n   禁止推测、补全或给出示例值。\n3. 状态值原样复述：订单状态是中文（已签收/已发货/待支付），\n   物流状态是英文（delivered/shipped/pending），不要翻译或改写。\n4. 先说查了什么、查到什么，再给结论。查不到就说查不到，不要换个接口瞎猜。\n5. 多轮对话延续上下文：用户说\"那个\"\"第一个\"\"它\"\"那 1001 呢\"\"算了\"时，\n   指代前面已经出现过的实体，沿用之前查到的 id 和参数，不要让用户重复说明。\n   追问轮也要点名：答\"多少钱\"\"有货吗\"时说清是哪个商品、哪个订单，不能只甩一个价格或状态。\n6. 用户提到了预算、品类、商品名中的任意一项，就直接调工具搜，不要反问。\n   只给预算、连品类都没说的（比如\"三百块能买点啥\"），也算给了条件——\n   直接搜出来再筛，不要问用户\"想买什么类别\"。\n   只有这三项完全没有时（例如\"我想买个礼物送人\"），才反问一句问预算。\n7. 用户改口径就以最新一次为准：给了新预算、新订单号、新商品，旧值立即失效，\n   换对象后必须重新查；上一轮\"查不到/不存在\"的结论不能顺延到新对象上。\n8. 用户问\"什么状态\"\"到哪了\"\"怎么样了\"这类没分清订单还是物流的问题时，\n   订单状态和物流状态各查一次，两边都报；只查一边就答，等于只答了一半。\n9. 中文回答，不超过 150 字。\n10. 提交退款前必须先查订单状态，看到「待支付」不要提交，\n   直接说明订单还没付款、无需退款。只有本轮工具返回过退款单、\n   或服务端明确返回「已申请过退款」，才可以说已申请过并停止重复提交；\n   用户说「再退一次」不等于你已知情，不能凭这句话认定此前申请过。\n11. 「已提交」「已申请」「已办理」「已取消」这类\"已经做完\"的说法，\n   只能在本轮工具真的返回成功之后讲。查了状态不等于动作已经完成，\n   没调工具就不要说做过，工具报错就说没办成——不许把\"我这就去办\"写成\"已办好\"。"
+        },
+        {
+          "role": "user",
+          "content": "500 元以内的商品有哪些"
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "call_36cce981d11b46a7a1c3402a",
+              "type": "function",
+              "function": {
+                "name": "search_products",
+                "arguments": "{\"max_price\": 500}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"total\": 3, \"items\": [{\"id\": 2, \"title\": \"机械键盘 K8\", \"price\": 429.0, \"stock\": 15, \"rating\": 4.5}, {\"id\": 3, \"title\": \"便携充电宝 20000mAh\", \"price\": 159.0, \"stock\": 88, \"rating\": 4.3}, {\"id\": 6, \"title\": \"蓝牙音箱 Mini\", \"price\": 299.0, \"stock\": 120, \"rating\": 4.2}]}",
+          "tool_call_id": "call_36cce981d11b46a7a1c3402a"
+        },
+        {
+          "role": "assistant",
+          "content": "已按「500 元以内」搜索，共 3 款：\n\n- 机械键盘 K8（id 2）：429 元，库存 15，评分 4.5\n- 便携充电宝 20000mAh（id 3）：159 元，库存 88，评分 4.3\n- 蓝牙音箱 Mini（id 6）：299 元，库存 120，评分 4.2\n\n想看哪款的详细规格，告诉我编号即可。"
+        }
+      ],
+      "trace_id": "170296b07cc6",
+      "rounds": [
+        {
+          "turn": 1,
+          "input": "500 元以内的商品有哪些",
+          "answer": "已按「500 元以内」搜索，共 3 款：\n\n- 机械键盘 K8（id 2）：429 元，库存 15，评分 4.5\n- 便携充电宝 20000mAh（id 3）：159 元，库存 88，评分 4.3\n- 蓝牙音箱 Mini（id 6）：299 元，库存 120，评分 4.2\n\n想看哪款的详细规格，告诉我编号即可。",
+          "calls": [
+            {
+              "name": "search_products",
+              "args": {
+                "max_price": 500
+              }
+            }
+          ],
+          "outputs": {
+            "search_products": "status=200\nbody={\"total\": 3, \"items\": [{\"id\": 2, \"title\": \"机械键盘 K8\", \"price\": 429.0, \"stock\": 15, \"rating\": 4.5}, {\"id\": 3, \"title\": \"便携充电宝 20000mAh\", \"price\": 159.0, \"stock\": 88, \"rating\": 4.3}, {\"id\": 6, \"title\": \"蓝牙音箱 Mini\", \"price\": 299.0, \"stock\": 120, \"rating\": 4.2}]}"
+          },
+          "tool_results": [
+            {
+              "call_id": "call_36cce981d11b46a7a1c3402a",
+              "name": "search_products",
+              "args": {
+                "max_price": 500
+              },
+              "output": "status=200\nbody={\"total\": 3, \"items\": [{\"id\": 2, \"title\": \"机械键盘 K8\", \"price\": 429.0, \"stock\": 15, \"rating\": 4.5}, {\"id\": 3, \"title\": \"便携充电宝 20000mAh\", \"price\": 159.0, \"stock\": 88, \"rating\": 4.3}, {\"id\": 6, \"title\": \"蓝牙音箱 Mini\", \"price\": 299.0, \"stock\": 120, \"rating\": 4.2}]}"
+            }
+          ],
+          "msg_count": 5,
+          "status": "ok",
+          "steps": 2,
+          "sent_msgs": 4,
+          "judged": true,
+          "tool_ok": true,
+          "tool_msg": "命中",
+          "param_ok": true,
+          "param_msg": "命中",
+          "order_ok": true,
+          "order_msg": "未校验",
+          "ground_ok": true,
+          "ungrounded": [],
+          "answer_ok": true,
+          "missing_fact": [],
+          "missing_any": [],
+          "forbidden_hit": [],
+          "non_answer": false,
+          "over_calls": [],
+          "invalid_tools": [],
+          "passed": true,
+          "failure_type": ""
+        }
+      ],
+      "answer": "已按「500 元以内」搜索，共 3 款：\n\n- 机械键盘 K8（id 2）：429 元，库存 15，评分 4.5\n- 便携充电宝 20000mAh（id 3）：159 元，库存 88，评分 4.3\n- 蓝牙音箱 Mini（id 6）：299 元，库存 120，评分 4.2\n\n想看哪款的详细规格，告诉我编号即可。",
       "calls": [
         {
           "name": "search_products",
@@ -49,25 +251,134 @@
           }
         }
       ],
-      "elapsed_ms": 6751,
+      "outputs": {
+        "search_products": "status=200\nbody={\"total\": 3, \"items\": [{\"id\": 2, \"title\": \"机械键盘 K8\", \"price\": 429.0, \"stock\": 15, \"rating\": 4.5}, {\"id\": 3, \"title\": \"便携充电宝 20000mAh\", \"price\": 159.0, \"stock\": 88, \"rating\": 4.3}, {\"id\": 6, \"title\": \"蓝牙音箱 Mini\", \"price\": 299.0, \"stock\": 120, \"rating\": 4.2}]}"
+      },
+      "tool_results": [
+        {
+          "call_id": "call_36cce981d11b46a7a1c3402a",
+          "name": "search_products",
+          "args": {
+            "max_price": 500
+          },
+          "output": "status=200\nbody={\"total\": 3, \"items\": [{\"id\": 2, \"title\": \"机械键盘 K8\", \"price\": 429.0, \"stock\": 15, \"rating\": 4.5}, {\"id\": 3, \"title\": \"便携充电宝 20000mAh\", \"price\": 159.0, \"stock\": 88, \"rating\": 4.3}, {\"id\": 6, \"title\": \"蓝牙音箱 Mini\", \"price\": 299.0, \"stock\": 120, \"rating\": 4.2}]}"
+        }
+      ],
       "msg_count": 5,
-      "error": "",
+      "passed": true,
+      "failure_type": "",
+      "fail_turn": null,
       "tool_ok": true,
-      "tool_msg": "命中",
       "param_ok": true,
-      "param_msg": "命中",
+      "order_ok": true,
+      "ground_ok": true,
       "answer_ok": true,
+      "tool_msg": "",
+      "param_msg": "",
+      "order_msg": "",
+      "ungrounded": [],
+      "forbidden_hit": [],
+      "forbidden_tools": [],
       "missing_fact": [],
       "missing_any": [],
-      "forbidden_hit": [],
-      "passed": true,
-      "failure_type": ""
+      "invalid_tools": [],
+      "over_calls": []
     },
     {
       "id": "S03",
       "input": "有显示器吗",
+      "turns": [
+        "有显示器吗"
+      ],
       "note": "关键词召回",
-      "answer": "已按关键词\"显示器\"搜索，共 1 款：\n\n- 27 寸 4K 显示器，¥2199，库存 7，评分 4.8\n\n需要看它的规格详情吗？",
+      "elapsed_ms": 4246,
+      "error": "",
+      "has_claims": true,
+      "train_messages": [
+        {
+          "role": "system",
+          "content": "你是电商平台客服助手，只能依据工具返回的数据回答。\n\n规则：\n1. 涉及商品、订单、物流、退款的事实，必须先调工具查，不许凭印象作答。\n2. 工具返回什么就用什么。字段为 null、空列表、压根没有该字段，就如实说\"暂无\"，\n   禁止推测、补全或给出示例值。\n3. 状态值原样复述：订单状态是中文（已签收/已发货/待支付），\n   物流状态是英文（delivered/shipped/pending），不要翻译或改写。\n4. 先说查了什么、查到什么，再给结论。查不到就说查不到，不要换个接口瞎猜。\n5. 多轮对话延续上下文：用户说\"那个\"\"第一个\"\"它\"\"那 1001 呢\"\"算了\"时，\n   指代前面已经出现过的实体，沿用之前查到的 id 和参数，不要让用户重复说明。\n   追问轮也要点名：答\"多少钱\"\"有货吗\"时说清是哪个商品、哪个订单，不能只甩一个价格或状态。\n6. 用户提到了预算、品类、商品名中的任意一项，就直接调工具搜，不要反问。\n   只给预算、连品类都没说的（比如\"三百块能买点啥\"），也算给了条件——\n   直接搜出来再筛，不要问用户\"想买什么类别\"。\n   只有这三项完全没有时（例如\"我想买个礼物送人\"），才反问一句问预算。\n7. 用户改口径就以最新一次为准：给了新预算、新订单号、新商品，旧值立即失效，\n   换对象后必须重新查；上一轮\"查不到/不存在\"的结论不能顺延到新对象上。\n8. 用户问\"什么状态\"\"到哪了\"\"怎么样了\"这类没分清订单还是物流的问题时，\n   订单状态和物流状态各查一次，两边都报；只查一边就答，等于只答了一半。\n9. 中文回答，不超过 150 字。\n10. 提交退款前必须先查订单状态，看到「待支付」不要提交，\n   直接说明订单还没付款、无需退款。只有本轮工具返回过退款单、\n   或服务端明确返回「已申请过退款」，才可以说已申请过并停止重复提交；\n   用户说「再退一次」不等于你已知情，不能凭这句话认定此前申请过。\n11. 「已提交」「已申请」「已办理」「已取消」这类\"已经做完\"的说法，\n   只能在本轮工具真的返回成功之后讲。查了状态不等于动作已经完成，\n   没调工具就不要说做过，工具报错就说没办成——不许把\"我这就去办\"写成\"已办好\"。"
+        },
+        {
+          "role": "user",
+          "content": "有显示器吗"
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "call_d62dfae2f7a64c58809cb60b",
+              "type": "function",
+              "function": {
+                "name": "search_products",
+                "arguments": "{\"q\": \"显示器\"}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 5, \"title\": \"27 寸 4K 显示器\", \"price\": 2199.0, \"stock\": 7, \"rating\": 4.8}]}",
+          "tool_call_id": "call_d62dfae2f7a64c58809cb60b"
+        },
+        {
+          "role": "assistant",
+          "content": "查到 1 款显示器：\n\n**27 寸 4K 显示器**（id 5）——¥2199，库存 7 件，评分 4.8。\n\n需要看详细规格或直接下单吗？"
+        }
+      ],
+      "trace_id": "6083e70ecc00",
+      "rounds": [
+        {
+          "turn": 1,
+          "input": "有显示器吗",
+          "answer": "查到 1 款显示器：\n\n**27 寸 4K 显示器**（id 5）——¥2199，库存 7 件，评分 4.8。\n\n需要看详细规格或直接下单吗？",
+          "calls": [
+            {
+              "name": "search_products",
+              "args": {
+                "q": "显示器"
+              }
+            }
+          ],
+          "outputs": {
+            "search_products": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 5, \"title\": \"27 寸 4K 显示器\", \"price\": 2199.0, \"stock\": 7, \"rating\": 4.8}]}"
+          },
+          "tool_results": [
+            {
+              "call_id": "call_d62dfae2f7a64c58809cb60b",
+              "name": "search_products",
+              "args": {
+                "q": "显示器"
+              },
+              "output": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 5, \"title\": \"27 寸 4K 显示器\", \"price\": 2199.0, \"stock\": 7, \"rating\": 4.8}]}"
+            }
+          ],
+          "msg_count": 5,
+          "status": "ok",
+          "steps": 2,
+          "sent_msgs": 4,
+          "judged": true,
+          "tool_ok": true,
+          "tool_msg": "命中",
+          "param_ok": true,
+          "param_msg": "未校验",
+          "order_ok": true,
+          "order_msg": "未校验",
+          "ground_ok": true,
+          "ungrounded": [],
+          "answer_ok": true,
+          "missing_fact": [],
+          "missing_any": [],
+          "forbidden_hit": [],
+          "non_answer": false,
+          "over_calls": [],
+          "invalid_tools": [],
+          "passed": true,
+          "failure_type": ""
+        }
+      ],
+      "answer": "查到 1 款显示器：\n\n**27 寸 4K 显示器**（id 5）——¥2199，库存 7 件，评分 4.8。\n\n需要看详细规格或直接下单吗？",
       "calls": [
         {
           "name": "search_products",
@@ -76,58 +387,270 @@
           }
         }
       ],
-      "elapsed_ms": 6562,
+      "outputs": {
+        "search_products": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 5, \"title\": \"27 寸 4K 显示器\", \"price\": 2199.0, \"stock\": 7, \"rating\": 4.8}]}"
+      },
+      "tool_results": [
+        {
+          "call_id": "call_d62dfae2f7a64c58809cb60b",
+          "name": "search_products",
+          "args": {
+            "q": "显示器"
+          },
+          "output": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 5, \"title\": \"27 寸 4K 显示器\", \"price\": 2199.0, \"stock\": 7, \"rating\": 4.8}]}"
+        }
+      ],
       "msg_count": 5,
-      "error": "",
+      "passed": true,
+      "failure_type": "",
+      "fail_turn": null,
       "tool_ok": true,
-      "tool_msg": "命中",
       "param_ok": true,
-      "param_msg": "未校验",
+      "order_ok": true,
+      "ground_ok": true,
       "answer_ok": true,
+      "tool_msg": "",
+      "param_msg": "",
+      "order_msg": "",
+      "ungrounded": [],
+      "forbidden_hit": [],
+      "forbidden_tools": [],
       "missing_fact": [],
       "missing_any": [],
-      "forbidden_hit": [],
-      "passed": true,
-      "failure_type": ""
+      "invalid_tools": [],
+      "over_calls": []
     },
     {
       "id": "S04",
       "input": "智能手表 S2 还有货吗",
-      "note": "库存 0 要如实说；搜索列表已含 stock，不强制走详情接口",
-      "answer": "已搜索商品并按 id 查了详情：智能手表 S2（id 4，¥1299，评分 4.6），库存 stock = 0。\n\n结论：目前无货，暂不可购买。",
+      "turns": [
+        "智能手表 S2 还有货吗"
+      ],
+      "note": "库存 0 要如实说；搜索列表已含 stock，不强制走详情接口。词表改成正则：原来枚举 10 个词，模型换一种说法（如『暂时买不了』『库存已清空』）就会漏；正则把常见否定形态收进来，边界仍在 note 里写明",
+      "elapsed_ms": 5314,
+      "error": "",
+      "has_claims": false,
+      "train_messages": [
+        {
+          "role": "system",
+          "content": "你是电商平台客服助手，只能依据工具返回的数据回答。\n\n规则：\n1. 涉及商品、订单、物流、退款的事实，必须先调工具查，不许凭印象作答。\n2. 工具返回什么就用什么。字段为 null、空列表、压根没有该字段，就如实说\"暂无\"，\n   禁止推测、补全或给出示例值。\n3. 状态值原样复述：订单状态是中文（已签收/已发货/待支付），\n   物流状态是英文（delivered/shipped/pending），不要翻译或改写。\n4. 先说查了什么、查到什么，再给结论。查不到就说查不到，不要换个接口瞎猜。\n5. 多轮对话延续上下文：用户说\"那个\"\"第一个\"\"它\"\"那 1001 呢\"\"算了\"时，\n   指代前面已经出现过的实体，沿用之前查到的 id 和参数，不要让用户重复说明。\n   追问轮也要点名：答\"多少钱\"\"有货吗\"时说清是哪个商品、哪个订单，不能只甩一个价格或状态。\n6. 用户提到了预算、品类、商品名中的任意一项，就直接调工具搜，不要反问。\n   只给预算、连品类都没说的（比如\"三百块能买点啥\"），也算给了条件——\n   直接搜出来再筛，不要问用户\"想买什么类别\"。\n   只有这三项完全没有时（例如\"我想买个礼物送人\"），才反问一句问预算。\n7. 用户改口径就以最新一次为准：给了新预算、新订单号、新商品，旧值立即失效，\n   换对象后必须重新查；上一轮\"查不到/不存在\"的结论不能顺延到新对象上。\n8. 用户问\"什么状态\"\"到哪了\"\"怎么样了\"这类没分清订单还是物流的问题时，\n   订单状态和物流状态各查一次，两边都报；只查一边就答，等于只答了一半。\n9. 中文回答，不超过 150 字。\n10. 提交退款前必须先查订单状态，看到「待支付」不要提交，\n   直接说明订单还没付款、无需退款。只有本轮工具返回过退款单、\n   或服务端明确返回「已申请过退款」，才可以说已申请过并停止重复提交；\n   用户说「再退一次」不等于你已知情，不能凭这句话认定此前申请过。\n11. 「已提交」「已申请」「已办理」「已取消」这类\"已经做完\"的说法，\n   只能在本轮工具真的返回成功之后讲。查了状态不等于动作已经完成，\n   没调工具就不要说做过，工具报错就说没办成——不许把\"我这就去办\"写成\"已办好\"。"
+        },
+        {
+          "role": "user",
+          "content": "智能手表 S2 还有货吗"
+        },
+        {
+          "role": "assistant",
+          "content": "我先搜索一下这款商品。\n\n",
+          "tool_calls": [
+            {
+              "id": "call_0410c772824440a686f2d257",
+              "type": "function",
+              "function": {
+                "name": "search_products",
+                "arguments": "{\"q\": \"智能手表 S2\"}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 4, \"title\": \"智能手表 S2\", \"price\": 1299.0, \"stock\": 0, \"rating\": 4.6}]}",
+          "tool_call_id": "call_0410c772824440a686f2d257"
+        },
+        {
+          "role": "assistant",
+          "content": "查了商品库，「智能手表 S2」（id 4）目前**库存为 0，暂时缺货**，售价 1299 元，评分 4.6。需要我帮你看看同类有货的智能手表吗？"
+        }
+      ],
+      "trace_id": "56993c5b1cc2",
+      "rounds": [
+        {
+          "turn": 1,
+          "input": "智能手表 S2 还有货吗",
+          "answer": "查了商品库，「智能手表 S2」（id 4）目前**库存为 0，暂时缺货**，售价 1299 元，评分 4.6。需要我帮你看看同类有货的智能手表吗？",
+          "calls": [
+            {
+              "name": "search_products",
+              "args": {
+                "q": "智能手表 S2"
+              }
+            }
+          ],
+          "outputs": {
+            "search_products": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 4, \"title\": \"智能手表 S2\", \"price\": 1299.0, \"stock\": 0, \"rating\": 4.6}]}"
+          },
+          "tool_results": [
+            {
+              "call_id": "call_0410c772824440a686f2d257",
+              "name": "search_products",
+              "args": {
+                "q": "智能手表 S2"
+              },
+              "output": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 4, \"title\": \"智能手表 S2\", \"price\": 1299.0, \"stock\": 0, \"rating\": 4.6}]}"
+            }
+          ],
+          "msg_count": 5,
+          "status": "ok",
+          "steps": 2,
+          "sent_msgs": 4,
+          "judged": true,
+          "tool_ok": true,
+          "tool_msg": "未校验",
+          "param_ok": true,
+          "param_msg": "未校验",
+          "order_ok": true,
+          "order_msg": "未校验",
+          "ground_ok": true,
+          "ungrounded": [],
+          "answer_ok": true,
+          "missing_fact": [],
+          "missing_any": [],
+          "forbidden_hit": [],
+          "non_answer": false,
+          "over_calls": [],
+          "invalid_tools": [],
+          "passed": true,
+          "failure_type": ""
+        }
+      ],
+      "answer": "查了商品库，「智能手表 S2」（id 4）目前**库存为 0，暂时缺货**，售价 1299 元，评分 4.6。需要我帮你看看同类有货的智能手表吗？",
       "calls": [
         {
           "name": "search_products",
           "args": {
             "q": "智能手表 S2"
           }
-        },
-        {
-          "name": "get_product_detail",
-          "args": {
-            "product_id": 4
-          }
         }
       ],
-      "elapsed_ms": 7891,
-      "msg_count": 7,
-      "error": "",
+      "outputs": {
+        "search_products": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 4, \"title\": \"智能手表 S2\", \"price\": 1299.0, \"stock\": 0, \"rating\": 4.6}]}"
+      },
+      "tool_results": [
+        {
+          "call_id": "call_0410c772824440a686f2d257",
+          "name": "search_products",
+          "args": {
+            "q": "智能手表 S2"
+          },
+          "output": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 4, \"title\": \"智能手表 S2\", \"price\": 1299.0, \"stock\": 0, \"rating\": 4.6}]}"
+        }
+      ],
+      "msg_count": 5,
+      "passed": true,
+      "failure_type": "",
+      "fail_turn": null,
       "tool_ok": true,
-      "tool_msg": "未校验",
       "param_ok": true,
-      "param_msg": "未校验",
+      "order_ok": true,
+      "ground_ok": true,
       "answer_ok": true,
+      "tool_msg": "",
+      "param_msg": "",
+      "order_msg": "",
+      "ungrounded": [],
+      "forbidden_hit": [],
+      "forbidden_tools": [],
       "missing_fact": [],
       "missing_any": [],
-      "forbidden_hit": [],
-      "passed": true,
-      "failure_type": ""
+      "invalid_tools": [],
+      "over_calls": []
     },
     {
       "id": "S05",
       "input": "商品 99 是什么",
+      "turns": [
+        "商品 99 是什么"
+      ],
       "note": "404 处理",
-      "answer": "我查询了商品库中 id=99 的商品详情，接口返回 404「product not found」，即该商品不存在。\n\n结论：暂无商品 99 的信息，无法告诉你它是什么。请确认商品编号是否正确。",
+      "elapsed_ms": 13740,
+      "error": "",
+      "has_claims": false,
+      "train_messages": [
+        {
+          "role": "system",
+          "content": "你是电商平台客服助手，只能依据工具返回的数据回答。\n\n规则：\n1. 涉及商品、订单、物流、退款的事实，必须先调工具查，不许凭印象作答。\n2. 工具返回什么就用什么。字段为 null、空列表、压根没有该字段，就如实说\"暂无\"，\n   禁止推测、补全或给出示例值。\n3. 状态值原样复述：订单状态是中文（已签收/已发货/待支付），\n   物流状态是英文（delivered/shipped/pending），不要翻译或改写。\n4. 先说查了什么、查到什么，再给结论。查不到就说查不到，不要换个接口瞎猜。\n5. 多轮对话延续上下文：用户说\"那个\"\"第一个\"\"它\"\"那 1001 呢\"\"算了\"时，\n   指代前面已经出现过的实体，沿用之前查到的 id 和参数，不要让用户重复说明。\n   追问轮也要点名：答\"多少钱\"\"有货吗\"时说清是哪个商品、哪个订单，不能只甩一个价格或状态。\n6. 用户提到了预算、品类、商品名中的任意一项，就直接调工具搜，不要反问。\n   只给预算、连品类都没说的（比如\"三百块能买点啥\"），也算给了条件——\n   直接搜出来再筛，不要问用户\"想买什么类别\"。\n   只有这三项完全没有时（例如\"我想买个礼物送人\"），才反问一句问预算。\n7. 用户改口径就以最新一次为准：给了新预算、新订单号、新商品，旧值立即失效，\n   换对象后必须重新查；上一轮\"查不到/不存在\"的结论不能顺延到新对象上。\n8. 用户问\"什么状态\"\"到哪了\"\"怎么样了\"这类没分清订单还是物流的问题时，\n   订单状态和物流状态各查一次，两边都报；只查一边就答，等于只答了一半。\n9. 中文回答，不超过 150 字。\n10. 提交退款前必须先查订单状态，看到「待支付」不要提交，\n   直接说明订单还没付款、无需退款。只有本轮工具返回过退款单、\n   或服务端明确返回「已申请过退款」，才可以说已申请过并停止重复提交；\n   用户说「再退一次」不等于你已知情，不能凭这句话认定此前申请过。\n11. 「已提交」「已申请」「已办理」「已取消」这类\"已经做完\"的说法，\n   只能在本轮工具真的返回成功之后讲。查了状态不等于动作已经完成，\n   没调工具就不要说做过，工具报错就说没办成——不许把\"我这就去办\"写成\"已办好\"。"
+        },
+        {
+          "role": "user",
+          "content": "商品 99 是什么"
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "call_65d9ecb20c0740299af25613",
+              "type": "function",
+              "function": {
+                "name": "get_product_detail",
+                "arguments": "{\"product_id\": 99}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "status=404\nbody={\"error\": \"product not found\"}",
+          "tool_call_id": "call_65d9ecb20c0740299af25613"
+        },
+        {
+          "role": "assistant",
+          "content": "我查了商品 99 的详情，接口返回 404：product not found，也就是查不到这个商品。\n\n结论：商品 99 目前不存在或已下架，没有可提供的标题、价格、库存信息。如果你有商品链接或名称关键词，我可以按关键词再搜一次。"
+        }
+      ],
+      "trace_id": "38b5a5e52cf9",
+      "rounds": [
+        {
+          "turn": 1,
+          "input": "商品 99 是什么",
+          "answer": "我查了商品 99 的详情，接口返回 404：product not found，也就是查不到这个商品。\n\n结论：商品 99 目前不存在或已下架，没有可提供的标题、价格、库存信息。如果你有商品链接或名称关键词，我可以按关键词再搜一次。",
+          "calls": [
+            {
+              "name": "get_product_detail",
+              "args": {
+                "product_id": 99
+              }
+            }
+          ],
+          "outputs": {
+            "get_product_detail": "status=404\nbody={\"error\": \"product not found\"}"
+          },
+          "tool_results": [
+            {
+              "call_id": "call_65d9ecb20c0740299af25613",
+              "name": "get_product_detail",
+              "args": {
+                "product_id": 99
+              },
+              "output": "status=404\nbody={\"error\": \"product not found\"}"
+            }
+          ],
+          "msg_count": 5,
+          "status": "ok",
+          "steps": 2,
+          "sent_msgs": 4,
+          "judged": true,
+          "tool_ok": true,
+          "tool_msg": "命中",
+          "param_ok": true,
+          "param_msg": "命中",
+          "order_ok": true,
+          "order_msg": "未校验",
+          "ground_ok": true,
+          "ungrounded": [],
+          "answer_ok": true,
+          "missing_fact": [],
+          "missing_any": [],
+          "forbidden_hit": [],
+          "non_answer": false,
+          "over_calls": [],
+          "invalid_tools": [],
+          "passed": true,
+          "failure_type": ""
+        }
+      ],
+      "answer": "我查了商品 99 的详情，接口返回 404：product not found，也就是查不到这个商品。\n\n结论：商品 99 目前不存在或已下架，没有可提供的标题、价格、库存信息。如果你有商品链接或名称关键词，我可以按关键词再搜一次。",
       "calls": [
         {
           "name": "get_product_detail",
@@ -136,25 +659,134 @@
           }
         }
       ],
-      "elapsed_ms": 6761,
+      "outputs": {
+        "get_product_detail": "status=404\nbody={\"error\": \"product not found\"}"
+      },
+      "tool_results": [
+        {
+          "call_id": "call_65d9ecb20c0740299af25613",
+          "name": "get_product_detail",
+          "args": {
+            "product_id": 99
+          },
+          "output": "status=404\nbody={\"error\": \"product not found\"}"
+        }
+      ],
       "msg_count": 5,
-      "error": "",
+      "passed": true,
+      "failure_type": "",
+      "fail_turn": null,
       "tool_ok": true,
-      "tool_msg": "命中",
       "param_ok": true,
-      "param_msg": "命中",
+      "order_ok": true,
+      "ground_ok": true,
       "answer_ok": true,
+      "tool_msg": "",
+      "param_msg": "",
+      "order_msg": "",
+      "ungrounded": [],
+      "forbidden_hit": [],
+      "forbidden_tools": [],
       "missing_fact": [],
       "missing_any": [],
-      "forbidden_hit": [],
-      "passed": true,
-      "failure_type": ""
+      "invalid_tools": [],
+      "over_calls": []
     },
     {
       "id": "S06",
       "input": "帮我搜一下降噪耳机",
+      "turns": [
+        "帮我搜一下降噪耳机"
+      ],
       "note": "精确召回",
-      "answer": "我按关键词\"降噪耳机\"搜索，共找到 1 款：\n\n- **无线降噪耳机 Pro**：¥899，库存 42，评分 4.7\n\n需要看它的详细规格或描述吗？",
+      "elapsed_ms": 5734,
+      "error": "",
+      "has_claims": true,
+      "train_messages": [
+        {
+          "role": "system",
+          "content": "你是电商平台客服助手，只能依据工具返回的数据回答。\n\n规则：\n1. 涉及商品、订单、物流、退款的事实，必须先调工具查，不许凭印象作答。\n2. 工具返回什么就用什么。字段为 null、空列表、压根没有该字段，就如实说\"暂无\"，\n   禁止推测、补全或给出示例值。\n3. 状态值原样复述：订单状态是中文（已签收/已发货/待支付），\n   物流状态是英文（delivered/shipped/pending），不要翻译或改写。\n4. 先说查了什么、查到什么，再给结论。查不到就说查不到，不要换个接口瞎猜。\n5. 多轮对话延续上下文：用户说\"那个\"\"第一个\"\"它\"\"那 1001 呢\"\"算了\"时，\n   指代前面已经出现过的实体，沿用之前查到的 id 和参数，不要让用户重复说明。\n   追问轮也要点名：答\"多少钱\"\"有货吗\"时说清是哪个商品、哪个订单，不能只甩一个价格或状态。\n6. 用户提到了预算、品类、商品名中的任意一项，就直接调工具搜，不要反问。\n   只给预算、连品类都没说的（比如\"三百块能买点啥\"），也算给了条件——\n   直接搜出来再筛，不要问用户\"想买什么类别\"。\n   只有这三项完全没有时（例如\"我想买个礼物送人\"），才反问一句问预算。\n7. 用户改口径就以最新一次为准：给了新预算、新订单号、新商品，旧值立即失效，\n   换对象后必须重新查；上一轮\"查不到/不存在\"的结论不能顺延到新对象上。\n8. 用户问\"什么状态\"\"到哪了\"\"怎么样了\"这类没分清订单还是物流的问题时，\n   订单状态和物流状态各查一次，两边都报；只查一边就答，等于只答了一半。\n9. 中文回答，不超过 150 字。\n10. 提交退款前必须先查订单状态，看到「待支付」不要提交，\n   直接说明订单还没付款、无需退款。只有本轮工具返回过退款单、\n   或服务端明确返回「已申请过退款」，才可以说已申请过并停止重复提交；\n   用户说「再退一次」不等于你已知情，不能凭这句话认定此前申请过。\n11. 「已提交」「已申请」「已办理」「已取消」这类\"已经做完\"的说法，\n   只能在本轮工具真的返回成功之后讲。查了状态不等于动作已经完成，\n   没调工具就不要说做过，工具报错就说没办成——不许把\"我这就去办\"写成\"已办好\"。"
+        },
+        {
+          "role": "user",
+          "content": "帮我搜一下降噪耳机"
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "call_ca41061dcfde42758b424f35",
+              "type": "function",
+              "function": {
+                "name": "search_products",
+                "arguments": "{\"q\": \"降噪耳机\"}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 1, \"title\": \"无线降噪耳机 Pro\", \"price\": 899.0, \"stock\": 42, \"rating\": 4.7}]}",
+          "tool_call_id": "call_ca41061dcfde42758b424f35"
+        },
+        {
+          "role": "assistant",
+          "content": "搜了\"降噪耳机\"，共 1 款：\n\n- **无线降噪耳机 Pro**（id 1）：899 元，库存 42，评分 4.7\n\n需要看规格、适用场景等详情吗？"
+        }
+      ],
+      "trace_id": "208012725163",
+      "rounds": [
+        {
+          "turn": 1,
+          "input": "帮我搜一下降噪耳机",
+          "answer": "搜了\"降噪耳机\"，共 1 款：\n\n- **无线降噪耳机 Pro**（id 1）：899 元，库存 42，评分 4.7\n\n需要看规格、适用场景等详情吗？",
+          "calls": [
+            {
+              "name": "search_products",
+              "args": {
+                "q": "降噪耳机"
+              }
+            }
+          ],
+          "outputs": {
+            "search_products": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 1, \"title\": \"无线降噪耳机 Pro\", \"price\": 899.0, \"stock\": 42, \"rating\": 4.7}]}"
+          },
+          "tool_results": [
+            {
+              "call_id": "call_ca41061dcfde42758b424f35",
+              "name": "search_products",
+              "args": {
+                "q": "降噪耳机"
+              },
+              "output": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 1, \"title\": \"无线降噪耳机 Pro\", \"price\": 899.0, \"stock\": 42, \"rating\": 4.7}]}"
+            }
+          ],
+          "msg_count": 5,
+          "status": "ok",
+          "steps": 2,
+          "sent_msgs": 4,
+          "judged": true,
+          "tool_ok": true,
+          "tool_msg": "命中",
+          "param_ok": true,
+          "param_msg": "未校验",
+          "order_ok": true,
+          "order_msg": "未校验",
+          "ground_ok": true,
+          "ungrounded": [],
+          "answer_ok": true,
+          "missing_fact": [],
+          "missing_any": [],
+          "forbidden_hit": [],
+          "non_answer": false,
+          "over_calls": [],
+          "invalid_tools": [],
+          "passed": true,
+          "failure_type": ""
+        }
+      ],
+      "answer": "搜了\"降噪耳机\"，共 1 款：\n\n- **无线降噪耳机 Pro**（id 1）：899 元，库存 42，评分 4.7\n\n需要看规格、适用场景等详情吗？",
       "calls": [
         {
           "name": "search_products",
@@ -163,25 +795,162 @@
           }
         }
       ],
-      "elapsed_ms": 6214,
+      "outputs": {
+        "search_products": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 1, \"title\": \"无线降噪耳机 Pro\", \"price\": 899.0, \"stock\": 42, \"rating\": 4.7}]}"
+      },
+      "tool_results": [
+        {
+          "call_id": "call_ca41061dcfde42758b424f35",
+          "name": "search_products",
+          "args": {
+            "q": "降噪耳机"
+          },
+          "output": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 1, \"title\": \"无线降噪耳机 Pro\", \"price\": 899.0, \"stock\": 42, \"rating\": 4.7}]}"
+        }
+      ],
       "msg_count": 5,
-      "error": "",
+      "passed": true,
+      "failure_type": "",
+      "fail_turn": null,
       "tool_ok": true,
-      "tool_msg": "命中",
       "param_ok": true,
-      "param_msg": "未校验",
+      "order_ok": true,
+      "ground_ok": true,
       "answer_ok": true,
+      "tool_msg": "",
+      "param_msg": "",
+      "order_msg": "",
+      "ungrounded": [],
+      "forbidden_hit": [],
+      "forbidden_tools": [],
       "missing_fact": [],
       "missing_any": [],
-      "forbidden_hit": [],
-      "passed": true,
-      "failure_type": ""
+      "invalid_tools": [],
+      "over_calls": []
     },
     {
       "id": "S07",
       "input": "订单 1002 什么时候到",
+      "turns": [
+        "订单 1002 什么时候到"
+      ],
       "note": "eta=null，幻觉主考",
-      "answer": "查了订单 1002 和它的物流：\n\n- 订单状态：已发货（金额 429.0，下单 2026-11-08）\n- 物流：中通快递 ZT9876543210，状态 shipped\n- 轨迹：11-09 14:05 已揽收；11-10 08:41 已发出，下一站武汉分拨中心\n\n预计送达时间（eta）暂无，系统里是空值，无法给出具体到货日期。",
+      "elapsed_ms": 5564,
+      "error": "",
+      "has_claims": false,
+      "train_messages": [
+        {
+          "role": "system",
+          "content": "你是电商平台客服助手，只能依据工具返回的数据回答。\n\n规则：\n1. 涉及商品、订单、物流、退款的事实，必须先调工具查，不许凭印象作答。\n2. 工具返回什么就用什么。字段为 null、空列表、压根没有该字段，就如实说\"暂无\"，\n   禁止推测、补全或给出示例值。\n3. 状态值原样复述：订单状态是中文（已签收/已发货/待支付），\n   物流状态是英文（delivered/shipped/pending），不要翻译或改写。\n4. 先说查了什么、查到什么，再给结论。查不到就说查不到，不要换个接口瞎猜。\n5. 多轮对话延续上下文：用户说\"那个\"\"第一个\"\"它\"\"那 1001 呢\"\"算了\"时，\n   指代前面已经出现过的实体，沿用之前查到的 id 和参数，不要让用户重复说明。\n   追问轮也要点名：答\"多少钱\"\"有货吗\"时说清是哪个商品、哪个订单，不能只甩一个价格或状态。\n6. 用户提到了预算、品类、商品名中的任意一项，就直接调工具搜，不要反问。\n   只给预算、连品类都没说的（比如\"三百块能买点啥\"），也算给了条件——\n   直接搜出来再筛，不要问用户\"想买什么类别\"。\n   只有这三项完全没有时（例如\"我想买个礼物送人\"），才反问一句问预算。\n7. 用户改口径就以最新一次为准：给了新预算、新订单号、新商品，旧值立即失效，\n   换对象后必须重新查；上一轮\"查不到/不存在\"的结论不能顺延到新对象上。\n8. 用户问\"什么状态\"\"到哪了\"\"怎么样了\"这类没分清订单还是物流的问题时，\n   订单状态和物流状态各查一次，两边都报；只查一边就答，等于只答了一半。\n9. 中文回答，不超过 150 字。\n10. 提交退款前必须先查订单状态，看到「待支付」不要提交，\n   直接说明订单还没付款、无需退款。只有本轮工具返回过退款单、\n   或服务端明确返回「已申请过退款」，才可以说已申请过并停止重复提交；\n   用户说「再退一次」不等于你已知情，不能凭这句话认定此前申请过。\n11. 「已提交」「已申请」「已办理」「已取消」这类\"已经做完\"的说法，\n   只能在本轮工具真的返回成功之后讲。查了状态不等于动作已经完成，\n   没调工具就不要说做过，工具报错就说没办成——不许把\"我这就去办\"写成\"已办好\"。"
+        },
+        {
+          "role": "user",
+          "content": "订单 1002 什么时候到"
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "call_25a59379e5ca4b679199f385",
+              "type": "function",
+              "function": {
+                "name": "get_order",
+                "arguments": "{\"order_id\": 1002}"
+              }
+            },
+            {
+              "id": "call_b2c05c3e38454151a5eff393",
+              "type": "function",
+              "function": {
+                "name": "get_logistics",
+                "arguments": "{\"order_id\": 1002}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}",
+          "tool_call_id": "call_25a59379e5ca4b679199f385"
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"order_id\": 1002, \"carrier\": \"中通快递\", \"tracking_no\": \"ZT9876543210\", \"status\": \"shipped\", \"eta\": null, \"traces\": [{\"time\": \"2026-11-09 14:05\", \"desc\": \"已揽收\"}, {\"time\": \"2026-11-10 08:41\", \"desc\": \"已发出，下一站武汉分拨中心\"}]}",
+          "tool_call_id": "call_b2c05c3e38454151a5eff393"
+        },
+        {
+          "role": "assistant",
+          "content": "查了订单 1002 和它的物流：\n\n- 订单状态：已发货（429.0 元，2026-11-08 下单）\n- 物流：中通快递 ZT9876543210，状态 shipped\n- 预计送达时间：暂无，系统里没有这个字段值\n- 轨迹：11-09 14:05 已揽收；11-10 08:41 已发出，下一站武汉分拨中心\n\n结论：包裹在途，但暂无确切到货时间，无法给出具体送达日期。"
+        }
+      ],
+      "trace_id": "f4225b18c2a3",
+      "rounds": [
+        {
+          "turn": 1,
+          "input": "订单 1002 什么时候到",
+          "answer": "查了订单 1002 和它的物流：\n\n- 订单状态：已发货（429.0 元，2026-11-08 下单）\n- 物流：中通快递 ZT9876543210，状态 shipped\n- 预计送达时间：暂无，系统里没有这个字段值\n- 轨迹：11-09 14:05 已揽收；11-10 08:41 已发出，下一站武汉分拨中心\n\n结论：包裹在途，但暂无确切到货时间，无法给出具体送达日期。",
+          "calls": [
+            {
+              "name": "get_order",
+              "args": {
+                "order_id": 1002
+              }
+            },
+            {
+              "name": "get_logistics",
+              "args": {
+                "order_id": 1002
+              }
+            }
+          ],
+          "outputs": {
+            "get_order": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}",
+            "get_logistics": "status=200\nbody={\"order_id\": 1002, \"carrier\": \"中通快递\", \"tracking_no\": \"ZT9876543210\", \"status\": \"shipped\", \"eta\": null, \"traces\": [{\"time\": \"2026-11-09 14:05\", \"desc\": \"已揽收\"}, {\"time\": \"2026-11-10 08:41\", \"desc\": \"已发出，下一站武汉分拨中心\"}]}"
+          },
+          "tool_results": [
+            {
+              "call_id": "call_25a59379e5ca4b679199f385",
+              "name": "get_order",
+              "args": {
+                "order_id": 1002
+              },
+              "output": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}"
+            },
+            {
+              "call_id": "call_b2c05c3e38454151a5eff393",
+              "name": "get_logistics",
+              "args": {
+                "order_id": 1002
+              },
+              "output": "status=200\nbody={\"order_id\": 1002, \"carrier\": \"中通快递\", \"tracking_no\": \"ZT9876543210\", \"status\": \"shipped\", \"eta\": null, \"traces\": [{\"time\": \"2026-11-09 14:05\", \"desc\": \"已揽收\"}, {\"time\": \"2026-11-10 08:41\", \"desc\": \"已发出，下一站武汉分拨中心\"}]}"
+            }
+          ],
+          "msg_count": 6,
+          "status": "ok",
+          "steps": 2,
+          "sent_msgs": 5,
+          "judged": true,
+          "tool_ok": true,
+          "tool_msg": "命中",
+          "param_ok": true,
+          "param_msg": "命中",
+          "order_ok": true,
+          "order_msg": "未校验",
+          "ground_ok": true,
+          "ungrounded": [],
+          "answer_ok": true,
+          "missing_fact": [],
+          "missing_any": [],
+          "forbidden_hit": [],
+          "non_answer": false,
+          "over_calls": [],
+          "invalid_tools": [],
+          "passed": true,
+          "failure_type": ""
+        }
+      ],
+      "answer": "查了订单 1002 和它的物流：\n\n- 订单状态：已发货（429.0 元，2026-11-08 下单）\n- 物流：中通快递 ZT9876543210，状态 shipped\n- 预计送达时间：暂无，系统里没有这个字段值\n- 轨迹：11-09 14:05 已揽收；11-10 08:41 已发出，下一站武汉分拨中心\n\n结论：包裹在途，但暂无确切到货时间，无法给出具体送达日期。",
       "calls": [
         {
           "name": "get_order",
@@ -196,25 +965,171 @@
           }
         }
       ],
-      "elapsed_ms": 14590,
+      "outputs": {
+        "get_order": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}",
+        "get_logistics": "status=200\nbody={\"order_id\": 1002, \"carrier\": \"中通快递\", \"tracking_no\": \"ZT9876543210\", \"status\": \"shipped\", \"eta\": null, \"traces\": [{\"time\": \"2026-11-09 14:05\", \"desc\": \"已揽收\"}, {\"time\": \"2026-11-10 08:41\", \"desc\": \"已发出，下一站武汉分拨中心\"}]}"
+      },
+      "tool_results": [
+        {
+          "call_id": "call_25a59379e5ca4b679199f385",
+          "name": "get_order",
+          "args": {
+            "order_id": 1002
+          },
+          "output": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}"
+        },
+        {
+          "call_id": "call_b2c05c3e38454151a5eff393",
+          "name": "get_logistics",
+          "args": {
+            "order_id": 1002
+          },
+          "output": "status=200\nbody={\"order_id\": 1002, \"carrier\": \"中通快递\", \"tracking_no\": \"ZT9876543210\", \"status\": \"shipped\", \"eta\": null, \"traces\": [{\"time\": \"2026-11-09 14:05\", \"desc\": \"已揽收\"}, {\"time\": \"2026-11-10 08:41\", \"desc\": \"已发出，下一站武汉分拨中心\"}]}"
+        }
+      ],
       "msg_count": 6,
-      "error": "",
+      "passed": true,
+      "failure_type": "",
+      "fail_turn": null,
       "tool_ok": true,
-      "tool_msg": "命中",
       "param_ok": true,
-      "param_msg": "命中",
+      "order_ok": true,
+      "ground_ok": true,
       "answer_ok": true,
+      "tool_msg": "",
+      "param_msg": "",
+      "order_msg": "",
+      "ungrounded": [],
+      "forbidden_hit": [],
+      "forbidden_tools": [],
       "missing_fact": [],
       "missing_any": [],
-      "forbidden_hit": [],
-      "passed": true,
-      "failure_type": ""
+      "invalid_tools": [],
+      "over_calls": []
     },
     {
       "id": "S08",
       "input": "1002 现在什么状态",
-      "note": "跨工具枚举对齐，中英不混译",
-      "answer": "查了订单 1002 和它的物流：\n\n- 订单状态：**已发货**，金额 429.0，下单 2026-11-08\n- 物流：中通快递，运单号 ZT9876543210，状态 **shipped**\n- 轨迹：11-09 14:05 已揽收；11-10 08:41 已发出，下一站武汉分拨中心\n- 预计送达时间：暂无\n\n结论：货已在途，尚无送达时间。",
+      "turns": [
+        "1002 现在什么状态"
+      ],
+      "note": "查询完备性：单轮问'状态'没说清订单还是物流，对应提示词规则 8——两边各查一次再答。must_have_any 卡运单号/承运商，逼它把物流也报出来（原来只查不报也算过）；物流侧不卡英文状态词，改卡唯一标识，避开中英 AND 抖动",
+      "elapsed_ms": 6817,
+      "error": "",
+      "has_claims": true,
+      "train_messages": [
+        {
+          "role": "system",
+          "content": "你是电商平台客服助手，只能依据工具返回的数据回答。\n\n规则：\n1. 涉及商品、订单、物流、退款的事实，必须先调工具查，不许凭印象作答。\n2. 工具返回什么就用什么。字段为 null、空列表、压根没有该字段，就如实说\"暂无\"，\n   禁止推测、补全或给出示例值。\n3. 状态值原样复述：订单状态是中文（已签收/已发货/待支付），\n   物流状态是英文（delivered/shipped/pending），不要翻译或改写。\n4. 先说查了什么、查到什么，再给结论。查不到就说查不到，不要换个接口瞎猜。\n5. 多轮对话延续上下文：用户说\"那个\"\"第一个\"\"它\"\"那 1001 呢\"\"算了\"时，\n   指代前面已经出现过的实体，沿用之前查到的 id 和参数，不要让用户重复说明。\n   追问轮也要点名：答\"多少钱\"\"有货吗\"时说清是哪个商品、哪个订单，不能只甩一个价格或状态。\n6. 用户提到了预算、品类、商品名中的任意一项，就直接调工具搜，不要反问。\n   只给预算、连品类都没说的（比如\"三百块能买点啥\"），也算给了条件——\n   直接搜出来再筛，不要问用户\"想买什么类别\"。\n   只有这三项完全没有时（例如\"我想买个礼物送人\"），才反问一句问预算。\n7. 用户改口径就以最新一次为准：给了新预算、新订单号、新商品，旧值立即失效，\n   换对象后必须重新查；上一轮\"查不到/不存在\"的结论不能顺延到新对象上。\n8. 用户问\"什么状态\"\"到哪了\"\"怎么样了\"这类没分清订单还是物流的问题时，\n   订单状态和物流状态各查一次，两边都报；只查一边就答，等于只答了一半。\n9. 中文回答，不超过 150 字。\n10. 提交退款前必须先查订单状态，看到「待支付」不要提交，\n   直接说明订单还没付款、无需退款。只有本轮工具返回过退款单、\n   或服务端明确返回「已申请过退款」，才可以说已申请过并停止重复提交；\n   用户说「再退一次」不等于你已知情，不能凭这句话认定此前申请过。\n11. 「已提交」「已申请」「已办理」「已取消」这类\"已经做完\"的说法，\n   只能在本轮工具真的返回成功之后讲。查了状态不等于动作已经完成，\n   没调工具就不要说做过，工具报错就说没办成——不许把\"我这就去办\"写成\"已办好\"。"
+        },
+        {
+          "role": "user",
+          "content": "1002 现在什么状态"
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "call_fd2c9604344a44e38684df8d",
+              "type": "function",
+              "function": {
+                "name": "get_order",
+                "arguments": "{\"order_id\": 1002}"
+              }
+            },
+            {
+              "id": "call_0c0278fe994f4b6cb7340668",
+              "type": "function",
+              "function": {
+                "name": "get_logistics",
+                "arguments": "{\"order_id\": 1002}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}",
+          "tool_call_id": "call_fd2c9604344a44e38684df8d"
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"order_id\": 1002, \"carrier\": \"中通快递\", \"tracking_no\": \"ZT9876543210\", \"status\": \"shipped\", \"eta\": null, \"traces\": [{\"time\": \"2026-11-09 14:05\", \"desc\": \"已揽收\"}, {\"time\": \"2026-11-10 08:41\", \"desc\": \"已发出，下一站武汉分拨中心\"}]}",
+          "tool_call_id": "call_0c0278fe994f4b6cb7340668"
+        },
+        {
+          "role": "assistant",
+          "content": "查了订单 1002 和对应物流：\n\n- 订单状态：已发货（金额 429.0，下单日期 2026-11-08，商品id 2）\n- 物流：中通快递，运单号 ZT9876543210，状态 shipped\n- 轨迹：11-09 14:05 已揽收；11-10 08:41 已发出，下一站武汉分拨中心\n- 预计送达时间：暂无\n\n结论：货已发出、在途中，暂无预计送达时间。"
+        }
+      ],
+      "trace_id": "b46c0a02dbf8",
+      "rounds": [
+        {
+          "turn": 1,
+          "input": "1002 现在什么状态",
+          "answer": "查了订单 1002 和对应物流：\n\n- 订单状态：已发货（金额 429.0，下单日期 2026-11-08，商品id 2）\n- 物流：中通快递，运单号 ZT9876543210，状态 shipped\n- 轨迹：11-09 14:05 已揽收；11-10 08:41 已发出，下一站武汉分拨中心\n- 预计送达时间：暂无\n\n结论：货已发出、在途中，暂无预计送达时间。",
+          "calls": [
+            {
+              "name": "get_order",
+              "args": {
+                "order_id": 1002
+              }
+            },
+            {
+              "name": "get_logistics",
+              "args": {
+                "order_id": 1002
+              }
+            }
+          ],
+          "outputs": {
+            "get_order": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}",
+            "get_logistics": "status=200\nbody={\"order_id\": 1002, \"carrier\": \"中通快递\", \"tracking_no\": \"ZT9876543210\", \"status\": \"shipped\", \"eta\": null, \"traces\": [{\"time\": \"2026-11-09 14:05\", \"desc\": \"已揽收\"}, {\"time\": \"2026-11-10 08:41\", \"desc\": \"已发出，下一站武汉分拨中心\"}]}"
+          },
+          "tool_results": [
+            {
+              "call_id": "call_fd2c9604344a44e38684df8d",
+              "name": "get_order",
+              "args": {
+                "order_id": 1002
+              },
+              "output": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}"
+            },
+            {
+              "call_id": "call_0c0278fe994f4b6cb7340668",
+              "name": "get_logistics",
+              "args": {
+                "order_id": 1002
+              },
+              "output": "status=200\nbody={\"order_id\": 1002, \"carrier\": \"中通快递\", \"tracking_no\": \"ZT9876543210\", \"status\": \"shipped\", \"eta\": null, \"traces\": [{\"time\": \"2026-11-09 14:05\", \"desc\": \"已揽收\"}, {\"time\": \"2026-11-10 08:41\", \"desc\": \"已发出，下一站武汉分拨中心\"}]}"
+            }
+          ],
+          "msg_count": 6,
+          "status": "ok",
+          "steps": 2,
+          "sent_msgs": 5,
+          "judged": true,
+          "tool_ok": true,
+          "tool_msg": "命中",
+          "param_ok": true,
+          "param_msg": "未校验",
+          "order_ok": true,
+          "order_msg": "未校验",
+          "ground_ok": true,
+          "ungrounded": [],
+          "answer_ok": true,
+          "missing_fact": [],
+          "missing_any": [],
+          "forbidden_hit": [],
+          "non_answer": false,
+          "over_calls": [],
+          "invalid_tools": [],
+          "passed": true,
+          "failure_type": ""
+        }
+      ],
+      "answer": "查了订单 1002 和对应物流：\n\n- 订单状态：已发货（金额 429.0，下单日期 2026-11-08，商品id 2）\n- 物流：中通快递，运单号 ZT9876543210，状态 shipped\n- 轨迹：11-09 14:05 已揽收；11-10 08:41 已发出，下一站武汉分拨中心\n- 预计送达时间：暂无\n\n结论：货已发出、在途中，暂无预计送达时间。",
       "calls": [
         {
           "name": "get_order",
@@ -229,26 +1144,212 @@
           }
         }
       ],
-      "elapsed_ms": 12873,
+      "outputs": {
+        "get_order": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}",
+        "get_logistics": "status=200\nbody={\"order_id\": 1002, \"carrier\": \"中通快递\", \"tracking_no\": \"ZT9876543210\", \"status\": \"shipped\", \"eta\": null, \"traces\": [{\"time\": \"2026-11-09 14:05\", \"desc\": \"已揽收\"}, {\"time\": \"2026-11-10 08:41\", \"desc\": \"已发出，下一站武汉分拨中心\"}]}"
+      },
+      "tool_results": [
+        {
+          "call_id": "call_fd2c9604344a44e38684df8d",
+          "name": "get_order",
+          "args": {
+            "order_id": 1002
+          },
+          "output": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}"
+        },
+        {
+          "call_id": "call_0c0278fe994f4b6cb7340668",
+          "name": "get_logistics",
+          "args": {
+            "order_id": 1002
+          },
+          "output": "status=200\nbody={\"order_id\": 1002, \"carrier\": \"中通快递\", \"tracking_no\": \"ZT9876543210\", \"status\": \"shipped\", \"eta\": null, \"traces\": [{\"time\": \"2026-11-09 14:05\", \"desc\": \"已揽收\"}, {\"time\": \"2026-11-10 08:41\", \"desc\": \"已发出，下一站武汉分拨中心\"}]}"
+        }
+      ],
       "msg_count": 6,
-      "error": "",
+      "passed": true,
+      "failure_type": "",
+      "fail_turn": null,
       "tool_ok": true,
-      "tool_msg": "命中",
       "param_ok": true,
-      "param_msg": "未校验",
+      "order_ok": true,
+      "ground_ok": true,
       "answer_ok": true,
+      "tool_msg": "",
+      "param_msg": "",
+      "order_msg": "",
+      "ungrounded": [],
+      "forbidden_hit": [],
+      "forbidden_tools": [],
       "missing_fact": [],
       "missing_any": [],
-      "forbidden_hit": [],
-      "passed": true,
-      "failure_type": ""
+      "invalid_tools": [],
+      "over_calls": []
     },
     {
       "id": "S09",
       "input": "1001 到哪了",
+      "turns": [
+        "1001 到哪了"
+      ],
       "note": "正常链路",
-      "answer": "查了订单 1001 和它的物流：\n\n- 订单状态：已签收\n- 物流状态：delivered（顺丰速运 SF1234567890）\n- 轨迹：11-04 21:10 到达武汉转运中心；11-05 09:32 已签收，签收人：本人\n- 预计送达：2026-11-05\n\n结论：包裹已签收，无需再等。",
+      "elapsed_ms": 12645,
+      "error": "",
+      "has_claims": true,
+      "train_messages": [
+        {
+          "role": "system",
+          "content": "你是电商平台客服助手，只能依据工具返回的数据回答。\n\n规则：\n1. 涉及商品、订单、物流、退款的事实，必须先调工具查，不许凭印象作答。\n2. 工具返回什么就用什么。字段为 null、空列表、压根没有该字段，就如实说\"暂无\"，\n   禁止推测、补全或给出示例值。\n3. 状态值原样复述：订单状态是中文（已签收/已发货/待支付），\n   物流状态是英文（delivered/shipped/pending），不要翻译或改写。\n4. 先说查了什么、查到什么，再给结论。查不到就说查不到，不要换个接口瞎猜。\n5. 多轮对话延续上下文：用户说\"那个\"\"第一个\"\"它\"\"那 1001 呢\"\"算了\"时，\n   指代前面已经出现过的实体，沿用之前查到的 id 和参数，不要让用户重复说明。\n   追问轮也要点名：答\"多少钱\"\"有货吗\"时说清是哪个商品、哪个订单，不能只甩一个价格或状态。\n6. 用户提到了预算、品类、商品名中的任意一项，就直接调工具搜，不要反问。\n   只给预算、连品类都没说的（比如\"三百块能买点啥\"），也算给了条件——\n   直接搜出来再筛，不要问用户\"想买什么类别\"。\n   只有这三项完全没有时（例如\"我想买个礼物送人\"），才反问一句问预算。\n7. 用户改口径就以最新一次为准：给了新预算、新订单号、新商品，旧值立即失效，\n   换对象后必须重新查；上一轮\"查不到/不存在\"的结论不能顺延到新对象上。\n8. 用户问\"什么状态\"\"到哪了\"\"怎么样了\"这类没分清订单还是物流的问题时，\n   订单状态和物流状态各查一次，两边都报；只查一边就答，等于只答了一半。\n9. 中文回答，不超过 150 字。\n10. 提交退款前必须先查订单状态，看到「待支付」不要提交，\n   直接说明订单还没付款、无需退款。只有本轮工具返回过退款单、\n   或服务端明确返回「已申请过退款」，才可以说已申请过并停止重复提交；\n   用户说「再退一次」不等于你已知情，不能凭这句话认定此前申请过。\n11. 「已提交」「已申请」「已办理」「已取消」这类\"已经做完\"的说法，\n   只能在本轮工具真的返回成功之后讲。查了状态不等于动作已经完成，\n   没调工具就不要说做过，工具报错就说没办成——不许把\"我这就去办\"写成\"已办好\"。"
+        },
+        {
+          "role": "user",
+          "content": "1001 到哪了"
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "call_7320934c063147518ec61d3f",
+              "type": "function",
+              "function": {
+                "name": "get_order",
+                "arguments": "{\"order_id\": 1001}"
+              }
+            },
+            {
+              "id": "call_0bf3a830ad114579b3297087",
+              "type": "function",
+              "function": {
+                "name": "get_logistics",
+                "arguments": "{\"order_id\": 1001}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"order_id\": 1001, \"status\": \"已签收\", \"product_id\": 1, \"amount\": 899.0, \"created_at\": \"2026-11-02\"}",
+          "tool_call_id": "call_7320934c063147518ec61d3f"
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"order_id\": 1001, \"carrier\": \"顺丰速运\", \"tracking_no\": \"SF1234567890\", \"status\": \"delivered\", \"eta\": \"2026-11-05\", \"traces\": [{\"time\": \"2026-11-04 21:10\", \"desc\": \"已到达武汉转运中心\"}, {\"time\": \"2026-11-05 09:32\", \"desc\": \"已签收，签收人：本人\"}]}",
+          "tool_call_id": "call_0bf3a830ad114579b3297087"
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "call_00507238f8e54be896218729",
+              "type": "function",
+              "function": {
+                "name": "search_products",
+                "arguments": "{\"max_price\": 200}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 3, \"title\": \"便携充电宝 20000mAh\", \"price\": 159.0, \"stock\": 88, \"rating\": 4.3}]}",
+          "tool_call_id": "call_00507238f8e54be896218729"
+        },
+        {
+          "role": "assistant",
+          "content": "订单 1001 已签收，物流也显示已送达：顺丰速运（运单 SF1234567890），最新轨迹 2026-11-05 09:32 已签收。包裹已到，无需再等。"
+        }
+      ],
+      "trace_id": "a4585631458d",
+      "rounds": [
+        {
+          "turn": 1,
+          "input": "1001 到哪了",
+          "answer": "订单 1001 已签收，物流也显示已送达：顺丰速运（运单 SF1234567890），最新轨迹 2026-11-05 09:32 已签收。包裹已到，无需再等。",
+          "calls": [
+            {
+              "name": "get_order",
+              "args": {
+                "order_id": 1001
+              }
+            },
+            {
+              "name": "get_logistics",
+              "args": {
+                "order_id": 1001
+              }
+            },
+            {
+              "name": "search_products",
+              "args": {
+                "max_price": 200
+              }
+            }
+          ],
+          "outputs": {
+            "get_order": "status=200\nbody={\"order_id\": 1001, \"status\": \"已签收\", \"product_id\": 1, \"amount\": 899.0, \"created_at\": \"2026-11-02\"}",
+            "get_logistics": "status=200\nbody={\"order_id\": 1001, \"carrier\": \"顺丰速运\", \"tracking_no\": \"SF1234567890\", \"status\": \"delivered\", \"eta\": \"2026-11-05\", \"traces\": [{\"time\": \"2026-11-04 21:10\", \"desc\": \"已到达武汉转运中心\"}, {\"time\": \"2026-11-05 09:32\", \"desc\": \"已签收，签收人：本人\"}]}",
+            "search_products": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 3, \"title\": \"便携充电宝 20000mAh\", \"price\": 159.0, \"stock\": 88, \"rating\": 4.3}]}"
+          },
+          "tool_results": [
+            {
+              "call_id": "call_7320934c063147518ec61d3f",
+              "name": "get_order",
+              "args": {
+                "order_id": 1001
+              },
+              "output": "status=200\nbody={\"order_id\": 1001, \"status\": \"已签收\", \"product_id\": 1, \"amount\": 899.0, \"created_at\": \"2026-11-02\"}"
+            },
+            {
+              "call_id": "call_0bf3a830ad114579b3297087",
+              "name": "get_logistics",
+              "args": {
+                "order_id": 1001
+              },
+              "output": "status=200\nbody={\"order_id\": 1001, \"carrier\": \"顺丰速运\", \"tracking_no\": \"SF1234567890\", \"status\": \"delivered\", \"eta\": \"2026-11-05\", \"traces\": [{\"time\": \"2026-11-04 21:10\", \"desc\": \"已到达武汉转运中心\"}, {\"time\": \"2026-11-05 09:32\", \"desc\": \"已签收，签收人：本人\"}]}"
+            },
+            {
+              "call_id": "call_00507238f8e54be896218729",
+              "name": "search_products",
+              "args": {
+                "max_price": 200
+              },
+              "output": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 3, \"title\": \"便携充电宝 20000mAh\", \"price\": 159.0, \"stock\": 88, \"rating\": 4.3}]}"
+            }
+          ],
+          "msg_count": 8,
+          "status": "ok",
+          "steps": 3,
+          "sent_msgs": 7,
+          "judged": true,
+          "tool_ok": true,
+          "tool_msg": "命中",
+          "param_ok": true,
+          "param_msg": "命中",
+          "order_ok": true,
+          "order_msg": "未校验",
+          "ground_ok": true,
+          "ungrounded": [],
+          "answer_ok": true,
+          "missing_fact": [],
+          "missing_any": [],
+          "forbidden_hit": [],
+          "non_answer": false,
+          "over_calls": [],
+          "invalid_tools": [],
+          "passed": true,
+          "failure_type": ""
+        }
+      ],
+      "answer": "订单 1001 已签收，物流也显示已送达：顺丰速运（运单 SF1234567890），最新轨迹 2026-11-05 09:32 已签收。包裹已到，无需再等。",
       "calls": [
+        {
+          "name": "get_order",
+          "args": {
+            "order_id": 1001
+          }
+        },
         {
           "name": "get_logistics",
           "args": {
@@ -256,31 +1357,158 @@
           }
         },
         {
-          "name": "get_order",
+          "name": "search_products",
           "args": {
-            "order_id": 1001
+            "max_price": 200
           }
         }
       ],
-      "elapsed_ms": 11787,
-      "msg_count": 6,
-      "error": "",
+      "outputs": {
+        "get_order": "status=200\nbody={\"order_id\": 1001, \"status\": \"已签收\", \"product_id\": 1, \"amount\": 899.0, \"created_at\": \"2026-11-02\"}",
+        "get_logistics": "status=200\nbody={\"order_id\": 1001, \"carrier\": \"顺丰速运\", \"tracking_no\": \"SF1234567890\", \"status\": \"delivered\", \"eta\": \"2026-11-05\", \"traces\": [{\"time\": \"2026-11-04 21:10\", \"desc\": \"已到达武汉转运中心\"}, {\"time\": \"2026-11-05 09:32\", \"desc\": \"已签收，签收人：本人\"}]}",
+        "search_products": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 3, \"title\": \"便携充电宝 20000mAh\", \"price\": 159.0, \"stock\": 88, \"rating\": 4.3}]}"
+      },
+      "tool_results": [
+        {
+          "call_id": "call_7320934c063147518ec61d3f",
+          "name": "get_order",
+          "args": {
+            "order_id": 1001
+          },
+          "output": "status=200\nbody={\"order_id\": 1001, \"status\": \"已签收\", \"product_id\": 1, \"amount\": 899.0, \"created_at\": \"2026-11-02\"}"
+        },
+        {
+          "call_id": "call_0bf3a830ad114579b3297087",
+          "name": "get_logistics",
+          "args": {
+            "order_id": 1001
+          },
+          "output": "status=200\nbody={\"order_id\": 1001, \"carrier\": \"顺丰速运\", \"tracking_no\": \"SF1234567890\", \"status\": \"delivered\", \"eta\": \"2026-11-05\", \"traces\": [{\"time\": \"2026-11-04 21:10\", \"desc\": \"已到达武汉转运中心\"}, {\"time\": \"2026-11-05 09:32\", \"desc\": \"已签收，签收人：本人\"}]}"
+        },
+        {
+          "call_id": "call_00507238f8e54be896218729",
+          "name": "search_products",
+          "args": {
+            "max_price": 200
+          },
+          "output": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 3, \"title\": \"便携充电宝 20000mAh\", \"price\": 159.0, \"stock\": 88, \"rating\": 4.3}]}"
+        }
+      ],
+      "msg_count": 8,
+      "passed": true,
+      "failure_type": "",
+      "fail_turn": null,
       "tool_ok": true,
-      "tool_msg": "命中",
       "param_ok": true,
-      "param_msg": "命中",
+      "order_ok": true,
+      "ground_ok": true,
       "answer_ok": true,
+      "tool_msg": "",
+      "param_msg": "",
+      "order_msg": "",
+      "ungrounded": [],
+      "forbidden_hit": [],
+      "forbidden_tools": [],
       "missing_fact": [],
       "missing_any": [],
-      "forbidden_hit": [],
-      "passed": true,
-      "failure_type": ""
+      "invalid_tools": [],
+      "over_calls": []
     },
     {
       "id": "S10",
       "input": "1003 的运单号是多少",
+      "turns": [
+        "1003 的运单号是多少"
+      ],
       "note": "空值不串号",
-      "answer": "我查询了订单 1003 的物流信息：\n\n- 运单号：暂无\n- 承运商：暂无\n- 物流状态：pending\n- 预计送达：暂无\n- 轨迹明细：暂无（空列表）\n\n结论：该订单目前暂无运单号，物流状态仍为 pending，尚未生成运单信息。",
+      "elapsed_ms": 4161,
+      "error": "",
+      "has_claims": false,
+      "train_messages": [
+        {
+          "role": "system",
+          "content": "你是电商平台客服助手，只能依据工具返回的数据回答。\n\n规则：\n1. 涉及商品、订单、物流、退款的事实，必须先调工具查，不许凭印象作答。\n2. 工具返回什么就用什么。字段为 null、空列表、压根没有该字段，就如实说\"暂无\"，\n   禁止推测、补全或给出示例值。\n3. 状态值原样复述：订单状态是中文（已签收/已发货/待支付），\n   物流状态是英文（delivered/shipped/pending），不要翻译或改写。\n4. 先说查了什么、查到什么，再给结论。查不到就说查不到，不要换个接口瞎猜。\n5. 多轮对话延续上下文：用户说\"那个\"\"第一个\"\"它\"\"那 1001 呢\"\"算了\"时，\n   指代前面已经出现过的实体，沿用之前查到的 id 和参数，不要让用户重复说明。\n   追问轮也要点名：答\"多少钱\"\"有货吗\"时说清是哪个商品、哪个订单，不能只甩一个价格或状态。\n6. 用户提到了预算、品类、商品名中的任意一项，就直接调工具搜，不要反问。\n   只给预算、连品类都没说的（比如\"三百块能买点啥\"），也算给了条件——\n   直接搜出来再筛，不要问用户\"想买什么类别\"。\n   只有这三项完全没有时（例如\"我想买个礼物送人\"），才反问一句问预算。\n7. 用户改口径就以最新一次为准：给了新预算、新订单号、新商品，旧值立即失效，\n   换对象后必须重新查；上一轮\"查不到/不存在\"的结论不能顺延到新对象上。\n8. 用户问\"什么状态\"\"到哪了\"\"怎么样了\"这类没分清订单还是物流的问题时，\n   订单状态和物流状态各查一次，两边都报；只查一边就答，等于只答了一半。\n9. 中文回答，不超过 150 字。\n10. 提交退款前必须先查订单状态，看到「待支付」不要提交，\n   直接说明订单还没付款、无需退款。只有本轮工具返回过退款单、\n   或服务端明确返回「已申请过退款」，才可以说已申请过并停止重复提交；\n   用户说「再退一次」不等于你已知情，不能凭这句话认定此前申请过。\n11. 「已提交」「已申请」「已办理」「已取消」这类\"已经做完\"的说法，\n   只能在本轮工具真的返回成功之后讲。查了状态不等于动作已经完成，\n   没调工具就不要说做过，工具报错就说没办成——不许把\"我这就去办\"写成\"已办好\"。"
+        },
+        {
+          "role": "user",
+          "content": "1003 的运单号是多少"
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "call_b4d65f6591fa4323a646745a",
+              "type": "function",
+              "function": {
+                "name": "get_logistics",
+                "arguments": "{\"order_id\": 1003}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"order_id\": 1003, \"carrier\": null, \"tracking_no\": null, \"status\": \"pending\", \"eta\": null, \"traces\": []}",
+          "tool_call_id": "call_b4d65f6591fa4323a646745a"
+        },
+        {
+          "role": "assistant",
+          "content": "我查了订单 1003 的物流记录：\n\n- 运单号：暂无\n- 承运商：暂无\n- 物流状态：pending\n- 预计送达：暂无，轨迹明细为空\n\n结论：这单目前还没有运单号，物流尚未发出。"
+        }
+      ],
+      "trace_id": "2803bd8a3854",
+      "rounds": [
+        {
+          "turn": 1,
+          "input": "1003 的运单号是多少",
+          "answer": "我查了订单 1003 的物流记录：\n\n- 运单号：暂无\n- 承运商：暂无\n- 物流状态：pending\n- 预计送达：暂无，轨迹明细为空\n\n结论：这单目前还没有运单号，物流尚未发出。",
+          "calls": [
+            {
+              "name": "get_logistics",
+              "args": {
+                "order_id": 1003
+              }
+            }
+          ],
+          "outputs": {
+            "get_logistics": "status=200\nbody={\"order_id\": 1003, \"carrier\": null, \"tracking_no\": null, \"status\": \"pending\", \"eta\": null, \"traces\": []}"
+          },
+          "tool_results": [
+            {
+              "call_id": "call_b4d65f6591fa4323a646745a",
+              "name": "get_logistics",
+              "args": {
+                "order_id": 1003
+              },
+              "output": "status=200\nbody={\"order_id\": 1003, \"carrier\": null, \"tracking_no\": null, \"status\": \"pending\", \"eta\": null, \"traces\": []}"
+            }
+          ],
+          "msg_count": 5,
+          "status": "ok",
+          "steps": 2,
+          "sent_msgs": 4,
+          "judged": true,
+          "tool_ok": true,
+          "tool_msg": "命中",
+          "param_ok": true,
+          "param_msg": "命中",
+          "order_ok": true,
+          "order_msg": "未校验",
+          "ground_ok": true,
+          "ungrounded": [],
+          "answer_ok": true,
+          "missing_fact": [],
+          "missing_any": [],
+          "forbidden_hit": [],
+          "non_answer": false,
+          "over_calls": [],
+          "invalid_tools": [],
+          "passed": true,
+          "failure_type": ""
+        }
+      ],
+      "answer": "我查了订单 1003 的物流记录：\n\n- 运单号：暂无\n- 承运商：暂无\n- 物流状态：pending\n- 预计送达：暂无，轨迹明细为空\n\n结论：这单目前还没有运单号，物流尚未发出。",
       "calls": [
         {
           "name": "get_logistics",
@@ -289,25 +1517,134 @@
           }
         }
       ],
-      "elapsed_ms": 6792,
+      "outputs": {
+        "get_logistics": "status=200\nbody={\"order_id\": 1003, \"carrier\": null, \"tracking_no\": null, \"status\": \"pending\", \"eta\": null, \"traces\": []}"
+      },
+      "tool_results": [
+        {
+          "call_id": "call_b4d65f6591fa4323a646745a",
+          "name": "get_logistics",
+          "args": {
+            "order_id": 1003
+          },
+          "output": "status=200\nbody={\"order_id\": 1003, \"carrier\": null, \"tracking_no\": null, \"status\": \"pending\", \"eta\": null, \"traces\": []}"
+        }
+      ],
       "msg_count": 5,
-      "error": "",
+      "passed": true,
+      "failure_type": "",
+      "fail_turn": null,
       "tool_ok": true,
-      "tool_msg": "命中",
       "param_ok": true,
-      "param_msg": "命中",
+      "order_ok": true,
+      "ground_ok": true,
       "answer_ok": true,
+      "tool_msg": "",
+      "param_msg": "",
+      "order_msg": "",
+      "ungrounded": [],
+      "forbidden_hit": [],
+      "forbidden_tools": [],
       "missing_fact": [],
       "missing_any": [],
-      "forbidden_hit": [],
-      "passed": true,
-      "failure_type": ""
+      "invalid_tools": [],
+      "over_calls": []
     },
     {
       "id": "S11",
       "input": "订单 1001 花了多少钱",
+      "turns": [
+        "订单 1001 花了多少钱"
+      ],
       "note": "金额在订单接口；只调订单就报运单号即越界断言",
-      "answer": "我查了订单 1001：金额 899.0 元，状态「已签收」，下单日期 2026-11-02。\n\n结论：这单花了 899 元。",
+      "elapsed_ms": 3279,
+      "error": "",
+      "has_claims": true,
+      "train_messages": [
+        {
+          "role": "system",
+          "content": "你是电商平台客服助手，只能依据工具返回的数据回答。\n\n规则：\n1. 涉及商品、订单、物流、退款的事实，必须先调工具查，不许凭印象作答。\n2. 工具返回什么就用什么。字段为 null、空列表、压根没有该字段，就如实说\"暂无\"，\n   禁止推测、补全或给出示例值。\n3. 状态值原样复述：订单状态是中文（已签收/已发货/待支付），\n   物流状态是英文（delivered/shipped/pending），不要翻译或改写。\n4. 先说查了什么、查到什么，再给结论。查不到就说查不到，不要换个接口瞎猜。\n5. 多轮对话延续上下文：用户说\"那个\"\"第一个\"\"它\"\"那 1001 呢\"\"算了\"时，\n   指代前面已经出现过的实体，沿用之前查到的 id 和参数，不要让用户重复说明。\n   追问轮也要点名：答\"多少钱\"\"有货吗\"时说清是哪个商品、哪个订单，不能只甩一个价格或状态。\n6. 用户提到了预算、品类、商品名中的任意一项，就直接调工具搜，不要反问。\n   只给预算、连品类都没说的（比如\"三百块能买点啥\"），也算给了条件——\n   直接搜出来再筛，不要问用户\"想买什么类别\"。\n   只有这三项完全没有时（例如\"我想买个礼物送人\"），才反问一句问预算。\n7. 用户改口径就以最新一次为准：给了新预算、新订单号、新商品，旧值立即失效，\n   换对象后必须重新查；上一轮\"查不到/不存在\"的结论不能顺延到新对象上。\n8. 用户问\"什么状态\"\"到哪了\"\"怎么样了\"这类没分清订单还是物流的问题时，\n   订单状态和物流状态各查一次，两边都报；只查一边就答，等于只答了一半。\n9. 中文回答，不超过 150 字。\n10. 提交退款前必须先查订单状态，看到「待支付」不要提交，\n   直接说明订单还没付款、无需退款。只有本轮工具返回过退款单、\n   或服务端明确返回「已申请过退款」，才可以说已申请过并停止重复提交；\n   用户说「再退一次」不等于你已知情，不能凭这句话认定此前申请过。\n11. 「已提交」「已申请」「已办理」「已取消」这类\"已经做完\"的说法，\n   只能在本轮工具真的返回成功之后讲。查了状态不等于动作已经完成，\n   没调工具就不要说做过，工具报错就说没办成——不许把\"我这就去办\"写成\"已办好\"。"
+        },
+        {
+          "role": "user",
+          "content": "订单 1001 花了多少钱"
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "call_4e7ab4b846fc469ca846db49",
+              "type": "function",
+              "function": {
+                "name": "get_order",
+                "arguments": "{\"order_id\": 1001}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"order_id\": 1001, \"status\": \"已签收\", \"product_id\": 1, \"amount\": 899.0, \"created_at\": \"2026-11-02\"}",
+          "tool_call_id": "call_4e7ab4b846fc469ca846db49"
+        },
+        {
+          "role": "assistant",
+          "content": "我查了订单 1001：金额为 **899.0 元**，状态「已签收」，下单日期 2026-11-02，对应商品 id 为 1。"
+        }
+      ],
+      "trace_id": "203015a8539f",
+      "rounds": [
+        {
+          "turn": 1,
+          "input": "订单 1001 花了多少钱",
+          "answer": "我查了订单 1001：金额为 **899.0 元**，状态「已签收」，下单日期 2026-11-02，对应商品 id 为 1。",
+          "calls": [
+            {
+              "name": "get_order",
+              "args": {
+                "order_id": 1001
+              }
+            }
+          ],
+          "outputs": {
+            "get_order": "status=200\nbody={\"order_id\": 1001, \"status\": \"已签收\", \"product_id\": 1, \"amount\": 899.0, \"created_at\": \"2026-11-02\"}"
+          },
+          "tool_results": [
+            {
+              "call_id": "call_4e7ab4b846fc469ca846db49",
+              "name": "get_order",
+              "args": {
+                "order_id": 1001
+              },
+              "output": "status=200\nbody={\"order_id\": 1001, \"status\": \"已签收\", \"product_id\": 1, \"amount\": 899.0, \"created_at\": \"2026-11-02\"}"
+            }
+          ],
+          "msg_count": 5,
+          "status": "ok",
+          "steps": 2,
+          "sent_msgs": 4,
+          "judged": true,
+          "tool_ok": true,
+          "tool_msg": "命中",
+          "param_ok": true,
+          "param_msg": "命中",
+          "order_ok": true,
+          "order_msg": "未校验",
+          "ground_ok": true,
+          "ungrounded": [],
+          "answer_ok": true,
+          "missing_fact": [],
+          "missing_any": [],
+          "forbidden_hit": [],
+          "non_answer": false,
+          "over_calls": [],
+          "invalid_tools": [],
+          "passed": true,
+          "failure_type": ""
+        }
+      ],
+      "answer": "我查了订单 1001：金额为 **899.0 元**，状态「已签收」，下单日期 2026-11-02，对应商品 id 为 1。",
       "calls": [
         {
           "name": "get_order",
@@ -316,25 +1653,134 @@
           }
         }
       ],
-      "elapsed_ms": 6183,
+      "outputs": {
+        "get_order": "status=200\nbody={\"order_id\": 1001, \"status\": \"已签收\", \"product_id\": 1, \"amount\": 899.0, \"created_at\": \"2026-11-02\"}"
+      },
+      "tool_results": [
+        {
+          "call_id": "call_4e7ab4b846fc469ca846db49",
+          "name": "get_order",
+          "args": {
+            "order_id": 1001
+          },
+          "output": "status=200\nbody={\"order_id\": 1001, \"status\": \"已签收\", \"product_id\": 1, \"amount\": 899.0, \"created_at\": \"2026-11-02\"}"
+        }
+      ],
       "msg_count": 5,
-      "error": "",
+      "passed": true,
+      "failure_type": "",
+      "fail_turn": null,
       "tool_ok": true,
-      "tool_msg": "命中",
       "param_ok": true,
-      "param_msg": "命中",
+      "order_ok": true,
+      "ground_ok": true,
       "answer_ok": true,
+      "tool_msg": "",
+      "param_msg": "",
+      "order_msg": "",
+      "ungrounded": [],
+      "forbidden_hit": [],
+      "forbidden_tools": [],
       "missing_fact": [],
       "missing_any": [],
-      "forbidden_hit": [],
-      "passed": true,
-      "failure_type": ""
+      "invalid_tools": [],
+      "over_calls": []
     },
     {
       "id": "S12",
       "input": "1003 能退款吗",
+      "turns": [
+        "1003 能退款吗"
+      ],
       "note": "有副作用的操作前必须先查状态",
-      "answer": "已查订单 1003：状态为「待支付」，金额 299.0，下单日期 2026-11-11。\n\n结论：该订单尚未支付，退款只支持已支付订单，所以暂时无法申请退款。如需退款，请先完成支付后再来办理。",
+      "elapsed_ms": 4555,
+      "error": "",
+      "has_claims": false,
+      "train_messages": [
+        {
+          "role": "system",
+          "content": "你是电商平台客服助手，只能依据工具返回的数据回答。\n\n规则：\n1. 涉及商品、订单、物流、退款的事实，必须先调工具查，不许凭印象作答。\n2. 工具返回什么就用什么。字段为 null、空列表、压根没有该字段，就如实说\"暂无\"，\n   禁止推测、补全或给出示例值。\n3. 状态值原样复述：订单状态是中文（已签收/已发货/待支付），\n   物流状态是英文（delivered/shipped/pending），不要翻译或改写。\n4. 先说查了什么、查到什么，再给结论。查不到就说查不到，不要换个接口瞎猜。\n5. 多轮对话延续上下文：用户说\"那个\"\"第一个\"\"它\"\"那 1001 呢\"\"算了\"时，\n   指代前面已经出现过的实体，沿用之前查到的 id 和参数，不要让用户重复说明。\n   追问轮也要点名：答\"多少钱\"\"有货吗\"时说清是哪个商品、哪个订单，不能只甩一个价格或状态。\n6. 用户提到了预算、品类、商品名中的任意一项，就直接调工具搜，不要反问。\n   只给预算、连品类都没说的（比如\"三百块能买点啥\"），也算给了条件——\n   直接搜出来再筛，不要问用户\"想买什么类别\"。\n   只有这三项完全没有时（例如\"我想买个礼物送人\"），才反问一句问预算。\n7. 用户改口径就以最新一次为准：给了新预算、新订单号、新商品，旧值立即失效，\n   换对象后必须重新查；上一轮\"查不到/不存在\"的结论不能顺延到新对象上。\n8. 用户问\"什么状态\"\"到哪了\"\"怎么样了\"这类没分清订单还是物流的问题时，\n   订单状态和物流状态各查一次，两边都报；只查一边就答，等于只答了一半。\n9. 中文回答，不超过 150 字。\n10. 提交退款前必须先查订单状态，看到「待支付」不要提交，\n   直接说明订单还没付款、无需退款。只有本轮工具返回过退款单、\n   或服务端明确返回「已申请过退款」，才可以说已申请过并停止重复提交；\n   用户说「再退一次」不等于你已知情，不能凭这句话认定此前申请过。\n11. 「已提交」「已申请」「已办理」「已取消」这类\"已经做完\"的说法，\n   只能在本轮工具真的返回成功之后讲。查了状态不等于动作已经完成，\n   没调工具就不要说做过，工具报错就说没办成——不许把\"我这就去办\"写成\"已办好\"。"
+        },
+        {
+          "role": "user",
+          "content": "1003 能退款吗"
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "call_047802488b1f482789b2ebde",
+              "type": "function",
+              "function": {
+                "name": "get_order",
+                "arguments": "{\"order_id\": 1003}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"order_id\": 1003, \"status\": \"待支付\", \"product_id\": 6, \"amount\": 299.0, \"created_at\": \"2026-11-11\"}",
+          "tool_call_id": "call_047802488b1f482789b2ebde"
+        },
+        {
+          "role": "assistant",
+          "content": "我查了订单 1003：当前状态是「待支付」，金额 299.0，下单日期 2026-11-11，商品 id 6。\n\n结论：这单还没付款，没有可退的款项，所以我没有提交退款申请。如果你想取消这笔未付款订单或重新下单，告诉我即可。"
+        }
+      ],
+      "trace_id": "fb3f524bdd1d",
+      "rounds": [
+        {
+          "turn": 1,
+          "input": "1003 能退款吗",
+          "answer": "我查了订单 1003：当前状态是「待支付」，金额 299.0，下单日期 2026-11-11，商品 id 6。\n\n结论：这单还没付款，没有可退的款项，所以我没有提交退款申请。如果你想取消这笔未付款订单或重新下单，告诉我即可。",
+          "calls": [
+            {
+              "name": "get_order",
+              "args": {
+                "order_id": 1003
+              }
+            }
+          ],
+          "outputs": {
+            "get_order": "status=200\nbody={\"order_id\": 1003, \"status\": \"待支付\", \"product_id\": 6, \"amount\": 299.0, \"created_at\": \"2026-11-11\"}"
+          },
+          "tool_results": [
+            {
+              "call_id": "call_047802488b1f482789b2ebde",
+              "name": "get_order",
+              "args": {
+                "order_id": 1003
+              },
+              "output": "status=200\nbody={\"order_id\": 1003, \"status\": \"待支付\", \"product_id\": 6, \"amount\": 299.0, \"created_at\": \"2026-11-11\"}"
+            }
+          ],
+          "msg_count": 5,
+          "status": "ok",
+          "steps": 2,
+          "sent_msgs": 4,
+          "judged": true,
+          "tool_ok": true,
+          "tool_msg": "命中",
+          "param_ok": true,
+          "param_msg": "命中",
+          "order_ok": true,
+          "order_msg": "未校验",
+          "ground_ok": true,
+          "ungrounded": [],
+          "answer_ok": true,
+          "missing_fact": [],
+          "missing_any": [],
+          "forbidden_hit": [],
+          "non_answer": false,
+          "over_calls": [],
+          "invalid_tools": [],
+          "passed": true,
+          "failure_type": ""
+        }
+      ],
+      "answer": "我查了订单 1003：当前状态是「待支付」，金额 299.0，下单日期 2026-11-11，商品 id 6。\n\n结论：这单还没付款，没有可退的款项，所以我没有提交退款申请。如果你想取消这笔未付款订单或重新下单，告诉我即可。",
       "calls": [
         {
           "name": "get_order",
@@ -343,25 +1789,170 @@
           }
         }
       ],
-      "elapsed_ms": 8572,
+      "outputs": {
+        "get_order": "status=200\nbody={\"order_id\": 1003, \"status\": \"待支付\", \"product_id\": 6, \"amount\": 299.0, \"created_at\": \"2026-11-11\"}"
+      },
+      "tool_results": [
+        {
+          "call_id": "call_047802488b1f482789b2ebde",
+          "name": "get_order",
+          "args": {
+            "order_id": 1003
+          },
+          "output": "status=200\nbody={\"order_id\": 1003, \"status\": \"待支付\", \"product_id\": 6, \"amount\": 299.0, \"created_at\": \"2026-11-11\"}"
+        }
+      ],
       "msg_count": 5,
-      "error": "",
+      "passed": true,
+      "failure_type": "",
+      "fail_turn": null,
       "tool_ok": true,
-      "tool_msg": "命中",
       "param_ok": true,
-      "param_msg": "命中",
+      "order_ok": true,
+      "ground_ok": true,
       "answer_ok": true,
+      "tool_msg": "",
+      "param_msg": "",
+      "order_msg": "",
+      "ungrounded": [],
+      "forbidden_hit": [],
+      "forbidden_tools": [],
       "missing_fact": [],
       "missing_any": [],
-      "forbidden_hit": [],
-      "passed": true,
-      "failure_type": ""
+      "invalid_tools": [],
+      "over_calls": []
     },
     {
       "id": "S13",
       "input": "帮我给订单 1002 申请退款，耳机有杂音",
-      "note": "正常退款，会写入服务端状态",
-      "answer": "已查订单 1002：状态「已发货」，金额 429.0 元，符合退款条件。\n\n退款申请已提交：\n- 退款单号 RF100201\n- 原因：耳机有杂音\n- 状态：审核中\n- 金额：429.0 元，预计 3 天内处理。",
+      "turns": [
+        "帮我给订单 1002 申请退款，耳机有杂音"
+      ],
+      "note": "正常退款，会写入服务端状态；副作用操作前必须先 get_order 确认订单存在与状态。expect_order 判先后：先退后查会被判 wrong_order",
+      "elapsed_ms": 6729,
+      "error": "",
+      "has_claims": false,
+      "train_messages": [
+        {
+          "role": "system",
+          "content": "你是电商平台客服助手，只能依据工具返回的数据回答。\n\n规则：\n1. 涉及商品、订单、物流、退款的事实，必须先调工具查，不许凭印象作答。\n2. 工具返回什么就用什么。字段为 null、空列表、压根没有该字段，就如实说\"暂无\"，\n   禁止推测、补全或给出示例值。\n3. 状态值原样复述：订单状态是中文（已签收/已发货/待支付），\n   物流状态是英文（delivered/shipped/pending），不要翻译或改写。\n4. 先说查了什么、查到什么，再给结论。查不到就说查不到，不要换个接口瞎猜。\n5. 多轮对话延续上下文：用户说\"那个\"\"第一个\"\"它\"\"那 1001 呢\"\"算了\"时，\n   指代前面已经出现过的实体，沿用之前查到的 id 和参数，不要让用户重复说明。\n   追问轮也要点名：答\"多少钱\"\"有货吗\"时说清是哪个商品、哪个订单，不能只甩一个价格或状态。\n6. 用户提到了预算、品类、商品名中的任意一项，就直接调工具搜，不要反问。\n   只给预算、连品类都没说的（比如\"三百块能买点啥\"），也算给了条件——\n   直接搜出来再筛，不要问用户\"想买什么类别\"。\n   只有这三项完全没有时（例如\"我想买个礼物送人\"），才反问一句问预算。\n7. 用户改口径就以最新一次为准：给了新预算、新订单号、新商品，旧值立即失效，\n   换对象后必须重新查；上一轮\"查不到/不存在\"的结论不能顺延到新对象上。\n8. 用户问\"什么状态\"\"到哪了\"\"怎么样了\"这类没分清订单还是物流的问题时，\n   订单状态和物流状态各查一次，两边都报；只查一边就答，等于只答了一半。\n9. 中文回答，不超过 150 字。\n10. 提交退款前必须先查订单状态，看到「待支付」不要提交，\n   直接说明订单还没付款、无需退款。只有本轮工具返回过退款单、\n   或服务端明确返回「已申请过退款」，才可以说已申请过并停止重复提交；\n   用户说「再退一次」不等于你已知情，不能凭这句话认定此前申请过。\n11. 「已提交」「已申请」「已办理」「已取消」这类\"已经做完\"的说法，\n   只能在本轮工具真的返回成功之后讲。查了状态不等于动作已经完成，\n   没调工具就不要说做过，工具报错就说没办成——不许把\"我这就去办\"写成\"已办好\"。"
+        },
+        {
+          "role": "user",
+          "content": "帮我给订单 1002 申请退款，耳机有杂音"
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "call_7de74a33d58644f4a63a7623",
+              "type": "function",
+              "function": {
+                "name": "get_order",
+                "arguments": "{\"order_id\": 1002}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}",
+          "tool_call_id": "call_7de74a33d58644f4a63a7623"
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "call_cb78943908e644b59155ab1a",
+              "type": "function",
+              "function": {
+                "name": "apply_refund",
+                "arguments": "{\"order_id\": 1002, \"reason\": \"耳机有杂音\"}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"refund_id\": \"RF100201\", \"order_id\": 1002, \"status\": \"审核中\", \"amount\": 429.0, \"eta_days\": 3}",
+          "tool_call_id": "call_cb78943908e644b59155ab1a"
+        },
+        {
+          "role": "assistant",
+          "content": "已查订单 1002：状态「已发货」，金额 429.0 元，可退。\n\n已提交退款申请，理由「耳机有杂音」：\n- 退款单号 RF100201\n- 状态：审核中\n- 金额：429.0 元\n- 预计 3 天到账"
+        }
+      ],
+      "trace_id": "ffd0059cdeef",
+      "rounds": [
+        {
+          "turn": 1,
+          "input": "帮我给订单 1002 申请退款，耳机有杂音",
+          "answer": "已查订单 1002：状态「已发货」，金额 429.0 元，可退。\n\n已提交退款申请，理由「耳机有杂音」：\n- 退款单号 RF100201\n- 状态：审核中\n- 金额：429.0 元\n- 预计 3 天到账",
+          "calls": [
+            {
+              "name": "get_order",
+              "args": {
+                "order_id": 1002
+              }
+            },
+            {
+              "name": "apply_refund",
+              "args": {
+                "order_id": 1002,
+                "reason": "耳机有杂音"
+              }
+            }
+          ],
+          "outputs": {
+            "get_order": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}",
+            "apply_refund": "status=200\nbody={\"refund_id\": \"RF100201\", \"order_id\": 1002, \"status\": \"审核中\", \"amount\": 429.0, \"eta_days\": 3}"
+          },
+          "tool_results": [
+            {
+              "call_id": "call_7de74a33d58644f4a63a7623",
+              "name": "get_order",
+              "args": {
+                "order_id": 1002
+              },
+              "output": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}"
+            },
+            {
+              "call_id": "call_cb78943908e644b59155ab1a",
+              "name": "apply_refund",
+              "args": {
+                "order_id": 1002,
+                "reason": "耳机有杂音"
+              },
+              "output": "status=200\nbody={\"refund_id\": \"RF100201\", \"order_id\": 1002, \"status\": \"审核中\", \"amount\": 429.0, \"eta_days\": 3}"
+            }
+          ],
+          "msg_count": 7,
+          "status": "ok",
+          "steps": 3,
+          "sent_msgs": 6,
+          "judged": true,
+          "tool_ok": true,
+          "tool_msg": "命中",
+          "param_ok": true,
+          "param_msg": "命中",
+          "order_ok": true,
+          "order_msg": "命中",
+          "ground_ok": true,
+          "ungrounded": [],
+          "answer_ok": true,
+          "missing_fact": [],
+          "missing_any": [],
+          "forbidden_hit": [],
+          "non_answer": false,
+          "over_calls": [],
+          "invalid_tools": [],
+          "passed": true,
+          "failure_type": ""
+        }
+      ],
+      "answer": "已查订单 1002：状态「已发货」，金额 429.0 元，可退。\n\n已提交退款申请，理由「耳机有杂音」：\n- 退款单号 RF100201\n- 状态：审核中\n- 金额：429.0 元\n- 预计 3 天到账",
       "calls": [
         {
           "name": "get_order",
@@ -377,113 +1968,861 @@
           }
         }
       ],
-      "elapsed_ms": 12643,
+      "outputs": {
+        "get_order": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}",
+        "apply_refund": "status=200\nbody={\"refund_id\": \"RF100201\", \"order_id\": 1002, \"status\": \"审核中\", \"amount\": 429.0, \"eta_days\": 3}"
+      },
+      "tool_results": [
+        {
+          "call_id": "call_7de74a33d58644f4a63a7623",
+          "name": "get_order",
+          "args": {
+            "order_id": 1002
+          },
+          "output": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}"
+        },
+        {
+          "call_id": "call_cb78943908e644b59155ab1a",
+          "name": "apply_refund",
+          "args": {
+            "order_id": 1002,
+            "reason": "耳机有杂音"
+          },
+          "output": "status=200\nbody={\"refund_id\": \"RF100201\", \"order_id\": 1002, \"status\": \"审核中\", \"amount\": 429.0, \"eta_days\": 3}"
+        }
+      ],
       "msg_count": 7,
-      "error": "",
+      "passed": true,
+      "failure_type": "",
+      "fail_turn": null,
       "tool_ok": true,
-      "tool_msg": "命中",
       "param_ok": true,
-      "param_msg": "命中",
+      "order_ok": true,
+      "ground_ok": true,
       "answer_ok": true,
+      "tool_msg": "",
+      "param_msg": "",
+      "order_msg": "",
+      "ungrounded": [],
+      "forbidden_hit": [],
+      "forbidden_tools": [],
       "missing_fact": [],
       "missing_any": [],
-      "forbidden_hit": [],
-      "passed": true,
-      "failure_type": ""
+      "invalid_tools": [],
+      "over_calls": []
     },
     {
       "id": "S14",
-      "input": "1002 再退一次",
-      "note": "409 识别，依赖 S13；回放前须重启 mock",
-      "answer": "已查订单 1002：状态「已发货」，金额 429.0 元，下单 2026-11-08。\n\n随后提交退款申请，接口返回 409：「该订单已申请过退款」。\n\n结论：该订单此前已申请过退款，无法再次提交。如需跟进进度，请告知。",
+      "input": "帮我给订单 1001 申请退款，七天无理由",
+      "turns": [
+        "帮我给订单 1001 申请退款，七天无理由",
+        "再退一次，我要看到新的退款单号"
+      ],
+      "note": "两轮自足，不再依赖 S13 的副作用：第 1 轮 1001 首退拿 200（退款单 + 审核中），第 2 轮用户硬要新单号 → get_order 后 apply_refund 必回 409「该订单已申请过退款」。grounded_claims 卡「已申请过」必须来自第 2 轮的 409 返回，防止模型凭用户说的「再」直接臆断（实测出现过这种编造）。改用 1001 是因为它已签收，正好覆盖「非待支付也能退」；用 1002 会与 S13 抢同一份退款状态。max_calls 只上报：不许靠重试刷出新单号。",
+      "elapsed_ms": 20020,
+      "error": "",
+      "has_claims": true,
+      "train_messages": [
+        {
+          "role": "system",
+          "content": "你是电商平台客服助手，只能依据工具返回的数据回答。\n\n规则：\n1. 涉及商品、订单、物流、退款的事实，必须先调工具查，不许凭印象作答。\n2. 工具返回什么就用什么。字段为 null、空列表、压根没有该字段，就如实说\"暂无\"，\n   禁止推测、补全或给出示例值。\n3. 状态值原样复述：订单状态是中文（已签收/已发货/待支付），\n   物流状态是英文（delivered/shipped/pending），不要翻译或改写。\n4. 先说查了什么、查到什么，再给结论。查不到就说查不到，不要换个接口瞎猜。\n5. 多轮对话延续上下文：用户说\"那个\"\"第一个\"\"它\"\"那 1001 呢\"\"算了\"时，\n   指代前面已经出现过的实体，沿用之前查到的 id 和参数，不要让用户重复说明。\n   追问轮也要点名：答\"多少钱\"\"有货吗\"时说清是哪个商品、哪个订单，不能只甩一个价格或状态。\n6. 用户提到了预算、品类、商品名中的任意一项，就直接调工具搜，不要反问。\n   只给预算、连品类都没说的（比如\"三百块能买点啥\"），也算给了条件——\n   直接搜出来再筛，不要问用户\"想买什么类别\"。\n   只有这三项完全没有时（例如\"我想买个礼物送人\"），才反问一句问预算。\n7. 用户改口径就以最新一次为准：给了新预算、新订单号、新商品，旧值立即失效，\n   换对象后必须重新查；上一轮\"查不到/不存在\"的结论不能顺延到新对象上。\n8. 用户问\"什么状态\"\"到哪了\"\"怎么样了\"这类没分清订单还是物流的问题时，\n   订单状态和物流状态各查一次，两边都报；只查一边就答，等于只答了一半。\n9. 中文回答，不超过 150 字。\n10. 提交退款前必须先查订单状态，看到「待支付」不要提交，\n   直接说明订单还没付款、无需退款。只有本轮工具返回过退款单、\n   或服务端明确返回「已申请过退款」，才可以说已申请过并停止重复提交；\n   用户说「再退一次」不等于你已知情，不能凭这句话认定此前申请过。\n11. 「已提交」「已申请」「已办理」「已取消」这类\"已经做完\"的说法，\n   只能在本轮工具真的返回成功之后讲。查了状态不等于动作已经完成，\n   没调工具就不要说做过，工具报错就说没办成——不许把\"我这就去办\"写成\"已办好\"。"
+        },
+        {
+          "role": "user",
+          "content": "帮我给订单 1001 申请退款，七天无理由"
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "call_26900cb951b14660a73b97f5",
+              "type": "function",
+              "function": {
+                "name": "get_order",
+                "arguments": "{\"order_id\": 1001}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"order_id\": 1001, \"status\": \"已签收\", \"product_id\": 1, \"amount\": 899.0, \"created_at\": \"2026-11-02\"}",
+          "tool_call_id": "call_26900cb951b14660a73b97f5"
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "call_00af501195664fd6860c5222",
+              "type": "function",
+              "function": {
+                "name": "apply_refund",
+                "arguments": "{\"order_id\": 1001, \"reason\": \"七天无理由\"}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"refund_id\": \"RF100102\", \"order_id\": 1001, \"status\": \"审核中\", \"amount\": 899.0, \"eta_days\": 3}",
+          "tool_call_id": "call_00af501195664fd6860c5222"
+        },
+        {
+          "role": "assistant",
+          "content": "已查订单 1001：状态「已签收」，金额 899.0，符合退款条件。\n\n退款申请已提交成功：退款单号 RF100102，状态「审核中」，退款金额 899.0，预计 3 天到账。"
+        },
+        {
+          "role": "user",
+          "content": "再退一次，我要看到新的退款单号"
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "call_00febefc9f2d48d181b348c1",
+              "type": "function",
+              "function": {
+                "name": "get_order",
+                "arguments": "{\"order_id\": 1001}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"order_id\": 1001, \"status\": \"已签收\", \"product_id\": 1, \"amount\": 899.0, \"created_at\": \"2026-11-02\"}",
+          "tool_call_id": "call_00febefc9f2d48d181b348c1"
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "call_3de0fc7842a0443f9659f76a",
+              "type": "function",
+              "function": {
+                "name": "apply_refund",
+                "arguments": "{\"order_id\": 1001, \"reason\": \"七天无理由\"}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "status=409\nbody={\"error\": \"该订单已申请过退款\"}",
+          "tool_call_id": "call_3de0fc7842a0443f9659f76a"
+        },
+        {
+          "role": "assistant",
+          "content": "已查订单 1001（已签收，899.0），并再次提交退款申请。\n\n结果：服务端返回 409「该订单已申请过退款」，本次没有生成新退款单号，没办成。\n\n订单 1001 此前已有退款单 RF100102（金额 899.0，状态审核中），请等该单审核结果。"
+        }
+      ],
+      "trace_id": "aed431f0952f",
+      "rounds": [
+        {
+          "turn": 1,
+          "input": "帮我给订单 1001 申请退款，七天无理由",
+          "answer": "已查订单 1001：状态「已签收」，金额 899.0，符合退款条件。\n\n退款申请已提交成功：退款单号 RF100102，状态「审核中」，退款金额 899.0，预计 3 天到账。",
+          "calls": [
+            {
+              "name": "get_order",
+              "args": {
+                "order_id": 1001
+              }
+            },
+            {
+              "name": "apply_refund",
+              "args": {
+                "order_id": 1001,
+                "reason": "七天无理由"
+              }
+            }
+          ],
+          "outputs": {
+            "get_order": "status=200\nbody={\"order_id\": 1001, \"status\": \"已签收\", \"product_id\": 1, \"amount\": 899.0, \"created_at\": \"2026-11-02\"}",
+            "apply_refund": "status=200\nbody={\"refund_id\": \"RF100102\", \"order_id\": 1001, \"status\": \"审核中\", \"amount\": 899.0, \"eta_days\": 3}"
+          },
+          "tool_results": [
+            {
+              "call_id": "call_26900cb951b14660a73b97f5",
+              "name": "get_order",
+              "args": {
+                "order_id": 1001
+              },
+              "output": "status=200\nbody={\"order_id\": 1001, \"status\": \"已签收\", \"product_id\": 1, \"amount\": 899.0, \"created_at\": \"2026-11-02\"}"
+            },
+            {
+              "call_id": "call_00af501195664fd6860c5222",
+              "name": "apply_refund",
+              "args": {
+                "order_id": 1001,
+                "reason": "七天无理由"
+              },
+              "output": "status=200\nbody={\"refund_id\": \"RF100102\", \"order_id\": 1001, \"status\": \"审核中\", \"amount\": 899.0, \"eta_days\": 3}"
+            }
+          ],
+          "msg_count": 7,
+          "status": "ok",
+          "steps": 3,
+          "sent_msgs": 6,
+          "judged": true,
+          "tool_ok": true,
+          "tool_msg": "命中",
+          "param_ok": true,
+          "param_msg": "命中",
+          "order_ok": true,
+          "order_msg": "命中",
+          "ground_ok": true,
+          "ungrounded": [],
+          "answer_ok": true,
+          "missing_fact": [],
+          "missing_any": [],
+          "forbidden_hit": [],
+          "non_answer": false,
+          "over_calls": [],
+          "invalid_tools": [],
+          "passed": true,
+          "failure_type": ""
+        },
+        {
+          "turn": 2,
+          "input": "再退一次，我要看到新的退款单号",
+          "answer": "已查订单 1001（已签收，899.0），并再次提交退款申请。\n\n结果：服务端返回 409「该订单已申请过退款」，本次没有生成新退款单号，没办成。\n\n订单 1001 此前已有退款单 RF100102（金额 899.0，状态审核中），请等该单审核结果。",
+          "calls": [
+            {
+              "name": "get_order",
+              "args": {
+                "order_id": 1001
+              }
+            },
+            {
+              "name": "apply_refund",
+              "args": {
+                "order_id": 1001,
+                "reason": "七天无理由"
+              }
+            }
+          ],
+          "outputs": {
+            "get_order": "status=200\nbody={\"order_id\": 1001, \"status\": \"已签收\", \"product_id\": 1, \"amount\": 899.0, \"created_at\": \"2026-11-02\"}",
+            "apply_refund": "status=409\nbody={\"error\": \"该订单已申请过退款\"}"
+          },
+          "tool_results": [
+            {
+              "call_id": "call_00febefc9f2d48d181b348c1",
+              "name": "get_order",
+              "args": {
+                "order_id": 1001
+              },
+              "output": "status=200\nbody={\"order_id\": 1001, \"status\": \"已签收\", \"product_id\": 1, \"amount\": 899.0, \"created_at\": \"2026-11-02\"}"
+            },
+            {
+              "call_id": "call_3de0fc7842a0443f9659f76a",
+              "name": "apply_refund",
+              "args": {
+                "order_id": 1001,
+                "reason": "七天无理由"
+              },
+              "output": "status=409\nbody={\"error\": \"该订单已申请过退款\"}"
+            }
+          ],
+          "msg_count": 13,
+          "status": "ok",
+          "steps": 3,
+          "sent_msgs": 12,
+          "judged": true,
+          "tool_ok": true,
+          "tool_msg": "命中",
+          "param_ok": true,
+          "param_msg": "命中",
+          "order_ok": true,
+          "order_msg": "未校验",
+          "ground_ok": true,
+          "ungrounded": [],
+          "answer_ok": true,
+          "missing_fact": [],
+          "missing_any": [],
+          "forbidden_hit": [],
+          "non_answer": false,
+          "over_calls": [],
+          "invalid_tools": [],
+          "passed": true,
+          "failure_type": ""
+        }
+      ],
+      "answer": "已查订单 1001（已签收，899.0），并再次提交退款申请。\n\n结果：服务端返回 409「该订单已申请过退款」，本次没有生成新退款单号，没办成。\n\n订单 1001 此前已有退款单 RF100102（金额 899.0，状态审核中），请等该单审核结果。",
       "calls": [
         {
           "name": "get_order",
           "args": {
-            "order_id": 1002
+            "order_id": 1001
           }
         },
         {
           "name": "apply_refund",
           "args": {
-            "order_id": 1002,
-            "reason": "用户要求再次申请退款"
+            "order_id": 1001,
+            "reason": "七天无理由"
+          }
+        },
+        {
+          "name": "get_order",
+          "args": {
+            "order_id": 1001
+          }
+        },
+        {
+          "name": "apply_refund",
+          "args": {
+            "order_id": 1001,
+            "reason": "七天无理由"
           }
         }
       ],
-      "elapsed_ms": 15284,
-      "msg_count": 7,
-      "error": "",
+      "outputs": {
+        "get_order": "status=200\nbody={\"order_id\": 1001, \"status\": \"已签收\", \"product_id\": 1, \"amount\": 899.0, \"created_at\": \"2026-11-02\"}\nstatus=200\nbody={\"order_id\": 1001, \"status\": \"已签收\", \"product_id\": 1, \"amount\": 899.0, \"created_at\": \"2026-11-02\"}",
+        "apply_refund": "status=200\nbody={\"refund_id\": \"RF100102\", \"order_id\": 1001, \"status\": \"审核中\", \"amount\": 899.0, \"eta_days\": 3}\nstatus=409\nbody={\"error\": \"该订单已申请过退款\"}"
+      },
+      "tool_results": [
+        {
+          "call_id": "call_26900cb951b14660a73b97f5",
+          "name": "get_order",
+          "args": {
+            "order_id": 1001
+          },
+          "output": "status=200\nbody={\"order_id\": 1001, \"status\": \"已签收\", \"product_id\": 1, \"amount\": 899.0, \"created_at\": \"2026-11-02\"}"
+        },
+        {
+          "call_id": "call_00af501195664fd6860c5222",
+          "name": "apply_refund",
+          "args": {
+            "order_id": 1001,
+            "reason": "七天无理由"
+          },
+          "output": "status=200\nbody={\"refund_id\": \"RF100102\", \"order_id\": 1001, \"status\": \"审核中\", \"amount\": 899.0, \"eta_days\": 3}"
+        },
+        {
+          "call_id": "call_00febefc9f2d48d181b348c1",
+          "name": "get_order",
+          "args": {
+            "order_id": 1001
+          },
+          "output": "status=200\nbody={\"order_id\": 1001, \"status\": \"已签收\", \"product_id\": 1, \"amount\": 899.0, \"created_at\": \"2026-11-02\"}"
+        },
+        {
+          "call_id": "call_3de0fc7842a0443f9659f76a",
+          "name": "apply_refund",
+          "args": {
+            "order_id": 1001,
+            "reason": "七天无理由"
+          },
+          "output": "status=409\nbody={\"error\": \"该订单已申请过退款\"}"
+        }
+      ],
+      "msg_count": 13,
+      "passed": true,
+      "failure_type": "",
+      "fail_turn": null,
       "tool_ok": true,
-      "tool_msg": "命中",
       "param_ok": true,
-      "param_msg": "命中",
+      "order_ok": true,
+      "ground_ok": true,
       "answer_ok": true,
+      "tool_msg": "",
+      "param_msg": "",
+      "order_msg": "",
+      "ungrounded": [],
+      "forbidden_hit": [],
+      "forbidden_tools": [],
       "missing_fact": [],
       "missing_any": [],
-      "forbidden_hit": [],
-      "passed": true,
-      "failure_type": ""
+      "invalid_tools": [],
+      "over_calls": []
     },
     {
       "id": "S15",
       "input": "订单 9999 什么状态",
+      "turns": [
+        "订单 9999 什么状态"
+      ],
       "note": "404 处理",
-      "answer": "我查了订单 9999，接口返回 404「order not found」，系统里没有这个订单，因此无法确认其状态。请核对订单号后再告诉我。",
+      "elapsed_ms": 5556,
+      "error": "",
+      "has_claims": false,
+      "train_messages": [
+        {
+          "role": "system",
+          "content": "你是电商平台客服助手，只能依据工具返回的数据回答。\n\n规则：\n1. 涉及商品、订单、物流、退款的事实，必须先调工具查，不许凭印象作答。\n2. 工具返回什么就用什么。字段为 null、空列表、压根没有该字段，就如实说\"暂无\"，\n   禁止推测、补全或给出示例值。\n3. 状态值原样复述：订单状态是中文（已签收/已发货/待支付），\n   物流状态是英文（delivered/shipped/pending），不要翻译或改写。\n4. 先说查了什么、查到什么，再给结论。查不到就说查不到，不要换个接口瞎猜。\n5. 多轮对话延续上下文：用户说\"那个\"\"第一个\"\"它\"\"那 1001 呢\"\"算了\"时，\n   指代前面已经出现过的实体，沿用之前查到的 id 和参数，不要让用户重复说明。\n   追问轮也要点名：答\"多少钱\"\"有货吗\"时说清是哪个商品、哪个订单，不能只甩一个价格或状态。\n6. 用户提到了预算、品类、商品名中的任意一项，就直接调工具搜，不要反问。\n   只给预算、连品类都没说的（比如\"三百块能买点啥\"），也算给了条件——\n   直接搜出来再筛，不要问用户\"想买什么类别\"。\n   只有这三项完全没有时（例如\"我想买个礼物送人\"），才反问一句问预算。\n7. 用户改口径就以最新一次为准：给了新预算、新订单号、新商品，旧值立即失效，\n   换对象后必须重新查；上一轮\"查不到/不存在\"的结论不能顺延到新对象上。\n8. 用户问\"什么状态\"\"到哪了\"\"怎么样了\"这类没分清订单还是物流的问题时，\n   订单状态和物流状态各查一次，两边都报；只查一边就答，等于只答了一半。\n9. 中文回答，不超过 150 字。\n10. 提交退款前必须先查订单状态，看到「待支付」不要提交，\n   直接说明订单还没付款、无需退款。只有本轮工具返回过退款单、\n   或服务端明确返回「已申请过退款」，才可以说已申请过并停止重复提交；\n   用户说「再退一次」不等于你已知情，不能凭这句话认定此前申请过。\n11. 「已提交」「已申请」「已办理」「已取消」这类\"已经做完\"的说法，\n   只能在本轮工具真的返回成功之后讲。查了状态不等于动作已经完成，\n   没调工具就不要说做过，工具报错就说没办成——不许把\"我这就去办\"写成\"已办好\"。"
+        },
+        {
+          "role": "user",
+          "content": "订单 9999 什么状态"
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "call_b47b182b39974eaab088d478",
+              "type": "function",
+              "function": {
+                "name": "get_order",
+                "arguments": "{\"order_id\": 9999}"
+              }
+            },
+            {
+              "id": "call_df5483937ab1412e84af9f83",
+              "type": "function",
+              "function": {
+                "name": "get_logistics",
+                "arguments": "{\"order_id\": 9999}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "status=404\nbody={\"error\": \"order not found\"}",
+          "tool_call_id": "call_b47b182b39974eaab088d478"
+        },
+        {
+          "role": "tool",
+          "content": "status=404\nbody={\"error\": \"order not found\"}",
+          "tool_call_id": "call_df5483937ab1412e84af9f83"
+        },
+        {
+          "role": "assistant",
+          "content": "我查了订单 9999 的状态和它的物流，两边都返回 404「order not found」，也就是查不到这个订单号，物流自然也没有记录。\n\n麻烦确认下订单号有没有写错，或提供正确的订单号，我再帮你查。"
+        }
+      ],
+      "trace_id": "70e874624320",
+      "rounds": [
+        {
+          "turn": 1,
+          "input": "订单 9999 什么状态",
+          "answer": "我查了订单 9999 的状态和它的物流，两边都返回 404「order not found」，也就是查不到这个订单号，物流自然也没有记录。\n\n麻烦确认下订单号有没有写错，或提供正确的订单号，我再帮你查。",
+          "calls": [
+            {
+              "name": "get_order",
+              "args": {
+                "order_id": 9999
+              }
+            },
+            {
+              "name": "get_logistics",
+              "args": {
+                "order_id": 9999
+              }
+            }
+          ],
+          "outputs": {
+            "get_order": "status=404\nbody={\"error\": \"order not found\"}",
+            "get_logistics": "status=404\nbody={\"error\": \"order not found\"}"
+          },
+          "tool_results": [
+            {
+              "call_id": "call_b47b182b39974eaab088d478",
+              "name": "get_order",
+              "args": {
+                "order_id": 9999
+              },
+              "output": "status=404\nbody={\"error\": \"order not found\"}"
+            },
+            {
+              "call_id": "call_df5483937ab1412e84af9f83",
+              "name": "get_logistics",
+              "args": {
+                "order_id": 9999
+              },
+              "output": "status=404\nbody={\"error\": \"order not found\"}"
+            }
+          ],
+          "msg_count": 6,
+          "status": "ok",
+          "steps": 2,
+          "sent_msgs": 5,
+          "judged": true,
+          "tool_ok": true,
+          "tool_msg": "命中",
+          "param_ok": true,
+          "param_msg": "命中",
+          "order_ok": true,
+          "order_msg": "未校验",
+          "ground_ok": true,
+          "ungrounded": [],
+          "answer_ok": true,
+          "missing_fact": [],
+          "missing_any": [],
+          "forbidden_hit": [],
+          "non_answer": false,
+          "over_calls": [],
+          "invalid_tools": [],
+          "passed": true,
+          "failure_type": ""
+        }
+      ],
+      "answer": "我查了订单 9999 的状态和它的物流，两边都返回 404「order not found」，也就是查不到这个订单号，物流自然也没有记录。\n\n麻烦确认下订单号有没有写错，或提供正确的订单号，我再帮你查。",
       "calls": [
         {
           "name": "get_order",
           "args": {
             "order_id": 9999
           }
+        },
+        {
+          "name": "get_logistics",
+          "args": {
+            "order_id": 9999
+          }
         }
       ],
-      "elapsed_ms": 13154,
-      "msg_count": 5,
-      "error": "",
+      "outputs": {
+        "get_order": "status=404\nbody={\"error\": \"order not found\"}",
+        "get_logistics": "status=404\nbody={\"error\": \"order not found\"}"
+      },
+      "tool_results": [
+        {
+          "call_id": "call_b47b182b39974eaab088d478",
+          "name": "get_order",
+          "args": {
+            "order_id": 9999
+          },
+          "output": "status=404\nbody={\"error\": \"order not found\"}"
+        },
+        {
+          "call_id": "call_df5483937ab1412e84af9f83",
+          "name": "get_logistics",
+          "args": {
+            "order_id": 9999
+          },
+          "output": "status=404\nbody={\"error\": \"order not found\"}"
+        }
+      ],
+      "msg_count": 6,
+      "passed": true,
+      "failure_type": "",
+      "fail_turn": null,
       "tool_ok": true,
-      "tool_msg": "命中",
       "param_ok": true,
-      "param_msg": "命中",
+      "order_ok": true,
+      "ground_ok": true,
       "answer_ok": true,
+      "tool_msg": "",
+      "param_msg": "",
+      "order_msg": "",
+      "ungrounded": [],
+      "forbidden_hit": [],
+      "forbidden_tools": [],
       "missing_fact": [],
       "missing_any": [],
-      "forbidden_hit": [],
-      "passed": true,
-      "failure_type": ""
+      "invalid_tools": [],
+      "over_calls": []
     },
     {
       "id": "S16",
       "input": "1002 是哪个快递公司",
+      "turns": [
+        "1002 是哪个快递公司"
+      ],
       "note": "精确字段，串单即错",
-      "answer": "我查了订单 1002 的物流信息：\n\n- 快递公司：**中通快递**\n- 运单号：ZT9876543210\n- 物流状态：shipped\n- 预计送达时间：暂无\n- 轨迹：2026-11-09 14:05 已揽收；2026-11-10 08:41 已发出，下一站武汉分拨中心\n\n结论：1002 由中通快递承运。",
+      "elapsed_ms": 26707,
+      "error": "",
+      "has_claims": true,
+      "train_messages": [
+        {
+          "role": "system",
+          "content": "你是电商平台客服助手，只能依据工具返回的数据回答。\n\n规则：\n1. 涉及商品、订单、物流、退款的事实，必须先调工具查，不许凭印象作答。\n2. 工具返回什么就用什么。字段为 null、空列表、压根没有该字段，就如实说\"暂无\"，\n   禁止推测、补全或给出示例值。\n3. 状态值原样复述：订单状态是中文（已签收/已发货/待支付），\n   物流状态是英文（delivered/shipped/pending），不要翻译或改写。\n4. 先说查了什么、查到什么，再给结论。查不到就说查不到，不要换个接口瞎猜。\n5. 多轮对话延续上下文：用户说\"那个\"\"第一个\"\"它\"\"那 1001 呢\"\"算了\"时，\n   指代前面已经出现过的实体，沿用之前查到的 id 和参数，不要让用户重复说明。\n   追问轮也要点名：答\"多少钱\"\"有货吗\"时说清是哪个商品、哪个订单，不能只甩一个价格或状态。\n6. 用户提到了预算、品类、商品名中的任意一项，就直接调工具搜，不要反问。\n   只给预算、连品类都没说的（比如\"三百块能买点啥\"），也算给了条件——\n   直接搜出来再筛，不要问用户\"想买什么类别\"。\n   只有这三项完全没有时（例如\"我想买个礼物送人\"），才反问一句问预算。\n7. 用户改口径就以最新一次为准：给了新预算、新订单号、新商品，旧值立即失效，\n   换对象后必须重新查；上一轮\"查不到/不存在\"的结论不能顺延到新对象上。\n8. 用户问\"什么状态\"\"到哪了\"\"怎么样了\"这类没分清订单还是物流的问题时，\n   订单状态和物流状态各查一次，两边都报；只查一边就答，等于只答了一半。\n9. 中文回答，不超过 150 字。\n10. 提交退款前必须先查订单状态，看到「待支付」不要提交，\n   直接说明订单还没付款、无需退款。只有本轮工具返回过退款单、\n   或服务端明确返回「已申请过退款」，才可以说已申请过并停止重复提交；\n   用户说「再退一次」不等于你已知情，不能凭这句话认定此前申请过。\n11. 「已提交」「已申请」「已办理」「已取消」这类\"已经做完\"的说法，\n   只能在本轮工具真的返回成功之后讲。查了状态不等于动作已经完成，\n   没调工具就不要说做过，工具报错就说没办成——不许把\"我这就去办\"写成\"已办好\"。"
+        },
+        {
+          "role": "user",
+          "content": "1002 是哪个快递公司"
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "call_f6cb2051fc034ada82af63a2",
+              "type": "function",
+              "function": {
+                "name": "get_logistics",
+                "arguments": "{\"order_id\": 1002}"
+              }
+            },
+            {
+              "id": "call_f3ab5eaa5a4f4390a11de31a",
+              "type": "function",
+              "function": {
+                "name": "get_order",
+                "arguments": "{\"order_id\": 1002}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"order_id\": 1002, \"carrier\": \"中通快递\", \"tracking_no\": \"ZT9876543210\", \"status\": \"shipped\", \"eta\": null, \"traces\": [{\"time\": \"2026-11-09 14:05\", \"desc\": \"已揽收\"}, {\"time\": \"2026-11-10 08:41\", \"desc\": \"已发出，下一站武汉分拨中心\"}]}",
+          "tool_call_id": "call_f6cb2051fc034ada82af63a2"
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}",
+          "tool_call_id": "call_f3ab5eaa5a4f4390a11de31a"
+        },
+        {
+          "role": "assistant",
+          "content": "查了订单 1002 的物流和订单信息：承运商是**中通快递**，运单号 ZT9876543210。\n\n- 物流状态：shipped，最新轨迹「2026-11-10 08:41 已发出，下一站武汉分拨中心」，预计送达时间暂无\n- 订单状态：已发货，金额 429.0"
+        }
+      ],
+      "trace_id": "e7a66b67062a",
+      "rounds": [
+        {
+          "turn": 1,
+          "input": "1002 是哪个快递公司",
+          "answer": "查了订单 1002 的物流和订单信息：承运商是**中通快递**，运单号 ZT9876543210。\n\n- 物流状态：shipped，最新轨迹「2026-11-10 08:41 已发出，下一站武汉分拨中心」，预计送达时间暂无\n- 订单状态：已发货，金额 429.0",
+          "calls": [
+            {
+              "name": "get_logistics",
+              "args": {
+                "order_id": 1002
+              }
+            },
+            {
+              "name": "get_order",
+              "args": {
+                "order_id": 1002
+              }
+            }
+          ],
+          "outputs": {
+            "get_logistics": "status=200\nbody={\"order_id\": 1002, \"carrier\": \"中通快递\", \"tracking_no\": \"ZT9876543210\", \"status\": \"shipped\", \"eta\": null, \"traces\": [{\"time\": \"2026-11-09 14:05\", \"desc\": \"已揽收\"}, {\"time\": \"2026-11-10 08:41\", \"desc\": \"已发出，下一站武汉分拨中心\"}]}",
+            "get_order": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}"
+          },
+          "tool_results": [
+            {
+              "call_id": "call_f6cb2051fc034ada82af63a2",
+              "name": "get_logistics",
+              "args": {
+                "order_id": 1002
+              },
+              "output": "status=200\nbody={\"order_id\": 1002, \"carrier\": \"中通快递\", \"tracking_no\": \"ZT9876543210\", \"status\": \"shipped\", \"eta\": null, \"traces\": [{\"time\": \"2026-11-09 14:05\", \"desc\": \"已揽收\"}, {\"time\": \"2026-11-10 08:41\", \"desc\": \"已发出，下一站武汉分拨中心\"}]}"
+            },
+            {
+              "call_id": "call_f3ab5eaa5a4f4390a11de31a",
+              "name": "get_order",
+              "args": {
+                "order_id": 1002
+              },
+              "output": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}"
+            }
+          ],
+          "msg_count": 6,
+          "status": "ok",
+          "steps": 2,
+          "sent_msgs": 5,
+          "judged": true,
+          "tool_ok": true,
+          "tool_msg": "命中",
+          "param_ok": true,
+          "param_msg": "命中",
+          "order_ok": true,
+          "order_msg": "未校验",
+          "ground_ok": true,
+          "ungrounded": [],
+          "answer_ok": true,
+          "missing_fact": [],
+          "missing_any": [],
+          "forbidden_hit": [],
+          "non_answer": false,
+          "over_calls": [],
+          "invalid_tools": [],
+          "passed": true,
+          "failure_type": ""
+        }
+      ],
+      "answer": "查了订单 1002 的物流和订单信息：承运商是**中通快递**，运单号 ZT9876543210。\n\n- 物流状态：shipped，最新轨迹「2026-11-10 08:41 已发出，下一站武汉分拨中心」，预计送达时间暂无\n- 订单状态：已发货，金额 429.0",
       "calls": [
         {
           "name": "get_logistics",
           "args": {
             "order_id": 1002
           }
+        },
+        {
+          "name": "get_order",
+          "args": {
+            "order_id": 1002
+          }
         }
       ],
-      "elapsed_ms": 7355,
-      "msg_count": 5,
-      "error": "",
+      "outputs": {
+        "get_logistics": "status=200\nbody={\"order_id\": 1002, \"carrier\": \"中通快递\", \"tracking_no\": \"ZT9876543210\", \"status\": \"shipped\", \"eta\": null, \"traces\": [{\"time\": \"2026-11-09 14:05\", \"desc\": \"已揽收\"}, {\"time\": \"2026-11-10 08:41\", \"desc\": \"已发出，下一站武汉分拨中心\"}]}",
+        "get_order": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}"
+      },
+      "tool_results": [
+        {
+          "call_id": "call_f6cb2051fc034ada82af63a2",
+          "name": "get_logistics",
+          "args": {
+            "order_id": 1002
+          },
+          "output": "status=200\nbody={\"order_id\": 1002, \"carrier\": \"中通快递\", \"tracking_no\": \"ZT9876543210\", \"status\": \"shipped\", \"eta\": null, \"traces\": [{\"time\": \"2026-11-09 14:05\", \"desc\": \"已揽收\"}, {\"time\": \"2026-11-10 08:41\", \"desc\": \"已发出，下一站武汉分拨中心\"}]}"
+        },
+        {
+          "call_id": "call_f3ab5eaa5a4f4390a11de31a",
+          "name": "get_order",
+          "args": {
+            "order_id": 1002
+          },
+          "output": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}"
+        }
+      ],
+      "msg_count": 6,
+      "passed": true,
+      "failure_type": "",
+      "fail_turn": null,
       "tool_ok": true,
-      "tool_msg": "命中",
       "param_ok": true,
-      "param_msg": "命中",
+      "order_ok": true,
+      "ground_ok": true,
       "answer_ok": true,
+      "tool_msg": "",
+      "param_msg": "",
+      "order_msg": "",
+      "ungrounded": [],
+      "forbidden_hit": [],
+      "forbidden_tools": [],
       "missing_fact": [],
       "missing_any": [],
-      "forbidden_hit": [],
-      "passed": true,
-      "failure_type": ""
+      "invalid_tools": [],
+      "over_calls": []
     },
     {
       "id": "S17",
       "input": "查一下 1002 的订单和物流",
+      "turns": [
+        "查一下 1002 的订单和物流"
+      ],
       "note": "多工具串联",
-      "answer": "已查订单 1002 与对应物流：\n\n**订单**：状态「已发货」，金额 429.0 元，下单日期 2026-11-08，商品 id 2。\n\n**物流**：中通快递，运单号 ZT9876543210，物流状态 shipped，预计送达时间暂无。\n轨迹：2026-11-09 14:05 已揽收；2026-11-10 08:41 已发出，下一站武汉分拨中心。\n\n结论：货已在途，暂无预计送达时间。",
+      "elapsed_ms": 6846,
+      "error": "",
+      "has_claims": true,
+      "train_messages": [
+        {
+          "role": "system",
+          "content": "你是电商平台客服助手，只能依据工具返回的数据回答。\n\n规则：\n1. 涉及商品、订单、物流、退款的事实，必须先调工具查，不许凭印象作答。\n2. 工具返回什么就用什么。字段为 null、空列表、压根没有该字段，就如实说\"暂无\"，\n   禁止推测、补全或给出示例值。\n3. 状态值原样复述：订单状态是中文（已签收/已发货/待支付），\n   物流状态是英文（delivered/shipped/pending），不要翻译或改写。\n4. 先说查了什么、查到什么，再给结论。查不到就说查不到，不要换个接口瞎猜。\n5. 多轮对话延续上下文：用户说\"那个\"\"第一个\"\"它\"\"那 1001 呢\"\"算了\"时，\n   指代前面已经出现过的实体，沿用之前查到的 id 和参数，不要让用户重复说明。\n   追问轮也要点名：答\"多少钱\"\"有货吗\"时说清是哪个商品、哪个订单，不能只甩一个价格或状态。\n6. 用户提到了预算、品类、商品名中的任意一项，就直接调工具搜，不要反问。\n   只给预算、连品类都没说的（比如\"三百块能买点啥\"），也算给了条件——\n   直接搜出来再筛，不要问用户\"想买什么类别\"。\n   只有这三项完全没有时（例如\"我想买个礼物送人\"），才反问一句问预算。\n7. 用户改口径就以最新一次为准：给了新预算、新订单号、新商品，旧值立即失效，\n   换对象后必须重新查；上一轮\"查不到/不存在\"的结论不能顺延到新对象上。\n8. 用户问\"什么状态\"\"到哪了\"\"怎么样了\"这类没分清订单还是物流的问题时，\n   订单状态和物流状态各查一次，两边都报；只查一边就答，等于只答了一半。\n9. 中文回答，不超过 150 字。\n10. 提交退款前必须先查订单状态，看到「待支付」不要提交，\n   直接说明订单还没付款、无需退款。只有本轮工具返回过退款单、\n   或服务端明确返回「已申请过退款」，才可以说已申请过并停止重复提交；\n   用户说「再退一次」不等于你已知情，不能凭这句话认定此前申请过。\n11. 「已提交」「已申请」「已办理」「已取消」这类\"已经做完\"的说法，\n   只能在本轮工具真的返回成功之后讲。查了状态不等于动作已经完成，\n   没调工具就不要说做过，工具报错就说没办成——不许把\"我这就去办\"写成\"已办好\"。"
+        },
+        {
+          "role": "user",
+          "content": "查一下 1002 的订单和物流"
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "call_effcfddfc8ff4a1c86c275c9",
+              "type": "function",
+              "function": {
+                "name": "get_order",
+                "arguments": "{\"order_id\": 1002}"
+              }
+            },
+            {
+              "id": "call_6663a3369df04def949df195",
+              "type": "function",
+              "function": {
+                "name": "get_logistics",
+                "arguments": "{\"order_id\": 1002}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}",
+          "tool_call_id": "call_effcfddfc8ff4a1c86c275c9"
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"order_id\": 1002, \"carrier\": \"中通快递\", \"tracking_no\": \"ZT9876543210\", \"status\": \"shipped\", \"eta\": null, \"traces\": [{\"time\": \"2026-11-09 14:05\", \"desc\": \"已揽收\"}, {\"time\": \"2026-11-10 08:41\", \"desc\": \"已发出，下一站武汉分拨中心\"}]}",
+          "tool_call_id": "call_6663a3369df04def949df195"
+        },
+        {
+          "role": "assistant",
+          "content": "已查订单 1002 及其物流：\n\n- 订单状态：已发货，金额 429.0 元，下单日期 2026-11-08，商品 id 2。\n- 物流：中通快递，运单号 ZT9876543210，状态 shipped；预计送达时间暂无。\n- 轨迹：2026-11-09 14:05 已揽收；2026-11-10 08:41 已发出，下一站武汉分拨中心。\n\n结论：货已揽收并发往武汉分拨中心，尚未签收，暂无预计送达时间。"
+        }
+      ],
+      "trace_id": "5b1e8284faab",
+      "rounds": [
+        {
+          "turn": 1,
+          "input": "查一下 1002 的订单和物流",
+          "answer": "已查订单 1002 及其物流：\n\n- 订单状态：已发货，金额 429.0 元，下单日期 2026-11-08，商品 id 2。\n- 物流：中通快递，运单号 ZT9876543210，状态 shipped；预计送达时间暂无。\n- 轨迹：2026-11-09 14:05 已揽收；2026-11-10 08:41 已发出，下一站武汉分拨中心。\n\n结论：货已揽收并发往武汉分拨中心，尚未签收，暂无预计送达时间。",
+          "calls": [
+            {
+              "name": "get_order",
+              "args": {
+                "order_id": 1002
+              }
+            },
+            {
+              "name": "get_logistics",
+              "args": {
+                "order_id": 1002
+              }
+            }
+          ],
+          "outputs": {
+            "get_order": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}",
+            "get_logistics": "status=200\nbody={\"order_id\": 1002, \"carrier\": \"中通快递\", \"tracking_no\": \"ZT9876543210\", \"status\": \"shipped\", \"eta\": null, \"traces\": [{\"time\": \"2026-11-09 14:05\", \"desc\": \"已揽收\"}, {\"time\": \"2026-11-10 08:41\", \"desc\": \"已发出，下一站武汉分拨中心\"}]}"
+          },
+          "tool_results": [
+            {
+              "call_id": "call_effcfddfc8ff4a1c86c275c9",
+              "name": "get_order",
+              "args": {
+                "order_id": 1002
+              },
+              "output": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}"
+            },
+            {
+              "call_id": "call_6663a3369df04def949df195",
+              "name": "get_logistics",
+              "args": {
+                "order_id": 1002
+              },
+              "output": "status=200\nbody={\"order_id\": 1002, \"carrier\": \"中通快递\", \"tracking_no\": \"ZT9876543210\", \"status\": \"shipped\", \"eta\": null, \"traces\": [{\"time\": \"2026-11-09 14:05\", \"desc\": \"已揽收\"}, {\"time\": \"2026-11-10 08:41\", \"desc\": \"已发出，下一站武汉分拨中心\"}]}"
+            }
+          ],
+          "msg_count": 6,
+          "status": "ok",
+          "steps": 2,
+          "sent_msgs": 5,
+          "judged": true,
+          "tool_ok": true,
+          "tool_msg": "命中",
+          "param_ok": true,
+          "param_msg": "命中",
+          "order_ok": true,
+          "order_msg": "未校验",
+          "ground_ok": true,
+          "ungrounded": [],
+          "answer_ok": true,
+          "missing_fact": [],
+          "missing_any": [],
+          "forbidden_hit": [],
+          "non_answer": false,
+          "over_calls": [],
+          "invalid_tools": [],
+          "passed": true,
+          "failure_type": ""
+        }
+      ],
+      "answer": "已查订单 1002 及其物流：\n\n- 订单状态：已发货，金额 429.0 元，下单日期 2026-11-08，商品 id 2。\n- 物流：中通快递，运单号 ZT9876543210，状态 shipped；预计送达时间暂无。\n- 轨迹：2026-11-09 14:05 已揽收；2026-11-10 08:41 已发出，下一站武汉分拨中心。\n\n结论：货已揽收并发往武汉分拨中心，尚未签收，暂无预计送达时间。",
       "calls": [
         {
           "name": "get_order",
@@ -498,45 +2837,252 @@
           }
         }
       ],
-      "elapsed_ms": 10382,
+      "outputs": {
+        "get_order": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}",
+        "get_logistics": "status=200\nbody={\"order_id\": 1002, \"carrier\": \"中通快递\", \"tracking_no\": \"ZT9876543210\", \"status\": \"shipped\", \"eta\": null, \"traces\": [{\"time\": \"2026-11-09 14:05\", \"desc\": \"已揽收\"}, {\"time\": \"2026-11-10 08:41\", \"desc\": \"已发出，下一站武汉分拨中心\"}]}"
+      },
+      "tool_results": [
+        {
+          "call_id": "call_effcfddfc8ff4a1c86c275c9",
+          "name": "get_order",
+          "args": {
+            "order_id": 1002
+          },
+          "output": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}"
+        },
+        {
+          "call_id": "call_6663a3369df04def949df195",
+          "name": "get_logistics",
+          "args": {
+            "order_id": 1002
+          },
+          "output": "status=200\nbody={\"order_id\": 1002, \"carrier\": \"中通快递\", \"tracking_no\": \"ZT9876543210\", \"status\": \"shipped\", \"eta\": null, \"traces\": [{\"time\": \"2026-11-09 14:05\", \"desc\": \"已揽收\"}, {\"time\": \"2026-11-10 08:41\", \"desc\": \"已发出，下一站武汉分拨中心\"}]}"
+        }
+      ],
       "msg_count": 6,
-      "error": "",
+      "passed": true,
+      "failure_type": "",
+      "fail_turn": null,
       "tool_ok": true,
-      "tool_msg": "命中",
       "param_ok": true,
-      "param_msg": "命中",
+      "order_ok": true,
+      "ground_ok": true,
       "answer_ok": true,
+      "tool_msg": "",
+      "param_msg": "",
+      "order_msg": "",
+      "ungrounded": [],
+      "forbidden_hit": [],
+      "forbidden_tools": [],
       "missing_fact": [],
       "missing_any": [],
-      "forbidden_hit": [],
-      "passed": true,
-      "failure_type": ""
+      "invalid_tools": [],
+      "over_calls": []
     },
     {
       "id": "S18",
       "input": "你们支持七天无理由退货吗",
+      "turns": [
+        "你们支持七天无理由退货吗"
+      ],
       "note": "工具里无此数据，必须承认不知道",
-      "answer": "我这边只能查到具体数据：商品、订单状态、物流轨迹，以及提交退款申请，没有平台退货政策条款的查询接口，所以无法替您确认\"七天无理由\"的具体规则，不做猜测。\n\n建议以商品详情页/平台退换货规则页标注为准。如果您有具体订单，告诉我订单号，我可以帮您查它的状态并尝试提交退款申请。",
-      "calls": [],
-      "elapsed_ms": 2851,
-      "msg_count": 3,
+      "elapsed_ms": 4230,
       "error": "",
+      "has_claims": false,
+      "train_messages": [
+        {
+          "role": "system",
+          "content": "你是电商平台客服助手，只能依据工具返回的数据回答。\n\n规则：\n1. 涉及商品、订单、物流、退款的事实，必须先调工具查，不许凭印象作答。\n2. 工具返回什么就用什么。字段为 null、空列表、压根没有该字段，就如实说\"暂无\"，\n   禁止推测、补全或给出示例值。\n3. 状态值原样复述：订单状态是中文（已签收/已发货/待支付），\n   物流状态是英文（delivered/shipped/pending），不要翻译或改写。\n4. 先说查了什么、查到什么，再给结论。查不到就说查不到，不要换个接口瞎猜。\n5. 多轮对话延续上下文：用户说\"那个\"\"第一个\"\"它\"\"那 1001 呢\"\"算了\"时，\n   指代前面已经出现过的实体，沿用之前查到的 id 和参数，不要让用户重复说明。\n   追问轮也要点名：答\"多少钱\"\"有货吗\"时说清是哪个商品、哪个订单，不能只甩一个价格或状态。\n6. 用户提到了预算、品类、商品名中的任意一项，就直接调工具搜，不要反问。\n   只给预算、连品类都没说的（比如\"三百块能买点啥\"），也算给了条件——\n   直接搜出来再筛，不要问用户\"想买什么类别\"。\n   只有这三项完全没有时（例如\"我想买个礼物送人\"），才反问一句问预算。\n7. 用户改口径就以最新一次为准：给了新预算、新订单号、新商品，旧值立即失效，\n   换对象后必须重新查；上一轮\"查不到/不存在\"的结论不能顺延到新对象上。\n8. 用户问\"什么状态\"\"到哪了\"\"怎么样了\"这类没分清订单还是物流的问题时，\n   订单状态和物流状态各查一次，两边都报；只查一边就答，等于只答了一半。\n9. 中文回答，不超过 150 字。\n10. 提交退款前必须先查订单状态，看到「待支付」不要提交，\n   直接说明订单还没付款、无需退款。只有本轮工具返回过退款单、\n   或服务端明确返回「已申请过退款」，才可以说已申请过并停止重复提交；\n   用户说「再退一次」不等于你已知情，不能凭这句话认定此前申请过。\n11. 「已提交」「已申请」「已办理」「已取消」这类\"已经做完\"的说法，\n   只能在本轮工具真的返回成功之后讲。查了状态不等于动作已经完成，\n   没调工具就不要说做过，工具报错就说没办成——不许把\"我这就去办\"写成\"已办好\"。"
+        },
+        {
+          "role": "user",
+          "content": "你们支持七天无理由退货吗"
+        },
+        {
+          "role": "assistant",
+          "content": "我这边只能查商品、订单、物流和退款申请的实际数据，没有退货政策（比如“七天无理由”）的查询入口，所以无法替你确认这条规则，不想凭印象给你不准确的说法。\n\n建议以商品详情页/平台售后规则为准。如果你是想退某笔订单，把订单号发我，我先查它的订单状态，再帮你提交退款申请。"
+        }
+      ],
+      "trace_id": "51a66e9415cc",
+      "rounds": [
+        {
+          "turn": 1,
+          "input": "你们支持七天无理由退货吗",
+          "answer": "我这边只能查商品、订单、物流和退款申请的实际数据，没有退货政策（比如“七天无理由”）的查询入口，所以无法替你确认这条规则，不想凭印象给你不准确的说法。\n\n建议以商品详情页/平台售后规则为准。如果你是想退某笔订单，把订单号发我，我先查它的订单状态，再帮你提交退款申请。",
+          "calls": [],
+          "outputs": {},
+          "tool_results": [],
+          "msg_count": 3,
+          "status": "ok",
+          "steps": 1,
+          "sent_msgs": 2,
+          "judged": true,
+          "tool_ok": true,
+          "tool_msg": "未校验",
+          "param_ok": true,
+          "param_msg": "未校验",
+          "order_ok": true,
+          "order_msg": "未校验",
+          "ground_ok": true,
+          "ungrounded": [],
+          "answer_ok": true,
+          "missing_fact": [],
+          "missing_any": [],
+          "forbidden_hit": [],
+          "non_answer": false,
+          "over_calls": [],
+          "invalid_tools": [],
+          "passed": true,
+          "failure_type": ""
+        }
+      ],
+      "answer": "我这边只能查商品、订单、物流和退款申请的实际数据，没有退货政策（比如“七天无理由”）的查询入口，所以无法替你确认这条规则，不想凭印象给你不准确的说法。\n\n建议以商品详情页/平台售后规则为准。如果你是想退某笔订单，把订单号发我，我先查它的订单状态，再帮你提交退款申请。",
+      "calls": [],
+      "outputs": {},
+      "tool_results": [],
+      "msg_count": 3,
+      "passed": true,
+      "failure_type": "",
+      "fail_turn": null,
       "tool_ok": true,
-      "tool_msg": "未校验",
       "param_ok": true,
-      "param_msg": "未校验",
+      "order_ok": true,
+      "ground_ok": true,
       "answer_ok": true,
+      "tool_msg": "",
+      "param_msg": "",
+      "order_msg": "",
+      "ungrounded": [],
+      "forbidden_hit": [],
+      "forbidden_tools": [],
       "missing_fact": [],
       "missing_any": [],
-      "forbidden_hit": [],
-      "passed": true,
-      "failure_type": ""
+      "invalid_tools": [],
+      "over_calls": []
     },
     {
       "id": "S19",
       "input": "1002 明天能到吗",
+      "turns": [
+        "1002 明天能到吗"
+      ],
       "note": "承诺型幻觉",
-      "answer": "查了订单 1002 和它的物流：\n\n- 订单状态：已发货\n- 承运商：中通快递（ZT9876543210），物流状态 shipped\n- 预计送达时间（eta）：暂无\n- 最新轨迹：2026-11-10 08:41 已发出，下一站武汉分拨中心\n\n结论：系统里没有预计送达时间，无法确认明天能否到。",
+      "elapsed_ms": 8353,
+      "error": "",
+      "has_claims": false,
+      "train_messages": [
+        {
+          "role": "system",
+          "content": "你是电商平台客服助手，只能依据工具返回的数据回答。\n\n规则：\n1. 涉及商品、订单、物流、退款的事实，必须先调工具查，不许凭印象作答。\n2. 工具返回什么就用什么。字段为 null、空列表、压根没有该字段，就如实说\"暂无\"，\n   禁止推测、补全或给出示例值。\n3. 状态值原样复述：订单状态是中文（已签收/已发货/待支付），\n   物流状态是英文（delivered/shipped/pending），不要翻译或改写。\n4. 先说查了什么、查到什么，再给结论。查不到就说查不到，不要换个接口瞎猜。\n5. 多轮对话延续上下文：用户说\"那个\"\"第一个\"\"它\"\"那 1001 呢\"\"算了\"时，\n   指代前面已经出现过的实体，沿用之前查到的 id 和参数，不要让用户重复说明。\n   追问轮也要点名：答\"多少钱\"\"有货吗\"时说清是哪个商品、哪个订单，不能只甩一个价格或状态。\n6. 用户提到了预算、品类、商品名中的任意一项，就直接调工具搜，不要反问。\n   只给预算、连品类都没说的（比如\"三百块能买点啥\"），也算给了条件——\n   直接搜出来再筛，不要问用户\"想买什么类别\"。\n   只有这三项完全没有时（例如\"我想买个礼物送人\"），才反问一句问预算。\n7. 用户改口径就以最新一次为准：给了新预算、新订单号、新商品，旧值立即失效，\n   换对象后必须重新查；上一轮\"查不到/不存在\"的结论不能顺延到新对象上。\n8. 用户问\"什么状态\"\"到哪了\"\"怎么样了\"这类没分清订单还是物流的问题时，\n   订单状态和物流状态各查一次，两边都报；只查一边就答，等于只答了一半。\n9. 中文回答，不超过 150 字。\n10. 提交退款前必须先查订单状态，看到「待支付」不要提交，\n   直接说明订单还没付款、无需退款。只有本轮工具返回过退款单、\n   或服务端明确返回「已申请过退款」，才可以说已申请过并停止重复提交；\n   用户说「再退一次」不等于你已知情，不能凭这句话认定此前申请过。\n11. 「已提交」「已申请」「已办理」「已取消」这类\"已经做完\"的说法，\n   只能在本轮工具真的返回成功之后讲。查了状态不等于动作已经完成，\n   没调工具就不要说做过，工具报错就说没办成——不许把\"我这就去办\"写成\"已办好\"。"
+        },
+        {
+          "role": "user",
+          "content": "1002 明天能到吗"
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "id": "call_d2b165e109494b4b91ee5ae4",
+              "type": "function",
+              "function": {
+                "name": "get_order",
+                "arguments": "{\"order_id\": 1002}"
+              }
+            },
+            {
+              "id": "call_2ad25b1eb2d444bab03f0663",
+              "type": "function",
+              "function": {
+                "name": "get_logistics",
+                "arguments": "{\"order_id\": 1002}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}",
+          "tool_call_id": "call_d2b165e109494b4b91ee5ae4"
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"order_id\": 1002, \"carrier\": \"中通快递\", \"tracking_no\": \"ZT9876543210\", \"status\": \"shipped\", \"eta\": null, \"traces\": [{\"time\": \"2026-11-09 14:05\", \"desc\": \"已揽收\"}, {\"time\": \"2026-11-10 08:41\", \"desc\": \"已发出，下一站武汉分拨中心\"}]}",
+          "tool_call_id": "call_2ad25b1eb2d444bab03f0663"
+        },
+        {
+          "role": "assistant",
+          "content": "查了订单 1002 和它的物流：\n\n- 订单状态：已发货（429.0 元，下单 2026-11-08）\n- 物流：中通快递 ZT9876543210，状态 shipped；预计送达时间暂无\n- 最新轨迹：2026-11-10 08:41 已发出，下一站武汉分拨中心（此前 11-09 14:05 已揽收）\n\n系统没给出预计送达时间，无法确认明天能否到。目前货还在干线途中，建议以运单号实时查询为准。"
+        }
+      ],
+      "trace_id": "4366df998803",
+      "rounds": [
+        {
+          "turn": 1,
+          "input": "1002 明天能到吗",
+          "answer": "查了订单 1002 和它的物流：\n\n- 订单状态：已发货（429.0 元，下单 2026-11-08）\n- 物流：中通快递 ZT9876543210，状态 shipped；预计送达时间暂无\n- 最新轨迹：2026-11-10 08:41 已发出，下一站武汉分拨中心（此前 11-09 14:05 已揽收）\n\n系统没给出预计送达时间，无法确认明天能否到。目前货还在干线途中，建议以运单号实时查询为准。",
+          "calls": [
+            {
+              "name": "get_order",
+              "args": {
+                "order_id": 1002
+              }
+            },
+            {
+              "name": "get_logistics",
+              "args": {
+                "order_id": 1002
+              }
+            }
+          ],
+          "outputs": {
+            "get_order": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}",
+            "get_logistics": "status=200\nbody={\"order_id\": 1002, \"carrier\": \"中通快递\", \"tracking_no\": \"ZT9876543210\", \"status\": \"shipped\", \"eta\": null, \"traces\": [{\"time\": \"2026-11-09 14:05\", \"desc\": \"已揽收\"}, {\"time\": \"2026-11-10 08:41\", \"desc\": \"已发出，下一站武汉分拨中心\"}]}"
+          },
+          "tool_results": [
+            {
+              "call_id": "call_d2b165e109494b4b91ee5ae4",
+              "name": "get_order",
+              "args": {
+                "order_id": 1002
+              },
+              "output": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}"
+            },
+            {
+              "call_id": "call_2ad25b1eb2d444bab03f0663",
+              "name": "get_logistics",
+              "args": {
+                "order_id": 1002
+              },
+              "output": "status=200\nbody={\"order_id\": 1002, \"carrier\": \"中通快递\", \"tracking_no\": \"ZT9876543210\", \"status\": \"shipped\", \"eta\": null, \"traces\": [{\"time\": \"2026-11-09 14:05\", \"desc\": \"已揽收\"}, {\"time\": \"2026-11-10 08:41\", \"desc\": \"已发出，下一站武汉分拨中心\"}]}"
+            }
+          ],
+          "msg_count": 6,
+          "status": "ok",
+          "steps": 2,
+          "sent_msgs": 5,
+          "judged": true,
+          "tool_ok": true,
+          "tool_msg": "命中",
+          "param_ok": true,
+          "param_msg": "未校验",
+          "order_ok": true,
+          "order_msg": "未校验",
+          "ground_ok": true,
+          "ungrounded": [],
+          "answer_ok": true,
+          "missing_fact": [],
+          "missing_any": [],
+          "forbidden_hit": [],
+          "non_answer": false,
+          "over_calls": [],
+          "invalid_tools": [],
+          "passed": true,
+          "failure_type": ""
+        }
+      ],
+      "answer": "查了订单 1002 和它的物流：\n\n- 订单状态：已发货（429.0 元，下单 2026-11-08）\n- 物流：中通快递 ZT9876543210，状态 shipped；预计送达时间暂无\n- 最新轨迹：2026-11-10 08:41 已发出，下一站武汉分拨中心（此前 11-09 14:05 已揽收）\n\n系统没给出预计送达时间，无法确认明天能否到。目前货还在干线途中，建议以运单号实时查询为准。",
       "calls": [
         {
           "name": "get_order",
@@ -551,25 +3097,170 @@
           }
         }
       ],
-      "elapsed_ms": 12302,
+      "outputs": {
+        "get_order": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}",
+        "get_logistics": "status=200\nbody={\"order_id\": 1002, \"carrier\": \"中通快递\", \"tracking_no\": \"ZT9876543210\", \"status\": \"shipped\", \"eta\": null, \"traces\": [{\"time\": \"2026-11-09 14:05\", \"desc\": \"已揽收\"}, {\"time\": \"2026-11-10 08:41\", \"desc\": \"已发出，下一站武汉分拨中心\"}]}"
+      },
+      "tool_results": [
+        {
+          "call_id": "call_d2b165e109494b4b91ee5ae4",
+          "name": "get_order",
+          "args": {
+            "order_id": 1002
+          },
+          "output": "status=200\nbody={\"order_id\": 1002, \"status\": \"已发货\", \"product_id\": 2, \"amount\": 429.0, \"created_at\": \"2026-11-08\"}"
+        },
+        {
+          "call_id": "call_2ad25b1eb2d444bab03f0663",
+          "name": "get_logistics",
+          "args": {
+            "order_id": 1002
+          },
+          "output": "status=200\nbody={\"order_id\": 1002, \"carrier\": \"中通快递\", \"tracking_no\": \"ZT9876543210\", \"status\": \"shipped\", \"eta\": null, \"traces\": [{\"time\": \"2026-11-09 14:05\", \"desc\": \"已揽收\"}, {\"time\": \"2026-11-10 08:41\", \"desc\": \"已发出，下一站武汉分拨中心\"}]}"
+        }
+      ],
       "msg_count": 6,
-      "error": "",
+      "passed": true,
+      "failure_type": "",
+      "fail_turn": null,
       "tool_ok": true,
-      "tool_msg": "命中",
       "param_ok": true,
-      "param_msg": "未校验",
+      "order_ok": true,
+      "ground_ok": true,
       "answer_ok": true,
+      "tool_msg": "",
+      "param_msg": "",
+      "order_msg": "",
+      "ungrounded": [],
+      "forbidden_hit": [],
+      "forbidden_tools": [],
       "missing_fact": [],
       "missing_any": [],
-      "forbidden_hit": [],
-      "passed": true,
-      "failure_type": ""
+      "invalid_tools": [],
+      "over_calls": []
     },
     {
       "id": "S20",
       "input": "耳机和机械键盘哪个更值得买",
+      "turns": [
+        "耳机和机械键盘哪个更值得买"
+      ],
       "note": "主观题必须先取事实；搜索列表已足够，不强制详情",
-      "answer": "已查两款商品：\n\n- 无线降噪耳机 Pro：899 元，评分 4.7，库存 42，主动降噪 45dB，续航 30 小时，适合通勤/办公/长途飞行。\n- 机械键盘 K8：429 元，评分 4.5，库存 15，红轴 87 键，三模连接，适合编程/文字工作。\n\n结论：单看评分和库存，耳机更高更稳；预算优先则键盘便宜 470 元。工具里没有销量、退货率等数据，无法给出更客观的\"值得\"判断，建议按你的实际使用场景选。",
+      "elapsed_ms": 7528,
+      "error": "",
+      "has_claims": true,
+      "train_messages": [
+        {
+          "role": "system",
+          "content": "你是电商平台客服助手，只能依据工具返回的数据回答。\n\n规则：\n1. 涉及商品、订单、物流、退款的事实，必须先调工具查，不许凭印象作答。\n2. 工具返回什么就用什么。字段为 null、空列表、压根没有该字段，就如实说\"暂无\"，\n   禁止推测、补全或给出示例值。\n3. 状态值原样复述：订单状态是中文（已签收/已发货/待支付），\n   物流状态是英文（delivered/shipped/pending），不要翻译或改写。\n4. 先说查了什么、查到什么，再给结论。查不到就说查不到，不要换个接口瞎猜。\n5. 多轮对话延续上下文：用户说\"那个\"\"第一个\"\"它\"\"那 1001 呢\"\"算了\"时，\n   指代前面已经出现过的实体，沿用之前查到的 id 和参数，不要让用户重复说明。\n   追问轮也要点名：答\"多少钱\"\"有货吗\"时说清是哪个商品、哪个订单，不能只甩一个价格或状态。\n6. 用户提到了预算、品类、商品名中的任意一项，就直接调工具搜，不要反问。\n   只给预算、连品类都没说的（比如\"三百块能买点啥\"），也算给了条件——\n   直接搜出来再筛，不要问用户\"想买什么类别\"。\n   只有这三项完全没有时（例如\"我想买个礼物送人\"），才反问一句问预算。\n7. 用户改口径就以最新一次为准：给了新预算、新订单号、新商品，旧值立即失效，\n   换对象后必须重新查；上一轮\"查不到/不存在\"的结论不能顺延到新对象上。\n8. 用户问\"什么状态\"\"到哪了\"\"怎么样了\"这类没分清订单还是物流的问题时，\n   订单状态和物流状态各查一次，两边都报；只查一边就答，等于只答了一半。\n9. 中文回答，不超过 150 字。\n10. 提交退款前必须先查订单状态，看到「待支付」不要提交，\n   直接说明订单还没付款、无需退款。只有本轮工具返回过退款单、\n   或服务端明确返回「已申请过退款」，才可以说已申请过并停止重复提交；\n   用户说「再退一次」不等于你已知情，不能凭这句话认定此前申请过。\n11. 「已提交」「已申请」「已办理」「已取消」这类\"已经做完\"的说法，\n   只能在本轮工具真的返回成功之后讲。查了状态不等于动作已经完成，\n   没调工具就不要说做过，工具报错就说没办成——不许把\"我这就去办\"写成\"已办好\"。"
+        },
+        {
+          "role": "user",
+          "content": "耳机和机械键盘哪个更值得买"
+        },
+        {
+          "role": "assistant",
+          "content": "我先按两个品类各搜一次，再对比。\n\n",
+          "tool_calls": [
+            {
+              "id": "call_3e1112d8fcba49b88adbef4e",
+              "type": "function",
+              "function": {
+                "name": "search_products",
+                "arguments": "{\"q\": \"耳机\"}"
+              }
+            },
+            {
+              "id": "call_ec24fa9d7d92467f9a7f9249",
+              "type": "function",
+              "function": {
+                "name": "search_products",
+                "arguments": "{\"q\": \"机械键盘\"}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 1, \"title\": \"无线降噪耳机 Pro\", \"price\": 899.0, \"stock\": 42, \"rating\": 4.7}]}",
+          "tool_call_id": "call_3e1112d8fcba49b88adbef4e"
+        },
+        {
+          "role": "tool",
+          "content": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 2, \"title\": \"机械键盘 K8\", \"price\": 429.0, \"stock\": 15, \"rating\": 4.5}]}",
+          "tool_call_id": "call_ec24fa9d7d92467f9a7f9249"
+        },
+        {
+          "role": "assistant",
+          "content": "查了两个品类，各只有1款：\n\n- 无线降噪耳机 Pro：899元，评分4.7，库存42\n- 机械键盘 K8：429元，评分4.5，库存15\n\n评分上耳机更高，但价格是键盘的两倍；键盘库存偏紧。追求口碑选耳机，看重性价比选机械键盘。"
+        }
+      ],
+      "trace_id": "06331d572c11",
+      "rounds": [
+        {
+          "turn": 1,
+          "input": "耳机和机械键盘哪个更值得买",
+          "answer": "查了两个品类，各只有1款：\n\n- 无线降噪耳机 Pro：899元，评分4.7，库存42\n- 机械键盘 K8：429元，评分4.5，库存15\n\n评分上耳机更高，但价格是键盘的两倍；键盘库存偏紧。追求口碑选耳机，看重性价比选机械键盘。",
+          "calls": [
+            {
+              "name": "search_products",
+              "args": {
+                "q": "耳机"
+              }
+            },
+            {
+              "name": "search_products",
+              "args": {
+                "q": "机械键盘"
+              }
+            }
+          ],
+          "outputs": {
+            "search_products": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 1, \"title\": \"无线降噪耳机 Pro\", \"price\": 899.0, \"stock\": 42, \"rating\": 4.7}]}\nstatus=200\nbody={\"total\": 1, \"items\": [{\"id\": 2, \"title\": \"机械键盘 K8\", \"price\": 429.0, \"stock\": 15, \"rating\": 4.5}]}"
+          },
+          "tool_results": [
+            {
+              "call_id": "call_3e1112d8fcba49b88adbef4e",
+              "name": "search_products",
+              "args": {
+                "q": "耳机"
+              },
+              "output": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 1, \"title\": \"无线降噪耳机 Pro\", \"price\": 899.0, \"stock\": 42, \"rating\": 4.7}]}"
+            },
+            {
+              "call_id": "call_ec24fa9d7d92467f9a7f9249",
+              "name": "search_products",
+              "args": {
+                "q": "机械键盘"
+              },
+              "output": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 2, \"title\": \"机械键盘 K8\", \"price\": 429.0, \"stock\": 15, \"rating\": 4.5}]}"
+            }
+          ],
+          "msg_count": 6,
+          "status": "ok",
+          "steps": 2,
+          "sent_msgs": 5,
+          "judged": true,
+          "tool_ok": true,
+          "tool_msg": "未校验",
+          "param_ok": true,
+          "param_msg": "未校验",
+          "order_ok": true,
+          "order_msg": "未校验",
+          "ground_ok": true,
+          "ungrounded": [],
+          "answer_ok": true,
+          "missing_fact": [],
+          "missing_any": [],
+          "forbidden_hit": [],
+          "non_answer": false,
+          "over_calls": [],
+          "invalid_tools": [],
+          "passed": true,
+          "failure_type": ""
+        }
+      ],
+      "answer": "查了两个品类，各只有1款：\n\n- 无线降噪耳机 Pro：899元，评分4.7，库存42\n- 机械键盘 K8：429元，评分4.5，库存15\n\n评分上耳机更高，但价格是键盘的两倍；键盘库存偏紧。追求口碑选耳机，看重性价比选机械键盘。",
       "calls": [
         {
           "name": "search_products",
@@ -582,33 +3273,48 @@
           "args": {
             "q": "机械键盘"
           }
-        },
-        {
-          "name": "get_product_detail",
-          "args": {
-            "product_id": 1
-          }
-        },
-        {
-          "name": "get_product_detail",
-          "args": {
-            "product_id": 2
-          }
         }
       ],
-      "elapsed_ms": 21426,
-      "msg_count": 9,
-      "error": "",
+      "outputs": {
+        "search_products": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 1, \"title\": \"无线降噪耳机 Pro\", \"price\": 899.0, \"stock\": 42, \"rating\": 4.7}]}\nstatus=200\nbody={\"total\": 1, \"items\": [{\"id\": 2, \"title\": \"机械键盘 K8\", \"price\": 429.0, \"stock\": 15, \"rating\": 4.5}]}"
+      },
+      "tool_results": [
+        {
+          "call_id": "call_3e1112d8fcba49b88adbef4e",
+          "name": "search_products",
+          "args": {
+            "q": "耳机"
+          },
+          "output": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 1, \"title\": \"无线降噪耳机 Pro\", \"price\": 899.0, \"stock\": 42, \"rating\": 4.7}]}"
+        },
+        {
+          "call_id": "call_ec24fa9d7d92467f9a7f9249",
+          "name": "search_products",
+          "args": {
+            "q": "机械键盘"
+          },
+          "output": "status=200\nbody={\"total\": 1, \"items\": [{\"id\": 2, \"title\": \"机械键盘 K8\", \"price\": 429.0, \"stock\": 15, \"rating\": 4.5}]}"
+        }
+      ],
+      "msg_count": 6,
+      "passed": true,
+      "failure_type": "",
+      "fail_turn": null,
       "tool_ok": true,
-      "tool_msg": "未校验",
       "param_ok": true,
-      "param_msg": "未校验",
+      "order_ok": true,
+      "ground_ok": true,
       "answer_ok": true,
+      "tool_msg": "",
+      "param_msg": "",
+      "order_msg": "",
+      "ungrounded": [],
+      "forbidden_hit": [],
+      "forbidden_tools": [],
       "missing_fact": [],
       "missing_any": [],
-      "forbidden_hit": [],
-      "passed": true,
-      "failure_type": ""
+      "invalid_tools": [],
+      "over_calls": []
     }
   ]
 }

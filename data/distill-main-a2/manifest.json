@@ -1,0 +1,25 @@
+{
+  "run": "C:\\Users\\lenovo\\PycharmProjects\\test_agent\\runs\\main-a2\\20261119-194423",
+  "groups": [
+    "fit"
+  ],
+  "min_answer": 6,
+  "tasks": 43,
+  "total": {
+    "sft": 25,
+    "failed": 1,
+    "duplicates": 0
+  },
+  "by_group": {
+    "fit": {
+      "traces": 26,
+      "sft": 25,
+      "failed": 1,
+      "dropped": {},
+      "duplicates": 0
+    }
+  },
+  "failure_types": {
+    "missing_tool": 1
+  }
+}

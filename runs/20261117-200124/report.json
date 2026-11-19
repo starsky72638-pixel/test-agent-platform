@@ -1,0 +1,435 @@
+{
+  "run": {
+    "stamp": "20261117-200124",
+    "agent": "cold",
+    "agent_name": "shop-cold",
+    "max_steps": 6,
+    "top_k": 6,
+    "min_score": null,
+    "fit_limit": 0,
+    "holdout_limit": 6,
+    "fit_tasks": [
+      "S01",
+      "S02",
+      "S03",
+      "S05",
+      "S06",
+      "S07",
+      "S08",
+      "S10",
+      "S11",
+      "S13",
+      "S15",
+      "S17",
+      "M01",
+      "M02",
+      "M04",
+      "M06",
+      "M08",
+      "H01",
+      "H03",
+      "H05",
+      "H07",
+      "H09",
+      "H11",
+      "H12",
+      "H13"
+    ],
+    "holdout_tasks": [
+      "S04",
+      "S09",
+      "S12",
+      "S14",
+      "S16",
+      "S18"
+    ],
+    "store": "C:\\Users\\lenovo\\PycharmProjects\\test_agent\\runs\\20261117-200124\\experiences.jsonl",
+    "record_outcome": true
+  },
+  "learn": {
+    "stage": "learn",
+    "elapsed_ms": 383290,
+    "fit_tasks": 25,
+    "judged": 25,
+    "passed": 22,
+    "by_failure": {
+      "missing_tool": 1,
+      "wrong_fact": 1,
+      "wrong_order": 1
+    },
+    "candidates": 3,
+    "kept": 3,
+    "rejected": [],
+    "warnings": [],
+    "errors": [],
+    "experiences": [
+      {
+        "exp_id": "exp-011b486a50fb",
+        "failure_type": "missing_tool",
+        "pattern": "missing_tool|get_order|multi",
+        "action": "遇到这类问题时必须调用 get_order；只做其中一部分查询就作答，会被判为漏查。",
+        "guard": "已经查到的部分不能代替没查的那部分。",
+        "support": 2,
+        "tags": [
+          "一共",
+          "两个",
+          "个订",
+          "了多",
+          "充电",
+          "共多",
+          "加起",
+          "单加",
+          "单花",
+          "多少",
+          "宝多",
+          "宝有",
+          "少钱",
+          "有货",
+          "来一",
+          "电宝",
+          "花了",
+          "订单",
+          "货吗",
+          "起来",
+          "那两",
+          "那单"
+        ],
+        "shape": "multi",
+        "evidence": [
+          {
+            "trace_id": "M08-404a1830",
+            "task_id": "M08",
+            "turn": 5,
+            "failure_type": "missing_tool",
+            "quote": "两个订单合计 **1328.00 元**：\n\n- 订单 1001：899.00 元（已签收）\n- 订单 1002：429.00 元（已发货）",
+            "agent": "shop-cold",
+            "detail": "工具:缺 get_order | 参数:错 order_id=1001"
+          }
+        ]
+      },
+      {
+        "exp_id": "exp-070cde8d3e25",
+        "failure_type": "wrong_fact",
+        "pattern": "wrong_fact|single",
+        "action": "用户问到的关键信息要都报出来，不能只答一半或漏掉其中的一项。",
+        "guard": "",
+        "support": 1,
+        "tags": [
+          "一个",
+          "个星",
+          "么还",
+          "发货",
+          "怎么",
+          "星期",
+          "期了",
+          "没发",
+          "还没",
+          "都一"
+        ],
+        "shape": "single",
+        "evidence": [
+          {
+            "trace_id": "H01-9b65645e",
+            "task_id": "H01",
+            "turn": 1,
+            "failure_type": "wrong_fact",
+            "quote": "抱歉，我目前可查询的工具只覆盖商品信息和支付处理，没有订单发货/物流状态查询接口，因此无法确认“1001”是否已发货，也无法判断为什么一个星期还没发。\n\n请确认一下：\n- 如果 1001 是订单号：请在订单详情页查看“发货/物流”状态，或联系人工客服核实；我这边不能直接查到该订单状态。\n- 如果 1001 是商品 ID",
+            "agent": "shop-cold",
+            "detail": "缺任一:已签收"
+          }
+        ]
+      },
+      {
+        "exp_id": "exp-d656fddf8812",
+        "failure_type": "wrong_order",
+        "pattern": "wrong_order|get_order/apply_refund|multi",
+        "action": "必须先调用 get_order 拿到结果，再调用 apply_refund；顺序颠倒等于动作已经发出，事后补查不算数。",
+        "guard": "不要在没核实前提之前就把动作发出去。",
+        "support": 2,
+        "tags": [
+          "一次",
+          "交一",
+          "再帮",
+          "我提",
+          "提交",
+          "有杂",
+          "机有",
+          "杂音",
+          "申请",
+          "耳机",
+          "请退",
+          "退款"
+        ],
+        "shape": "multi",
+        "evidence": [
+          {
+            "trace_id": "H12-9981e17d",
+            "task_id": "H12",
+            "turn": 1,
+            "failure_type": "wrong_order",
+            "quote": "订单 1002 的退款申请已存在，系统返回：**该订单已申请退款**，无法重复提交。\n\n当前订单状态：**已发货**。",
+            "agent": "shop-cold",
+            "detail": "顺序:顺序错，apply_refund 没在 get_order 之后 | 缺任一:审核"
+          }
+        ]
+      }
+    ],
+    "store": {
+      "file": "C:\\Users\\lenovo\\PycharmProjects\\test_agent\\runs\\20261117-200124\\experiences.jsonl",
+      "lines": 3,
+      "total": 3,
+      "active": 3,
+      "retired": 0,
+      "by_failure": {
+        "missing_tool": 1,
+        "wrong_fact": 1,
+        "wrong_order": 1
+      },
+      "injected_total": 0,
+      "support_total": 3,
+      "contradict_total": 0
+    }
+  },
+  "verify": {
+    "stage": "verify",
+    "baseline": {
+      "label": "baseline",
+      "elapsed_ms": 64958,
+      "total": 6,
+      "passed": 6,
+      "rate": 1.0,
+      "by_failure": {},
+      "errors": [],
+      "per_task": {
+        "S04": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products",
+            "get_product_detail"
+          ]
+        },
+        "S09": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_logistics",
+            "get_order"
+          ]
+        },
+        "S12": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order"
+          ]
+        },
+        "S14": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order",
+            "apply_refund",
+            "apply_refund"
+          ]
+        },
+        "S16": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_logistics"
+          ]
+        },
+        "S18": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": []
+        }
+      },
+      "hits": {}
+    },
+    "injected": {
+      "label": "injected",
+      "elapsed_ms": 83766,
+      "total": 6,
+      "passed": 5,
+      "rate": 0.8333,
+      "by_failure": {
+        "missing_tool": 1
+      },
+      "errors": [],
+      "per_task": {
+        "S04": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products"
+          ]
+        },
+        "S09": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_logistics"
+          ]
+        },
+        "S12": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order"
+          ]
+        },
+        "S14": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order",
+            "apply_refund",
+            "get_order",
+            "apply_refund"
+          ]
+        },
+        "S16": {
+          "passed": false,
+          "failure_type": "missing_tool",
+          "fail_turn": 1,
+          "calls": []
+        },
+        "S18": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": []
+        }
+      },
+      "hits": {
+        "S04": {
+          "ids": [],
+          "chars": 0
+        },
+        "S09": {
+          "ids": [],
+          "chars": 0
+        },
+        "S12": {
+          "ids": [],
+          "chars": 0
+        },
+        "S14": {
+          "ids": [
+            "exp-d656fddf8812",
+            "exp-011b486a50fb"
+          ],
+          "chars": 295
+        },
+        "S16": {
+          "ids": [],
+          "chars": 0
+        },
+        "S18": {
+          "ids": [],
+          "chars": 0
+        }
+      }
+    },
+    "delta": {
+      "baseline_rate": 1.0,
+      "injected_rate": 0.8333,
+      "rate_delta": -0.1667,
+      "baseline_passed": 6,
+      "injected_passed": 5,
+      "flips_up": 0,
+      "flips_down": 1,
+      "coverage_rate": 0.1667
+    },
+    "flips": {
+      "up": [],
+      "down": [
+        "S16"
+      ],
+      "same_pass": [
+        "S04",
+        "S09",
+        "S12",
+        "S14",
+        "S18"
+      ],
+      "same_fail": []
+    },
+    "coverage": [
+      {
+        "task_id": "S04",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "S09",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "S12",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "S14",
+        "injected": true,
+        "exp_ids": [
+          "exp-d656fddf8812",
+          "exp-011b486a50fb"
+        ],
+        "chars": 295
+      },
+      {
+        "task_id": "S16",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "S18",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      }
+    ],
+    "hit_counts": {
+      "exp-011b486a50fb": 1,
+      "exp-d656fddf8812": 1
+    },
+    "memory": {
+      "touched": 2,
+      "retired": 0
+    }
+  },
+  "store_after": {
+    "file": "C:\\Users\\lenovo\\PycharmProjects\\test_agent\\runs\\20261117-200124\\experiences.jsonl",
+    "lines": 7,
+    "total": 3,
+    "active": 3,
+    "retired": 0,
+    "by_failure": {
+      "missing_tool": 1,
+      "wrong_fact": 1,
+      "wrong_order": 1
+    },
+    "injected_total": 2,
+    "support_total": 5,
+    "contradict_total": 0
+  }
+}

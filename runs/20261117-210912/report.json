@@ -1,0 +1,196 @@
+{
+  "run": {
+    "stamp": "20261117-210912",
+    "agent": "main",
+    "agent_requested": "main",
+    "max_steps": 6,
+    "top_k": 6,
+    "min_score": null,
+    "fit_limit": 4,
+    "holdout_limit": 3,
+    "fit_tasks": [
+      "S01",
+      "S02",
+      "S03",
+      "S05"
+    ],
+    "holdout_tasks": [
+      "S04",
+      "S09",
+      "S12"
+    ],
+    "store": "C:\\Users\\lenovo\\PycharmProjects\\test_agent\\runs\\20261117-210912\\experiences.jsonl",
+    "record_outcome": true
+  },
+  "learn": {
+    "stage": "learn",
+    "elapsed_ms": 30746,
+    "fit_tasks": 4,
+    "judged": 4,
+    "passed": 4,
+    "by_failure": {},
+    "candidates": 0,
+    "kept": 0,
+    "rejected": [],
+    "warnings": [],
+    "errors": [],
+    "experiences": [],
+    "store": {
+      "file": "C:\\Users\\lenovo\\PycharmProjects\\test_agent\\runs\\20261117-210912\\experiences.jsonl",
+      "lines": 0,
+      "total": 0,
+      "active": 0,
+      "retired": 0,
+      "by_failure": {},
+      "injected_total": 0,
+      "support_total": 0,
+      "contradict_total": 0
+    }
+  },
+  "verify": {
+    "stage": "verify",
+    "baseline": {
+      "label": "baseline",
+      "elapsed_ms": 28612,
+      "total": 3,
+      "passed": 3,
+      "rate": 1.0,
+      "by_failure": {},
+      "errors": [],
+      "per_task": {
+        "S04": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products"
+          ]
+        },
+        "S09": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order",
+            "get_logistics"
+          ]
+        },
+        "S12": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order"
+          ]
+        }
+      },
+      "hits": {}
+    },
+    "injected": {
+      "label": "injected",
+      "elapsed_ms": 28868,
+      "total": 3,
+      "passed": 3,
+      "rate": 1.0,
+      "by_failure": {},
+      "errors": [],
+      "per_task": {
+        "S04": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "search_products"
+          ]
+        },
+        "S09": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order",
+            "get_logistics"
+          ]
+        },
+        "S12": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order"
+          ]
+        }
+      },
+      "hits": {
+        "S04": {
+          "ids": [],
+          "chars": 0
+        },
+        "S09": {
+          "ids": [],
+          "chars": 0
+        },
+        "S12": {
+          "ids": [],
+          "chars": 0
+        }
+      }
+    },
+    "delta": {
+      "baseline_rate": 1.0,
+      "injected_rate": 1.0,
+      "rate_delta": 0.0,
+      "baseline_passed": 3,
+      "injected_passed": 3,
+      "flips_up": 0,
+      "flips_down": 0,
+      "coverage_rate": 0.0
+    },
+    "flips": {
+      "up": [],
+      "down": [],
+      "same_pass": [
+        "S04",
+        "S09",
+        "S12"
+      ],
+      "same_fail": []
+    },
+    "coverage": [
+      {
+        "task_id": "S04",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "S09",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "S12",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      }
+    ],
+    "hit_counts": {},
+    "memory": {
+      "touched": 0,
+      "retired": 0
+    }
+  },
+  "store_after": {
+    "file": "C:\\Users\\lenovo\\PycharmProjects\\test_agent\\runs\\20261117-210912\\experiences.jsonl",
+    "lines": 0,
+    "total": 0,
+    "active": 0,
+    "retired": 0,
+    "by_failure": {},
+    "injected_total": 0,
+    "support_total": 0,
+    "contradict_total": 0
+  }
+}
