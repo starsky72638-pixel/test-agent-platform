@@ -191,7 +191,7 @@ def main(argv=None) -> int:
     check_server()
 
     print(
-        f"Agent {agent.name} | 变体 {args.agent} | 任务 {len(tasks)} 条 | "
+        f"Agent {agent.name} | 请求名 {args.agent} | 任务 {len(tasks)} 条 | "
         f"split {args.split} | 步数上限 {args.max_steps}"
     )
     print("-" * 74)
