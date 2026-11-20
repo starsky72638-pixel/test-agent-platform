@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Agent Builder · Mini Agent Platform</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">Mini Agent Platform <span class="sub">Builder</span></div>
+  <div class="fields">
+    <label>id <input id="wf-id" placeholder="my-agent" size="14" spellcheck="false" /></label>
+    <label>名称 <input id="wf-name" placeholder="可选" size="14" /></label>
+    <label>描述 <input id="wf-desc" placeholder="可选" size="24" /></label>
+  </div>
+  <div class="actions">
+    <button id="btn-save" class="primary">保存</button>
+    <select id="wf-list"><option value="">加载…</option></select>
+    <button id="btn-new">新建</button>
+    <a class="link" href="/ui/" target="_blank" rel="noopener">运行页</a>
+  </div>
+</header>
+
+<main>
+  <aside class="palette">
+    <h2>节点</h2>
+    <div id="palette"></div>
+    <p class="tip">点击添加，或拖到画布上</p>
+    <div class="legend">
+      <p><b>连线</b>：从节点右侧圆点拖到另一个节点</p>
+      <p><b>删除连线</b>：点线上任意位置</p>
+      <p><b>删除节点</b>：选中后在右侧点删除</p>
+    </div>
+  </aside>
+
+  <section class="canvas-wrap">
+    <div class="canvas-toolbar">
+      <span id="canvas-hint">一个 start、至少一个 end；节点不会自动排列</span>
+      <span class="spacer"></span>
+      <span id="save-state" class="status"></span>
+    </div>
+    <div id="scroller" class="scroller">
+      <div id="canvas" class="canvas">
+        <svg id="edges" class="edges" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+    </div>
+  </section>
+
+  <aside class="inspector">
+    <h2>节点配置</h2>
+    <div id="inspector"><p class="muted">选中一个节点</p></div>
+    <h2>Workflow JSON</h2>
+    <pre id="json" class="json">{}</pre>
+    <div class="json-actions">
+      <button id="btn-copy">复制 JSON</button>
+      <span id="copy-state" class="status"></span>
+    </div>
+  </aside>
+</main>
+
+<section class="runbar">
+  <div class="run-head">
+    <strong>运行与轨迹</strong>
+    <input id="question" placeholder="用户问题，例如：订单 1002 到哪了" />
+    <button id="btn-run" class="primary">运行</button>
+    <span id="run-state" class="status"></span>
+  </div>
+  <div class="run-body">
+    <div class="run-answer">
+      <h3>回答</h3>
+      <pre id="answer" class="answer">（尚未运行）</pre>
+    </div>
+    <div class="run-trace">
+      <h3>节点级事件</h3>
+      <div id="timeline" class="timeline"><p class="muted">（尚未运行）</p></div>
+    </div>
+  </div>
+</section>
+
+<script src="app.js"></script>
+</body>
+</html>

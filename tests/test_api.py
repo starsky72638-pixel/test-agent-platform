@@ -158,3 +158,46 @@ def test_workflow_id_is_validated(client, wf_root):
 
 def test_workflow_missing_is_404(client, wf_root):
     assert client.get("/workflows/nope-123").status_code == 404
+
+
+# ---------------------------------------------------------------- 画布前端
+
+
+def test_tools_endpoint_matches_runtime_toolbox(client):
+    """/tools 必须等于 Workflow 工厂真正注入的工具池。
+
+    两处各写一份名单的话，画布上能选到、运行时报"未注册"，
+    而那种错误只在点"运行"那一刻才出现。
+    """
+    from agents.customer.tools import CUSTOMER_TOOLS
+
+    body = client.get("/tools").json()
+    assert body["tools"] == sorted(t.name for t in CUSTOMER_TOOLS)
+    assert body["tools"] == ["apply_refund", "get_logistics", "get_order"]
+
+    # required 让画布在保存前就能拦住"缺必填参数"——
+    # 否则会跑出 infra_error + 空回答，看起来像模型不会答。
+    assert body["required"] == {
+        "apply_refund": ["order_id", "reason"],
+        "get_logistics": ["order_id"],
+        "get_order": ["order_id"],
+    }
+    # 默认必须是只读工具：写操作有副作用、必填参数更多，
+    # 拿它当新节点的默认值，第一次拖拽就必然报错。
+    assert body["default"] == "get_order"
+
+
+def test_builder_page_is_served_by_ui_mount():
+    """画布挂在 /ui 这条既有静态挂载下，不需要为它再写一条路由。
+
+    若哪天把 web/ 目录挪走，这条会红——那时应该发现"界面没了"，
+    而不是等打开浏览器看到 404。
+    """
+    bare = TestClient(api_app.app)
+    page = bare.get("/ui/builder/")
+    assert page.status_code == 200
+    assert 'id="canvas"' in page.text
+
+    script = bare.get("/ui/builder/app.js")
+    assert script.status_code == 200
+    assert "POST /workflows" in script.text

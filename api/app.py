@@ -85,6 +85,27 @@ def workflow_store():
     return AgentStore()
 
 
+def _required_args(tool_obj) -> list[str]:
+    """工具的必填参数名。
+
+    走 args_schema 的 JSON Schema，而不是直接读 pydantic 字段：
+    读字段要区分 model_fields 与 __fields__，两种 pydantic 版本写法不同，
+    而 JSON Schema 两边都只有同一个键 'required'。
+    """
+    schema = getattr(tool_obj, "args_schema", None)
+    if schema is None:
+        return []
+    try:
+        data = (
+            schema.model_json_schema()
+            if hasattr(schema, "model_json_schema")
+            else schema.schema()
+        )
+    except Exception:  # 取不到就当没有必填项，不要因为它让 /tools 整个 500
+        return []
+    return [str(x) for x in (data.get("required") or [])]
+
+
 def summarize(trace, path: Path) -> dict:
     """执行摘要：够 UI 直接渲染，完整内容走 GET /runs/{id}。
 
@@ -135,6 +156,38 @@ def create_app() -> FastAPI:
             ],
             "aliases": dict(builtin.ALIASES),
         }
+
+    @app.get("/tools")
+    def list_tools() -> dict:
+        """Workflow 能用的工具池，附带每个工具的必填参数。
+
+        必须与 agents/builtin.py:_workflow_factory 注入的是同一份 CUSTOMER_TOOLS。
+        前端若自己写死一份名单，画布上选得到、运行时却报"工具未注册"——
+        那种错误只在点"运行"那一刻才暴露，最难查。
+
+        required 是给画布做保存前校验用的：缺必填参数时后端能跑，
+        但会在节点里抛 ValidationError，结果是空回答 + infra_error。
+        那种失败看起来像"模型不会回答"，其实是参数没填。
+        """
+        from agents.customer.tools import CUSTOMER_TOOLS
+
+        names = sorted(t.name for t in CUSTOMER_TOOLS)
+        required = {t.name: _required_args(t) for t in CUSTOMER_TOOLS}
+        # 默认给只读工具：写操作有副作用、必填参数更多，
+        # 拿它当新节点的默认值，等于让第一次拖拽就必然报错。
+        #
+        # 这里必须显式点名 get_order，不能写 read_only[0]：
+        # 字典序下 "get_logistics" < "get_order"，取第一个会拿到物流。
+        # 而任意订单都有状态与金额，物流对未发货订单没意义——
+        # 默认值该选"对任何输入都有话说"的那个。
+        read_only = [n for n in names if n.startswith("get_")]
+        if "get_order" in names:
+            default = "get_order"
+        elif read_only:
+            default = read_only[0]
+        else:
+            default = names[0] if names else ""
+        return {"tools": names, "required": required, "default": default}
 
     @app.post("/runs")
     def create_run(req: RunRequest) -> dict:
