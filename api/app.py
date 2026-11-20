@@ -25,6 +25,7 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 import agents.builtin as builtin
@@ -155,6 +156,13 @@ def create_app() -> FastAPI:
         if not traces:
             raise HTTPException(status_code=500, detail="轨迹文件存在但没有内容")
         return traces[0].to_dict()
+
+    # 同源挂载界面：避免 CORS，也不必把页面和 API 拆成两个进程。
+    # 只挂 /ui，不动根路径，/docs 与上面四条路由都不受影响。
+    # 目录不存在时跳过，保证裁剪部署（只留 API）仍能启动。
+    web_dir = PROJECT_ROOT / "web"
+    if web_dir.is_dir():
+        app.mount("/ui", StaticFiles(directory=web_dir, html=True), name="ui")
 
     return app
 

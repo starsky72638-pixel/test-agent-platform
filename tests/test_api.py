@@ -86,3 +86,15 @@ def test_run_id_is_validated_and_missing_run_is_404(client):
     # 非法字符直接拦住：run_id 会被拼进文件路径，不做校验等于开了目录穿越
     assert client.get("/runs/bad%20id").status_code == 400
     assert client.get("/runs/nope-123").status_code == 404
+
+
+def test_ui_page_is_mounted():
+    """界面必须与 API 同源挂载。
+
+    file:// 打开再 fetch 127.0.0.1 会跨域，所以界面不能靠双击 html 用，
+    必须由 /ui 提供；这条测试盯住挂载点不要被后来的路由挤掉。
+    """
+    bare = TestClient(api_app.app)
+    r = bare.get("/ui/")
+    assert r.status_code == 200
+    assert "Agent Runtime" in r.text

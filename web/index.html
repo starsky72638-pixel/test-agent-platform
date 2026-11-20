@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>test_agent · Agent Runtime 控制台</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --panel-2: #1c2129;
+    --line: #262c36;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #3b82f6;
+    --ok: #3fb950;
+    --err: #f85149;
+    --warn: #d29922;
+    --mono: ui-monospace, SFMono-Regular, "Cascadia Mono", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.6 -apple-system, "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  }
+  header {
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 18px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel);
+  }
+  header h1 { font-size: 15px; font-weight: 600; margin: 0; letter-spacing: .3px; }
+  header .sub { color: var(--muted); font-size: 12px; }
+  header .right { margin-left: auto; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); display: inline-block; }
+  .dot.ok { background: var(--ok); }
+  .dot.err { background: var(--err); }
+
+  main {
+    display: grid;
+    grid-template-columns: 236px minmax(0, 1fr) minmax(0, 1.05fr);
+    height: calc(100vh - 56px);
+  }
+  .panel { border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+  .panel:last-child { border-right: none; }
+  .panel-head {
+    padding: 10px 14px; font-size: 12px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .8px;
+    border-bottom: 1px solid var(--line); flex: none;
+  }
+  .panel-body { padding: 14px; overflow: auto; flex: 1; min-height: 0; }
+
+  label.field { display: block; margin-bottom: 14px; }
+  label.field span { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+  select, input[type=number], textarea {
+    width: 100%; background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px;
+    font: inherit; outline: none;
+  }
+  select:focus, input:focus, textarea:focus { border-color: var(--accent); }
+  .hint { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .chip {
+    font-size: 12px; padding: 4px 8px; border: 1px solid var(--line);
+    border-radius: 999px; background: transparent; color: var(--muted);
+    cursor: pointer; font-family: inherit;
+  }
+  .chip:hover { color: var(--text); border-color: var(--accent); }
+
+  .composer { border-top: 1px solid var(--line); padding: 12px 14px; flex: none; }
+  .composer textarea { min-height: 72px; resize: vertical; }
+  .composer-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  .composer-row .hint { margin: 0; flex: 1; }
+  button.primary {
+    background: var(--accent); color: #fff; border: 0; border-radius: 6px;
+    padding: 8px 16px; font: inherit; font-weight: 600; cursor: pointer;
+  }
+  button.primary:disabled { opacity: .5; cursor: default; }
+
+  .msg { margin-bottom: 16px; }
+  .msg .who { font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+  .bubble {
+    background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 8px; padding: 10px 12px; white-space: pre-wrap; word-break: break-word;
+  }
+  .bubble.user { background: #17233a; border-color: #21375c; }
+  .bubble.error { border-color: var(--err); color: #ffb4ae; }
+
+  .run-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .badge {
+    font-size: 12px; padding: 2px 8px; border-radius: 999px;
+    border: 1px solid var(--line); color: var(--muted); font-family: var(--mono);
+  }
+  .badge.ok { color: var(--ok); border-color: #1f4d2b; background: #10251a; }
+  .badge.err { color: var(--err); border-color: #5c1d1d; background: #2a1315; }
+  .badge.warn { color: var(--warn); border-color: #4d3a12; background: #241c0c; }
+  .runid { font-family: var(--mono); font-size: 12px; color: var(--muted); cursor: pointer; }
+  .runid:hover { color: var(--accent); }
+
+  .turn { border: 1px solid var(--line); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+  .turn-head {
+    padding: 8px 12px; background: var(--panel-2); border-bottom: 1px solid var(--line);
+    font-size: 12px; color: var(--muted); display: flex; gap: 10px; align-items: baseline;
+  }
+  .turn-head b { color: var(--text); font-weight: 600; }
+  .turn-head .say { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .call { border-top: 1px solid var(--line); }
+  .call:first-child { border-top: none; }
+  .call-head {
+    display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+    cursor: pointer; font-family: var(--mono); font-size: 12px;
+  }
+  .call-head:hover { background: #131820; }
+  .call-head .idx { color: var(--muted); }
+  .call-head .name { color: var(--text); font-weight: 600; }
+  .call-head .args { color: var(--muted); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .call-head .caret { color: var(--muted); font-size: 10px; transition: transform .15s; }
+  .call.open .caret { transform: rotate(90deg); }
+  .call-body { display: none; padding: 0 12px 10px; }
+  .call.open .call-body { display: block; }
+  .call-body pre {
+    margin: 0; background: #0b0f14; border: 1px solid var(--line); border-radius: 6px;
+    padding: 9px 10px; font-family: var(--mono); font-size: 12px; line-height: 1.5;
+    white-space: pre-wrap; word-break: break-word; color: #c9d1d9; max-height: 260px; overflow: auto;
+  }
+  .empty { color: var(--muted); font-size: 13px; text-align: center; padding: 30px 10px; }
+  .spinner {
+    width: 14px; height: 14px; border: 2px solid var(--line);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin .8s linear infinite; display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  footer.note {
+    border-top: 1px solid var(--line); padding: 8px 14px;
+    color: var(--muted); font-size: 11px; flex: none;
+  }
+  @media (max-width: 1100px) {
+    main { grid-template-columns: 1fr; height: auto; }
+    .panel { border-right: none; border-bottom: 1px solid var(--line); max-height: none; }
+    .panel-body { overflow: visible; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>test_agent</h1>
+  <span class="sub">Agent Runtime 控制台</span>
+  <div class="right">
+    <span class="dot" id="healthDot"></span>
+    <span id="healthText">连接中</span>
+  </div>
+</header>
+
+<main>
+  <aside class="panel">
+    <div class="panel-head">执行参数</div>
+    <div class="panel-body">
+      <label class="field">
+        <span>Agent</span>
+        <select id="agent"><option>加载中</option></select>
+      </label>
+      <label class="field">
+        <span>单轮步数上限</span>
+        <input id="steps" type="number" min="1" max="20" value="6">
+      </label>
+      <div class="hint" id="alias"></div>
+      <div class="hint" style="margin-top:18px">快捷问题</div>
+      <div class="chips" id="chips"></div>
+    </div>
+    <footer class="note">
+      界面只执行与展示，不判分。判分走 run_shop.py。
+    </footer>
+  </aside>
+
+  <section class="panel">
+    <div class="panel-head">对话</div>
+    <div class="panel-body" id="chat">
+      <div class="empty">选一个 Agent，输入问题开始。多行输入会被当作多轮任务一次提交。</div>
+    </div>
+    <div class="composer">
+      <textarea id="q" placeholder="订单 1002 到哪了"></textarea>
+      <div class="composer-row">
+        <span class="hint">每行一轮；单行即单轮</span>
+        <button class="primary" id="send">执行</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">轨迹（逐轮工具调用）</div>
+    <div class="panel-body" id="trace">
+      <div class="empty">执行后在这里显示每一次工具调用、参数与原始返回。</div>
+    </div>
+    <footer class="note">
+      同步执行：请求会等跑完（单条约 10–50 秒）。暂不支持逐轮对话式交互与历史列表。
+    </footer>
+  </section>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  var $ = function (sel) { return document.querySelector(sel); };
+  var el = {
+    agent: $("#agent"),
+    steps: $("#steps"),
+    alias: $("#alias"),
+    chips: $("#chips"),
+    chat: $("#chat"),
+    trace: $("#trace"),
+    q: $("#q"),
+    send: $("#send"),
+    dot: $("#healthDot"),
+    health: $("#healthText")
+  };
+
+  var SAMPLES = [
+    { label: "1002 到哪了", text: "订单 1002 到哪了" },
+    { label: "1003 怎么没发货", text: "订单 1003 怎么还没发货" },
+    { label: "退款 1002", text: "订单 1002 我不想要了，帮我退款" },
+    { label: "多轮示例", text: "1001 到哪了\n那算了吧，帮我退了" }
+  ];
+
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
+  // 极简渲染：只处理粗体、行内代码、换行。不引第三方库，避免离线失效。
+  function mdLite(s) {
+    var out = esc(s);
+    out = out.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+    out = out.replace(/`([^`]+)`/g, '<code style="font-family:var(--mono);background:#0b0f14;padding:1px 4px;border-radius:3px">$1</code>');
+    return out;
+  }
+
+  function fmtMs(ms) {
+    if (ms == null) return "-";
+    return ms >= 1000 ? (ms / 1000).toFixed(1) + "s" : ms + "ms";
+  }
+
+  async function api(path, opts) {
+    var res = await fetch(path, opts);
+    var text = await res.text();
+    var data = null;
+    if (text) { try { data = JSON.parse(text); } catch (e) { data = text; } }
+    if (!res.ok) {
+      var d = data && data.detail != null ? data.detail : data;
+      if (typeof d !== "string") d = JSON.stringify(d);
+      throw new Error(d || ("HTTP " + res.status));
+    }
+    return data;
+  }
+
+  async function boot() {
+    try {
+      var h = await api("/health");
+      el.dot.className = "dot ok";
+      el.health.textContent = "已连接 · " + h.agents + " 个 Agent";
+    } catch (e) {
+      el.dot.className = "dot err";
+      el.health.textContent = "未连接";
+    }
+
+    try {
+      var data = await api("/agents");
+      el.agent.innerHTML = data.agents.map(function (a) {
+        return '<option value="' + esc(a.name) + '"' + (a.default ? " selected" : "") + ">" +
+          esc(a.name) + (a.default ? "（默认）" : "") + "</option>";
+      }).join("");
+      el.alias.textContent = Object.keys(data.aliases).map(function (k) {
+        return k + " → " + data.aliases[k];
+      }).join("　");
+    } catch (e) {
+      el.agent.innerHTML = "<option>加载失败</option>";
+      el.alias.textContent = e.message;
+    }
+
+    el.chips.innerHTML = SAMPLES.map(function (s, i) {
+      return '<button class="chip" data-i="' + i + '">' + esc(s.label) + "</button>";
+    }).join("");
+    el.chips.addEventListener("click", function (ev) {
+      var b = ev.target.closest(".chip");
+      if (!b) return;
+      el.q.value = SAMPLES[Number(b.dataset.i)].text;
+      el.q.focus();
+    });
+  }
+
+  function addChat(who, text, cls) {
+    var first = el.chat.querySelector(".empty");
+    if (first) first.remove();
+    var wrap = document.createElement("div");
+    wrap.className = "msg";
+    wrap.innerHTML = '<div class="who">' + esc(who) + '</div>' +
+      '<div class="bubble ' + (cls || "") + '">' + mdLite(text) + "</div>";
+    el.chat.appendChild(wrap);
+    el.chat.scrollTop = el.chat.scrollHeight;
+  }
+
+  function setBusy(busy) {
+    el.send.disabled = busy;
+    el.send.textContent = busy ? "执行中" : "执行";
+  }
+
+  function renderTrace(summary, full) {
+    var turns = (full && full.turns) || [];
+    var calls = 0;
+    turns.forEach(function (t) { calls += (t.calls || []).length; });
+
+    var html = '<div class="run-head">' +
+      '<span class="badge ' + (full.status === "ok" ? "ok" : "err") + '">' + esc(full.status) + "</span>" +
+      '<span class="badge">' + esc(full.agent) + "</span>" +
+      '<span class="badge">' + turns.length + " 轮 · " + calls + " 次调用</span>" +
+      '<span class="badge">' + fmtMs(full.elapsed_ms) + "</span>" +
+      '<span class="runid" id="runid" title="点击复制">' + esc(full.task_id) + "</span>" +
+      "</div>";
+
+    turns.forEach(function (t, ti) {
+      html += '<div class="turn">' +
+        '<div class="turn-head"><b>第 ' + (ti + 1) + " 轮</b>" +
+        '<span class="say">' + esc(t.user_input) + "</span></div>";
+      (t.calls || []).forEach(function (c, ci) {
+        var flag = c.ok === false
+          ? '<span class="badge err">FAIL</span>'
+          : '<span class="badge ok">OK</span>';
+        html += '<div class="call">' +
+          '<div class="call-head">' +
+          '<span class="idx">' + (ci + 1) + ".</span>" +
+          '<span class="name">' + esc(c.name) + "</span>" +
+          '<span class="args">' + esc(JSON.stringify(c.args)) + "</span>" +
+          flag +
+          '<span class="caret">&#9654;</span>' +
+          "</div>" +
+          '<div class="call-body"><pre>' + esc(c.output || "(无返回)") + "</pre></div>" +
+          "</div>";
+      });
+      if (!(t.calls || []).length) {
+        html += '<div class="call"><div class="call-head"><span class="idx">-</span>' +
+          '<span class="args">本轮没有工具调用</span></div></div>';
+      }
+      html += "</div>";
+    });
+
+    if (full.error) {
+      html += '<div class="bubble error">' + esc(full.error) + "</div>";
+    }
+
+    el.trace.innerHTML = html;
+    el.trace.querySelectorAll(".call-head").forEach(function (h) {
+      h.addEventListener("click", function () { h.parentElement.classList.toggle("open"); });
+    });
+    var rid = $("#runid");
+    if (rid) {
+      rid.addEventListener("click", function () {
+        navigator.clipboard && navigator.clipboard.writeText(full.task_id);
+        rid.textContent = "已复制 " + full.task_id;
+        setTimeout(function () { rid.textContent = full.task_id; }, 1200);
+      });
+    }
+  }
+
+  async function run() {
+    var raw = el.q.value.trim();
+    if (!raw) { el.q.focus(); return; }
+    var lines = raw.split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
+    var multi = lines.length > 1;
+
+    (multi ? lines : [raw]).forEach(function (t) { addChat("用户", t, "user"); });
+    el.q.value = "";
+    setBusy(true);
+
+    var payload = { agent: el.agent.value, max_steps: Number(el.steps.value) || 6 };
+    if (multi) payload.turns = lines; else payload.question = raw;
+
+    try {
+      var summary = await api("/runs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      // 摘要不含工具 output，回读一次拿完整轨迹再渲染
+      var full = await api("/runs/" + encodeURIComponent(summary.run_id));
+      renderTrace(summary, full);
+      var last = full.turns[full.turns.length - 1];
+      addChat(full.agent, (last && last.answer) || "(空回答)");
+    } catch (e) {
+      addChat("错误", e.message, "error");
+      el.trace.innerHTML = '<div class="empty">本次没有产生轨迹：' + esc(e.message) + "</div>";
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  el.send.addEventListener("click", run);
+  el.q.addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); run(); }
+  });
+
+  boot();
+})();
+</script>
+</body>
+</html>
