@@ -9,5 +9,6 @@ pip_install.log
 *.log
 runs/adhoc/
 runs/*.jsonl
+runs/api/
 htmlcov/
 .mypy_cache/
