@@ -104,6 +104,10 @@ class WorkflowAgent:
             llm=self._llm,
             memory_store=self.memory_store,
         )
+        # 一条 Task 一个 ctx，逐轮传进去；换 Task 就换 ctx。
+        # 隔离不是靠"记得清空"，是靠这里每次 run() 都新造一个——
+        # 全局或类级缓存一旦出现，A 的轮次就会算进 B 的上下文。
+        exec_ctx = executor.new_context()
 
         started = now_ms()
         for index, text in enumerate(task.user_turns()):
@@ -114,6 +118,7 @@ class WorkflowAgent:
                     turn=index,
                     user_input=text,
                     experience=experience,
+                    ctx=exec_ctx,
                 )
             except ExecutionError as exc:
                 # 节点崩了属于链路问题，不是"答错了"。
@@ -153,6 +158,10 @@ class WorkflowAgent:
             )
 
         trace.elapsed_ms = max(0, now_ms() - started)
+        # 上下文里实际累积了几轮。这是"复用真的发生了"的机器可验证证据：
+        # 一条 2 轮任务跑完应该是 2，变成 1 就说明第 2 轮没用上同一个 ctx，
+        # 或者中途崩了没有归档。Turn 的数量由用户轮次决定，与这个数无关。
+        trace.meta["context_turns"] = len(exec_ctx["history"])
         return trace
 
 

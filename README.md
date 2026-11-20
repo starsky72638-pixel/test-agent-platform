@@ -104,7 +104,7 @@ POST /workflows            保存（覆盖时 version 自动 +1）
 .venv\Scripts\python.exe -m pytest tests -q
 ```
 
-当前 **407 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
+当前 **413 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
 
 ### 通过界面跑（可选）
 
@@ -168,6 +168,20 @@ P6 之前 W03 恒为 `wrong_arg`（订单号写死 1002）。改成 `{{extract.o
 
 ```powershell
 .venv\Scripts\python.exe scripts\run_loop.py --agent wf:report-demo --golden data\wf_learn.jsonl
+```
+
+### 跨轮上下文
+
+一条 Task 的所有轮次共用一个执行上下文（`Executor.new_context()`），`WorkflowAgent` 每轮把它传下去；换一条 Task 就新造一个，所以不同任务之间**结构性隔离**，不靠"记得清空"。
+
+上下文里四个键各归各的：`input` 每轮覆盖成本轮原话、`nodes` 每轮清空只装本轮产出、`history` 按轮归档已结束的产出、`experience` 整条任务共用。**清空是刻意的**：上一轮的产出留在 `nodes` 里，第 2 轮的 `{{nodes.x.output}}` 会读到旧值，看起来跑通了其实是拿旧数据答新问题。
+
+`trace.meta["context_turns"]` 记录上下文实际累积了几轮，这是"复用真的发生了"的机器可验证证据（2 轮任务跑成 1 就说明中途崩了）。
+
+**目前不做槽位回退**：第 2 轮没写订单号，`{{extract.order_id}}` 仍然抛错落 `infra_error`，不会偷偷沿用上一轮的值。多轮任务因此两轮都要自带单号——见 `data/wf_multi.jsonl`：
+
+```powershell
+.venv\Scripts\python.exe scripts\run_shop.py --agent wf:report-demo --golden data\wf_multi.jsonl --no-compare
 ```
 
 ### 分支与记忆节点（目前只有 JSON 配置）

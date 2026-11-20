@@ -33,7 +33,7 @@ from agentplatform import (
     topo_sort,
     validate,
 )
-from agentplatform.executor import TemplateError, render
+from agentplatform.executor import Executor, TemplateError, render
 from agentplatform.topology import check as check_topology
 from core.protocol import RunContext, validate_agent
 from core.task import Task
@@ -46,7 +46,9 @@ from core.trace import (
     KIND_TOOL_CALL,
     STATUS_INFRA,
     STATUS_OK,
+    Trace,
 )
+from evaluator.verdict import calls_of_turn
 from memory.extract import task_tags
 from memory.schema import Experience, Trigger
 from memory.store import ExperienceStore
@@ -313,6 +315,101 @@ def test_multi_turn_produces_one_turn_per_input():
     assert [t.index for t in trace.turns] == [0, 1]
     assert {e.turn for e in trace.events} == {0, 1}
     assert all(t.calls == [] for t in trace.turns)
+
+
+# ---------------------------------------------------------------- 跨轮上下文
+
+
+def test_turns_share_one_context_and_archive_each_turn():
+    """多轮共用一个 ctx；历史按轮回档，当前轮只装本轮的产出。"""
+    executor = Executor(
+        make_definition(), tools={"get_order": FakeTool()}, llm=FakeLLM()
+    )
+    ctx = executor.new_context()
+    trace = Trace(task_id="T1", agent="t1")
+
+    executor.run(trace, turn=0, user_input="第一轮", ctx=ctx)
+    executor.run(trace, turn=1, user_input="第二轮", ctx=ctx)
+
+    assert ctx["input"] == "第二轮"
+    assert [h["turn"] for h in ctx["history"]] == [0, 1]
+    assert [h["input"] for h in ctx["history"]] == ["第一轮", "第二轮"]
+    assert sorted(ctx["nodes"]) == ["end", "explain", "lookup", "start"]
+    # 历史是快照，不是当前轮那块可变 dict 的引用：
+    # 改当前轮的产出，已归档的那一轮必须原封不动。
+    ctx["nodes"]["lookup"]["output"] = "被改过"
+    assert ctx["history"][0]["nodes"]["lookup"]["output"] == "status=200"
+
+
+def test_current_turn_does_not_see_previous_turn_outputs():
+    """上一轮的产出若留在 ctx["nodes"]，本轮的 {{nodes.x.output}} 会读到旧值。"""
+    executor = Executor(
+        make_definition(), tools={"get_order": FakeTool()}, llm=FakeLLM()
+    )
+    ctx = executor.new_context()
+    ctx["nodes"] = {"lookup": {"output": "上一轮的旧值"}}
+
+    executor.run(Trace(task_id="T1", agent="t1"), turn=1, user_input="第二轮", ctx=ctx)
+
+    # lookup 是这一轮真跑出来的，不是那份"旧值"
+    assert ctx["nodes"]["lookup"]["output"] == "status=200"
+
+
+def test_two_tasks_do_not_share_context():
+    """换一条 Task 必须换 ctx：否则上一条的轮次会算进这一条的上下文。"""
+    llm = FakeLLM()
+    agent = make_agent(tool=FakeTool(), llm=llm)
+
+    first = agent.run(Task(id="A", turns=["订单 1002 的状态", "订单 1002 的金额"]))
+    second = agent.run(Task(id="B", input="订单 1003 的金额"))
+
+    assert first.meta["context_turns"] == 2
+    assert second.meta["context_turns"] == 1
+    assert [t.index for t in second.turns] == [0]
+    assert {e.turn for e in second.events} == {0}
+    # 第二条任务的 prompt 里不能出现上一条的输入
+    assert "订单 1003" in llm.prompts[-1]
+    assert "订单 1002" not in llm.prompts[-1]
+
+
+def test_multi_turn_calls_are_judged_per_turn():
+    """事件按轮归属，判分器按轮取调用——两轮的调用不能混成一份。"""
+    agent = make_agent()
+    trace = agent.run(Task(id="T1", turns=["订单 1002 的状态", "订单 1002 的金额"]))
+
+    assert [c.name for c in calls_of_turn(trace, trace.turns[0])] == ["get_order"]
+    assert [c.name for c in calls_of_turn(trace, trace.turns[1])] == ["get_order"]
+    # 每轮 4 个节点（start/lookup/explain/end），步数不会跨轮累加
+    assert trace.turns[0].steps == 4
+    assert trace.turns[1].steps == 4
+
+
+def test_single_turn_context_shape_is_unchanged():
+    """单轮路径对外形状不变：1 个 Turn、1 条上下文轮次、事件全归 turn 0。"""
+    trace = make_agent().run(Task(id="T1", input="订单 1002 的状态"))
+
+    assert len(trace.turns) == 1
+    assert trace.meta["context_turns"] == 1
+    assert {e.turn for e in trace.events} == {0}
+
+
+def test_missing_order_id_still_fails_instead_of_reusing_previous_turn():
+    """P8-a 不做槽位回退：第 2 轮没单号就报错，不偷偷沿用第 1 轮的值。"""
+    defn = WorkflowDefinition.load(ROOT / "data" / "workflows" / "report-demo.json")
+    agent = WorkflowAgent(
+        defn,
+        tools=[FakeTool(name="get_order"), FakeTool(name="get_logistics")],
+        llm=FakeLLM(),
+    )
+
+    trace = agent.run(Task(id="T1", turns=["订单 1002 的状态", "那物流呢"]))
+
+    assert trace.status == STATUS_INFRA
+    assert "抽不到 order_id" in trace.error
+    # 崩溃轮仍然留一个 Turn（meta 标 error），但不会被归档进上下文
+    assert len(trace.turns) == 2
+    assert trace.turns[1].meta["status"] == "error"
+    assert trace.meta["context_turns"] == 1
 
 
 def test_render_rejects_unknown_variable():

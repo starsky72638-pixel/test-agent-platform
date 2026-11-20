@@ -204,8 +204,35 @@ class Executor:
     def tool_names(self) -> list[str]:
         return sorted(self._tools)
 
-    def run(self, trace: Trace, *, turn: int, user_input: str, experience: str = "") -> str:
+    def new_context(self) -> dict:
+        """一条 Task 共享的执行上下文。
+
+        四个键各有归属，读代码时不用猜：
+        - input       当前轮用户原话，每轮覆盖
+        - nodes       仅当前轮已执行节点的产出，每轮清空
+        - history     已结束轮次的快照，按发生顺序追加，只增不改
+        - experience  Runtime 递进来的经验文本，整条任务共用
+
+        history 存的是拷一份的值，不是引用：后面某轮再往 ctx["nodes"] 里写，
+        不能把已归档的那一轮改掉——那等于"历史被当前轮改写"，
+        事后对比两轮产出时会完全对不上。
+        """
+        return {"input": "", "nodes": {}, "history": [], "experience": ""}
+
+    def run(
+        self,
+        trace: Trace,
+        *,
+        turn: int,
+        user_input: str,
+        experience: str = "",
+        ctx: dict | None = None,
+    ) -> str:
         """执行一轮，事件写进 trace，返回最终答案。
+
+        ctx 由调用方按 Task 建一次、逐轮传进来（见 new_context）：多轮之间
+        共享历史，但当前轮只看得到本轮的产出。传 None 就现建一个，
+        单轮调用（测试、脚本直调）因此与从前逐字一致。
 
         experience 是 Runtime 递进来的经验文本（已由 memory.inject 渲染好），
         只有显式开了 config.inject_experience 的 llm 节点才会用它。
@@ -221,11 +248,14 @@ class Executor:
 
         遇到 end 就停：不提前停会把与本次无关的分支也跑掉，事件跟着虚增。
         """
-        ctx: dict = {
-            "input": str(user_input or ""),
-            "nodes": {},
-            "experience": str(experience or ""),
-        }
+        if ctx is None:
+            ctx = self.new_context()
+        # 每轮只留本轮的东西：input 覆盖成本轮原话，nodes 清空后只装本轮产出。
+        # 不清空的话，第 2 轮的 {{nodes.<id>.output}} 会读到第 1 轮的值——
+        # 看起来跑通了，其实是拿旧数据答新问题，比直接报错难查得多。
+        ctx["input"] = str(user_input or "")
+        ctx["nodes"] = {}
+        ctx["experience"] = str(experience or "")
         answer = ""
         last_output = ""
         active: set[str] = {self.definition.entry} if self.definition.entry else set()
@@ -276,6 +306,15 @@ class Executor:
                 answer = output
                 break
 
+        # 本轮跑完才归档。中途抛错的那一轮不归档——半轮的产出混进 history，
+        # 下一轮读到它就会把"跑了一半"当成"跑完了"。
+        ctx["history"].append(
+            {
+                "turn": turn,
+                "input": ctx["input"],
+                "nodes": {nid: dict(value) for nid, value in ctx["nodes"].items()},
+            }
+        )
         return answer if answer else last_output
 
     def _next_of(self, node: NodeDef, output: str) -> list[str]:
