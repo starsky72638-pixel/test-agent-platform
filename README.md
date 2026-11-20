@@ -135,7 +135,7 @@ HTTP 与 Web 界面走的是和 `run_agent.py` 同一条执行链，`core/` 零�
 
 画布是纯静态文件（`web/builder/`，零依赖、无 npm、无 CDN）——本机没有 Node 工具链，而答辩现场断网也不能白屏。它产出的就是 `data/workflows/<id>.json`，与手写 JSON 完全等价，两者可以互相覆盖。
 
-画布产出的 Agent 走的是同一套判分器（`data/wf_eval.jsonl`，3 条围绕订单 1002 的验证任务）：
+画布产出的 Agent 走的是同一套判分器（`data/wf_eval.jsonl`，3 条围绕订单 1001/1002 的验证任务）：
 
 ```powershell
 .venv\Scripts\python.exe scripts\run_shop.py --agent wf:canvas-demo --golden data\wf_eval.jsonl --no-compare
