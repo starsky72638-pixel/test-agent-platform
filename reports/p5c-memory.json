@@ -1,0 +1,2469 @@
+{
+  "rows": [
+    {
+      "store": "runs/20261117-001110/experiences.jsonl",
+      "store_size": 2,
+      "task_set": "shop_eval",
+      "tasks": 20,
+      "hit_tasks": 8,
+      "hit_total": 14,
+      "avg_per_task": 0.7,
+      "detail": [
+        {
+          "task": "S01",
+          "hits": []
+        },
+        {
+          "task": "S02",
+          "hits": []
+        },
+        {
+          "task": "S03",
+          "hits": []
+        },
+        {
+          "task": "S04",
+          "hits": []
+        },
+        {
+          "task": "S05",
+          "hits": []
+        },
+        {
+          "task": "S06",
+          "hits": [
+            "exp-3a30913c112a"
+          ]
+        },
+        {
+          "task": "S07",
+          "hits": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "S08",
+          "hits": []
+        },
+        {
+          "task": "S09",
+          "hits": []
+        },
+        {
+          "task": "S10",
+          "hits": []
+        },
+        {
+          "task": "S11",
+          "hits": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "S12",
+          "hits": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "S13",
+          "hits": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "S14",
+          "hits": []
+        },
+        {
+          "task": "S15",
+          "hits": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "S16",
+          "hits": []
+        },
+        {
+          "task": "S17",
+          "hits": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "S18",
+          "hits": []
+        },
+        {
+          "task": "S19",
+          "hits": []
+        },
+        {
+          "task": "S20",
+          "hits": [
+            "exp-3a30913c112a"
+          ]
+        }
+      ]
+    },
+    {
+      "store": "runs/20261117-001110/experiences.jsonl",
+      "store_size": 2,
+      "task_set": "shop_multi",
+      "tasks": 10,
+      "hit_tasks": 0,
+      "hit_total": 0,
+      "avg_per_task": 0.0,
+      "detail": [
+        {
+          "task": "M01",
+          "hits": []
+        },
+        {
+          "task": "M02",
+          "hits": []
+        },
+        {
+          "task": "M03",
+          "hits": []
+        },
+        {
+          "task": "M04",
+          "hits": []
+        },
+        {
+          "task": "M05",
+          "hits": []
+        },
+        {
+          "task": "M06",
+          "hits": []
+        },
+        {
+          "task": "M07",
+          "hits": []
+        },
+        {
+          "task": "M08",
+          "hits": []
+        },
+        {
+          "task": "M09",
+          "hits": []
+        },
+        {
+          "task": "M10",
+          "hits": []
+        }
+      ]
+    },
+    {
+      "store": "runs/20261117-001110/experiences.jsonl",
+      "store_size": 2,
+      "task_set": "shop_hard",
+      "tasks": 13,
+      "hit_tasks": 3,
+      "hit_total": 5,
+      "avg_per_task": 0.38,
+      "detail": [
+        {
+          "task": "H01",
+          "hits": []
+        },
+        {
+          "task": "H02",
+          "hits": []
+        },
+        {
+          "task": "H03",
+          "hits": []
+        },
+        {
+          "task": "H04",
+          "hits": []
+        },
+        {
+          "task": "H05",
+          "hits": []
+        },
+        {
+          "task": "H06",
+          "hits": []
+        },
+        {
+          "task": "H07",
+          "hits": [
+            "exp-3a30913c112a"
+          ]
+        },
+        {
+          "task": "H08",
+          "hits": []
+        },
+        {
+          "task": "H09",
+          "hits": []
+        },
+        {
+          "task": "H10",
+          "hits": []
+        },
+        {
+          "task": "H11",
+          "hits": [
+            "exp-56d434f43f4a",
+            "exp-3a30913c112a"
+          ]
+        },
+        {
+          "task": "H12",
+          "hits": []
+        },
+        {
+          "task": "H13",
+          "hits": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        }
+      ]
+    },
+    {
+      "store": "runs/20261117-001110/experiences.jsonl",
+      "store_size": 2,
+      "task_set": "customer",
+      "tasks": 6,
+      "hit_tasks": 5,
+      "hit_total": 10,
+      "avg_per_task": 1.67,
+      "detail": [
+        {
+          "task": "C01",
+          "hits": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "C02",
+          "hits": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "C03",
+          "hits": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "C04",
+          "hits": [
+            "exp-56d434f43f4a",
+            "exp-3a30913c112a"
+          ]
+        },
+        {
+          "task": "C05",
+          "hits": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "C06",
+          "hits": []
+        }
+      ]
+    },
+    {
+      "store": "runs/20261117-001110/experiences.jsonl",
+      "store_size": 2,
+      "task_set": "wf",
+      "tasks": 3,
+      "hit_tasks": 3,
+      "hit_total": 6,
+      "avg_per_task": 2.0,
+      "detail": [
+        {
+          "task": "W01",
+          "hits": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "W02",
+          "hits": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "W03",
+          "hits": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        }
+      ]
+    },
+    {
+      "store": "runs/20261117-193648/experiences.jsonl",
+      "store_size": 1,
+      "task_set": "shop_eval",
+      "tasks": 20,
+      "hit_tasks": 1,
+      "hit_total": 1,
+      "avg_per_task": 0.05,
+      "detail": [
+        {
+          "task": "S01",
+          "hits": []
+        },
+        {
+          "task": "S02",
+          "hits": []
+        },
+        {
+          "task": "S03",
+          "hits": []
+        },
+        {
+          "task": "S04",
+          "hits": []
+        },
+        {
+          "task": "S05",
+          "hits": []
+        },
+        {
+          "task": "S06",
+          "hits": []
+        },
+        {
+          "task": "S07",
+          "hits": []
+        },
+        {
+          "task": "S08",
+          "hits": []
+        },
+        {
+          "task": "S09",
+          "hits": []
+        },
+        {
+          "task": "S10",
+          "hits": []
+        },
+        {
+          "task": "S11",
+          "hits": []
+        },
+        {
+          "task": "S12",
+          "hits": []
+        },
+        {
+          "task": "S13",
+          "hits": []
+        },
+        {
+          "task": "S14",
+          "hits": [
+            "exp-011b486a50fb"
+          ]
+        },
+        {
+          "task": "S15",
+          "hits": []
+        },
+        {
+          "task": "S16",
+          "hits": []
+        },
+        {
+          "task": "S17",
+          "hits": []
+        },
+        {
+          "task": "S18",
+          "hits": []
+        },
+        {
+          "task": "S19",
+          "hits": []
+        },
+        {
+          "task": "S20",
+          "hits": []
+        }
+      ]
+    },
+    {
+      "store": "runs/20261117-193648/experiences.jsonl",
+      "store_size": 1,
+      "task_set": "shop_multi",
+      "tasks": 10,
+      "hit_tasks": 7,
+      "hit_total": 7,
+      "avg_per_task": 0.7,
+      "detail": [
+        {
+          "task": "M01",
+          "hits": [
+            "exp-011b486a50fb"
+          ]
+        },
+        {
+          "task": "M02",
+          "hits": []
+        },
+        {
+          "task": "M03",
+          "hits": []
+        },
+        {
+          "task": "M04",
+          "hits": [
+            "exp-011b486a50fb"
+          ]
+        },
+        {
+          "task": "M05",
+          "hits": []
+        },
+        {
+          "task": "M06",
+          "hits": [
+            "exp-011b486a50fb"
+          ]
+        },
+        {
+          "task": "M07",
+          "hits": [
+            "exp-011b486a50fb"
+          ]
+        },
+        {
+          "task": "M08",
+          "hits": [
+            "exp-011b486a50fb"
+          ]
+        },
+        {
+          "task": "M09",
+          "hits": [
+            "exp-011b486a50fb"
+          ]
+        },
+        {
+          "task": "M10",
+          "hits": [
+            "exp-011b486a50fb"
+          ]
+        }
+      ]
+    },
+    {
+      "store": "runs/20261117-193648/experiences.jsonl",
+      "store_size": 1,
+      "task_set": "shop_hard",
+      "tasks": 13,
+      "hit_tasks": 1,
+      "hit_total": 1,
+      "avg_per_task": 0.08,
+      "detail": [
+        {
+          "task": "H01",
+          "hits": []
+        },
+        {
+          "task": "H02",
+          "hits": []
+        },
+        {
+          "task": "H03",
+          "hits": []
+        },
+        {
+          "task": "H04",
+          "hits": []
+        },
+        {
+          "task": "H05",
+          "hits": []
+        },
+        {
+          "task": "H06",
+          "hits": []
+        },
+        {
+          "task": "H07",
+          "hits": []
+        },
+        {
+          "task": "H08",
+          "hits": []
+        },
+        {
+          "task": "H09",
+          "hits": []
+        },
+        {
+          "task": "H10",
+          "hits": []
+        },
+        {
+          "task": "H11",
+          "hits": []
+        },
+        {
+          "task": "H12",
+          "hits": [
+            "exp-011b486a50fb"
+          ]
+        },
+        {
+          "task": "H13",
+          "hits": []
+        }
+      ]
+    },
+    {
+      "store": "runs/20261117-193648/experiences.jsonl",
+      "store_size": 1,
+      "task_set": "customer",
+      "tasks": 6,
+      "hit_tasks": 0,
+      "hit_total": 0,
+      "avg_per_task": 0.0,
+      "detail": [
+        {
+          "task": "C01",
+          "hits": []
+        },
+        {
+          "task": "C02",
+          "hits": []
+        },
+        {
+          "task": "C03",
+          "hits": []
+        },
+        {
+          "task": "C04",
+          "hits": []
+        },
+        {
+          "task": "C05",
+          "hits": []
+        },
+        {
+          "task": "C06",
+          "hits": []
+        }
+      ]
+    },
+    {
+      "store": "runs/20261117-193648/experiences.jsonl",
+      "store_size": 1,
+      "task_set": "wf",
+      "tasks": 3,
+      "hit_tasks": 0,
+      "hit_total": 0,
+      "avg_per_task": 0.0,
+      "detail": [
+        {
+          "task": "W01",
+          "hits": []
+        },
+        {
+          "task": "W02",
+          "hits": []
+        },
+        {
+          "task": "W03",
+          "hits": []
+        }
+      ]
+    },
+    {
+      "store": "runs/20261117-200124/experiences.jsonl",
+      "store_size": 3,
+      "task_set": "shop_eval",
+      "tasks": 20,
+      "hit_tasks": 1,
+      "hit_total": 2,
+      "avg_per_task": 0.1,
+      "detail": [
+        {
+          "task": "S01",
+          "hits": []
+        },
+        {
+          "task": "S02",
+          "hits": []
+        },
+        {
+          "task": "S03",
+          "hits": []
+        },
+        {
+          "task": "S04",
+          "hits": []
+        },
+        {
+          "task": "S05",
+          "hits": []
+        },
+        {
+          "task": "S06",
+          "hits": []
+        },
+        {
+          "task": "S07",
+          "hits": []
+        },
+        {
+          "task": "S08",
+          "hits": []
+        },
+        {
+          "task": "S09",
+          "hits": []
+        },
+        {
+          "task": "S10",
+          "hits": []
+        },
+        {
+          "task": "S11",
+          "hits": []
+        },
+        {
+          "task": "S12",
+          "hits": []
+        },
+        {
+          "task": "S13",
+          "hits": []
+        },
+        {
+          "task": "S14",
+          "hits": [
+            "exp-d656fddf8812",
+            "exp-011b486a50fb"
+          ]
+        },
+        {
+          "task": "S15",
+          "hits": []
+        },
+        {
+          "task": "S16",
+          "hits": []
+        },
+        {
+          "task": "S17",
+          "hits": []
+        },
+        {
+          "task": "S18",
+          "hits": []
+        },
+        {
+          "task": "S19",
+          "hits": []
+        },
+        {
+          "task": "S20",
+          "hits": []
+        }
+      ]
+    },
+    {
+      "store": "runs/20261117-200124/experiences.jsonl",
+      "store_size": 3,
+      "task_set": "shop_multi",
+      "tasks": 10,
+      "hit_tasks": 7,
+      "hit_total": 9,
+      "avg_per_task": 0.9,
+      "detail": [
+        {
+          "task": "M01",
+          "hits": [
+            "exp-011b486a50fb"
+          ]
+        },
+        {
+          "task": "M02",
+          "hits": []
+        },
+        {
+          "task": "M03",
+          "hits": []
+        },
+        {
+          "task": "M04",
+          "hits": [
+            "exp-011b486a50fb",
+            "exp-d656fddf8812"
+          ]
+        },
+        {
+          "task": "M05",
+          "hits": []
+        },
+        {
+          "task": "M06",
+          "hits": [
+            "exp-011b486a50fb",
+            "exp-d656fddf8812"
+          ]
+        },
+        {
+          "task": "M07",
+          "hits": [
+            "exp-d656fddf8812"
+          ]
+        },
+        {
+          "task": "M08",
+          "hits": [
+            "exp-011b486a50fb"
+          ]
+        },
+        {
+          "task": "M09",
+          "hits": [
+            "exp-011b486a50fb"
+          ]
+        },
+        {
+          "task": "M10",
+          "hits": [
+            "exp-d656fddf8812"
+          ]
+        }
+      ]
+    },
+    {
+      "store": "runs/20261117-200124/experiences.jsonl",
+      "store_size": 3,
+      "task_set": "shop_hard",
+      "tasks": 13,
+      "hit_tasks": 3,
+      "hit_total": 3,
+      "avg_per_task": 0.23,
+      "detail": [
+        {
+          "task": "H01",
+          "hits": [
+            "exp-070cde8d3e25"
+          ]
+        },
+        {
+          "task": "H02",
+          "hits": []
+        },
+        {
+          "task": "H03",
+          "hits": []
+        },
+        {
+          "task": "H04",
+          "hits": []
+        },
+        {
+          "task": "H05",
+          "hits": []
+        },
+        {
+          "task": "H06",
+          "hits": [
+            "exp-070cde8d3e25"
+          ]
+        },
+        {
+          "task": "H07",
+          "hits": []
+        },
+        {
+          "task": "H08",
+          "hits": []
+        },
+        {
+          "task": "H09",
+          "hits": []
+        },
+        {
+          "task": "H10",
+          "hits": []
+        },
+        {
+          "task": "H11",
+          "hits": []
+        },
+        {
+          "task": "H12",
+          "hits": [
+            "exp-d656fddf8812"
+          ]
+        },
+        {
+          "task": "H13",
+          "hits": []
+        }
+      ]
+    },
+    {
+      "store": "runs/20261117-200124/experiences.jsonl",
+      "store_size": 3,
+      "task_set": "customer",
+      "tasks": 6,
+      "hit_tasks": 1,
+      "hit_total": 1,
+      "avg_per_task": 0.17,
+      "detail": [
+        {
+          "task": "C01",
+          "hits": []
+        },
+        {
+          "task": "C02",
+          "hits": [
+            "exp-070cde8d3e25"
+          ]
+        },
+        {
+          "task": "C03",
+          "hits": []
+        },
+        {
+          "task": "C04",
+          "hits": []
+        },
+        {
+          "task": "C05",
+          "hits": []
+        },
+        {
+          "task": "C06",
+          "hits": []
+        }
+      ]
+    },
+    {
+      "store": "runs/20261117-200124/experiences.jsonl",
+      "store_size": 3,
+      "task_set": "wf",
+      "tasks": 3,
+      "hit_tasks": 0,
+      "hit_total": 0,
+      "avg_per_task": 0.0,
+      "detail": [
+        {
+          "task": "W01",
+          "hits": []
+        },
+        {
+          "task": "W02",
+          "hits": []
+        },
+        {
+          "task": "W03",
+          "hits": []
+        }
+      ]
+    },
+    {
+      "store": "runs/20261117-230554/experiences.jsonl",
+      "store_size": 2,
+      "task_set": "shop_eval",
+      "tasks": 20,
+      "hit_tasks": 1,
+      "hit_total": 1,
+      "avg_per_task": 0.05,
+      "detail": [
+        {
+          "task": "S01",
+          "hits": []
+        },
+        {
+          "task": "S02",
+          "hits": []
+        },
+        {
+          "task": "S03",
+          "hits": []
+        },
+        {
+          "task": "S04",
+          "hits": []
+        },
+        {
+          "task": "S05",
+          "hits": []
+        },
+        {
+          "task": "S06",
+          "hits": []
+        },
+        {
+          "task": "S07",
+          "hits": []
+        },
+        {
+          "task": "S08",
+          "hits": []
+        },
+        {
+          "task": "S09",
+          "hits": []
+        },
+        {
+          "task": "S10",
+          "hits": []
+        },
+        {
+          "task": "S11",
+          "hits": []
+        },
+        {
+          "task": "S12",
+          "hits": []
+        },
+        {
+          "task": "S13",
+          "hits": []
+        },
+        {
+          "task": "S14",
+          "hits": [
+            "exp-011b486a50fb"
+          ]
+        },
+        {
+          "task": "S15",
+          "hits": []
+        },
+        {
+          "task": "S16",
+          "hits": []
+        },
+        {
+          "task": "S17",
+          "hits": []
+        },
+        {
+          "task": "S18",
+          "hits": []
+        },
+        {
+          "task": "S19",
+          "hits": []
+        },
+        {
+          "task": "S20",
+          "hits": []
+        }
+      ]
+    },
+    {
+      "store": "runs/20261117-230554/experiences.jsonl",
+      "store_size": 2,
+      "task_set": "shop_multi",
+      "tasks": 10,
+      "hit_tasks": 7,
+      "hit_total": 10,
+      "avg_per_task": 1.0,
+      "detail": [
+        {
+          "task": "M01",
+          "hits": [
+            "exp-1704171d5dc2",
+            "exp-011b486a50fb"
+          ]
+        },
+        {
+          "task": "M02",
+          "hits": []
+        },
+        {
+          "task": "M03",
+          "hits": []
+        },
+        {
+          "task": "M04",
+          "hits": [
+            "exp-011b486a50fb"
+          ]
+        },
+        {
+          "task": "M05",
+          "hits": []
+        },
+        {
+          "task": "M06",
+          "hits": [
+            "exp-011b486a50fb",
+            "exp-1704171d5dc2"
+          ]
+        },
+        {
+          "task": "M07",
+          "hits": [
+            "exp-1704171d5dc2"
+          ]
+        },
+        {
+          "task": "M08",
+          "hits": [
+            "exp-011b486a50fb"
+          ]
+        },
+        {
+          "task": "M09",
+          "hits": [
+            "exp-011b486a50fb",
+            "exp-1704171d5dc2"
+          ]
+        },
+        {
+          "task": "M10",
+          "hits": [
+            "exp-1704171d5dc2"
+          ]
+        }
+      ]
+    },
+    {
+      "store": "runs/20261117-230554/experiences.jsonl",
+      "store_size": 2,
+      "task_set": "shop_hard",
+      "tasks": 13,
+      "hit_tasks": 1,
+      "hit_total": 1,
+      "avg_per_task": 0.08,
+      "detail": [
+        {
+          "task": "H01",
+          "hits": []
+        },
+        {
+          "task": "H02",
+          "hits": []
+        },
+        {
+          "task": "H03",
+          "hits": []
+        },
+        {
+          "task": "H04",
+          "hits": []
+        },
+        {
+          "task": "H05",
+          "hits": []
+        },
+        {
+          "task": "H06",
+          "hits": []
+        },
+        {
+          "task": "H07",
+          "hits": []
+        },
+        {
+          "task": "H08",
+          "hits": []
+        },
+        {
+          "task": "H09",
+          "hits": []
+        },
+        {
+          "task": "H10",
+          "hits": []
+        },
+        {
+          "task": "H11",
+          "hits": []
+        },
+        {
+          "task": "H12",
+          "hits": [
+            "exp-1704171d5dc2"
+          ]
+        },
+        {
+          "task": "H13",
+          "hits": []
+        }
+      ]
+    },
+    {
+      "store": "runs/20261117-230554/experiences.jsonl",
+      "store_size": 2,
+      "task_set": "customer",
+      "tasks": 6,
+      "hit_tasks": 0,
+      "hit_total": 0,
+      "avg_per_task": 0.0,
+      "detail": [
+        {
+          "task": "C01",
+          "hits": []
+        },
+        {
+          "task": "C02",
+          "hits": []
+        },
+        {
+          "task": "C03",
+          "hits": []
+        },
+        {
+          "task": "C04",
+          "hits": []
+        },
+        {
+          "task": "C05",
+          "hits": []
+        },
+        {
+          "task": "C06",
+          "hits": []
+        }
+      ]
+    },
+    {
+      "store": "runs/20261117-230554/experiences.jsonl",
+      "store_size": 2,
+      "task_set": "wf",
+      "tasks": 3,
+      "hit_tasks": 0,
+      "hit_total": 0,
+      "avg_per_task": 0.0,
+      "detail": [
+        {
+          "task": "W01",
+          "hits": []
+        },
+        {
+          "task": "W02",
+          "hits": []
+        },
+        {
+          "task": "W03",
+          "hits": []
+        }
+      ]
+    },
+    {
+      "store": "runs/full-cold/20261118-000730/experiences.jsonl",
+      "store_size": 4,
+      "task_set": "shop_eval",
+      "tasks": 20,
+      "hit_tasks": 10,
+      "hit_total": 15,
+      "avg_per_task": 0.75,
+      "detail": [
+        {
+          "task": "S01",
+          "hits": [
+            "exp-070cde8d3e25"
+          ]
+        },
+        {
+          "task": "S02",
+          "hits": []
+        },
+        {
+          "task": "S03",
+          "hits": []
+        },
+        {
+          "task": "S04",
+          "hits": []
+        },
+        {
+          "task": "S05",
+          "hits": [
+            "exp-070cde8d3e25"
+          ]
+        },
+        {
+          "task": "S06",
+          "hits": []
+        },
+        {
+          "task": "S07",
+          "hits": [
+            "exp-070cde8d3e25",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "S08",
+          "hits": [
+            "exp-070cde8d3e25"
+          ]
+        },
+        {
+          "task": "S09",
+          "hits": []
+        },
+        {
+          "task": "S10",
+          "hits": []
+        },
+        {
+          "task": "S11",
+          "hits": [
+            "exp-56d434f43f4a",
+            "exp-070cde8d3e25"
+          ]
+        },
+        {
+          "task": "S12",
+          "hits": [
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "S13",
+          "hits": [
+            "exp-56d434f43f4a",
+            "exp-070cde8d3e25"
+          ]
+        },
+        {
+          "task": "S14",
+          "hits": [
+            "exp-011b486a50fb"
+          ]
+        },
+        {
+          "task": "S15",
+          "hits": [
+            "exp-070cde8d3e25",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "S16",
+          "hits": []
+        },
+        {
+          "task": "S17",
+          "hits": [
+            "exp-56d434f43f4a",
+            "exp-070cde8d3e25"
+          ]
+        },
+        {
+          "task": "S18",
+          "hits": []
+        },
+        {
+          "task": "S19",
+          "hits": []
+        },
+        {
+          "task": "S20",
+          "hits": []
+        }
+      ]
+    },
+    {
+      "store": "runs/full-cold/20261118-000730/experiences.jsonl",
+      "store_size": 4,
+      "task_set": "shop_multi",
+      "tasks": 10,
+      "hit_tasks": 7,
+      "hit_total": 10,
+      "avg_per_task": 1.0,
+      "detail": [
+        {
+          "task": "M01",
+          "hits": [
+            "exp-c8e70cd9d11b",
+            "exp-011b486a50fb"
+          ]
+        },
+        {
+          "task": "M02",
+          "hits": []
+        },
+        {
+          "task": "M03",
+          "hits": []
+        },
+        {
+          "task": "M04",
+          "hits": [
+            "exp-011b486a50fb"
+          ]
+        },
+        {
+          "task": "M05",
+          "hits": []
+        },
+        {
+          "task": "M06",
+          "hits": [
+            "exp-011b486a50fb",
+            "exp-c8e70cd9d11b"
+          ]
+        },
+        {
+          "task": "M07",
+          "hits": [
+            "exp-c8e70cd9d11b"
+          ]
+        },
+        {
+          "task": "M08",
+          "hits": [
+            "exp-011b486a50fb"
+          ]
+        },
+        {
+          "task": "M09",
+          "hits": [
+            "exp-011b486a50fb",
+            "exp-c8e70cd9d11b"
+          ]
+        },
+        {
+          "task": "M10",
+          "hits": [
+            "exp-c8e70cd9d11b"
+          ]
+        }
+      ]
+    },
+    {
+      "store": "runs/full-cold/20261118-000730/experiences.jsonl",
+      "store_size": 4,
+      "task_set": "shop_hard",
+      "tasks": 13,
+      "hit_tasks": 3,
+      "hit_total": 5,
+      "avg_per_task": 0.38,
+      "detail": [
+        {
+          "task": "H01",
+          "hits": []
+        },
+        {
+          "task": "H02",
+          "hits": []
+        },
+        {
+          "task": "H03",
+          "hits": []
+        },
+        {
+          "task": "H04",
+          "hits": []
+        },
+        {
+          "task": "H05",
+          "hits": []
+        },
+        {
+          "task": "H06",
+          "hits": []
+        },
+        {
+          "task": "H07",
+          "hits": []
+        },
+        {
+          "task": "H08",
+          "hits": []
+        },
+        {
+          "task": "H09",
+          "hits": []
+        },
+        {
+          "task": "H10",
+          "hits": []
+        },
+        {
+          "task": "H11",
+          "hits": [
+            "exp-56d434f43f4a",
+            "exp-070cde8d3e25"
+          ]
+        },
+        {
+          "task": "H12",
+          "hits": [
+            "exp-c8e70cd9d11b"
+          ]
+        },
+        {
+          "task": "H13",
+          "hits": [
+            "exp-070cde8d3e25",
+            "exp-56d434f43f4a"
+          ]
+        }
+      ]
+    },
+    {
+      "store": "runs/full-cold/20261118-000730/experiences.jsonl",
+      "store_size": 4,
+      "task_set": "customer",
+      "tasks": 6,
+      "hit_tasks": 5,
+      "hit_total": 10,
+      "avg_per_task": 1.67,
+      "detail": [
+        {
+          "task": "C01",
+          "hits": [
+            "exp-070cde8d3e25",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "C02",
+          "hits": [
+            "exp-56d434f43f4a",
+            "exp-070cde8d3e25"
+          ]
+        },
+        {
+          "task": "C03",
+          "hits": [
+            "exp-56d434f43f4a",
+            "exp-070cde8d3e25"
+          ]
+        },
+        {
+          "task": "C04",
+          "hits": [
+            "exp-56d434f43f4a",
+            "exp-070cde8d3e25"
+          ]
+        },
+        {
+          "task": "C05",
+          "hits": [
+            "exp-56d434f43f4a",
+            "exp-070cde8d3e25"
+          ]
+        },
+        {
+          "task": "C06",
+          "hits": []
+        }
+      ]
+    },
+    {
+      "store": "runs/full-cold/20261118-000730/experiences.jsonl",
+      "store_size": 4,
+      "task_set": "wf",
+      "tasks": 3,
+      "hit_tasks": 3,
+      "hit_total": 6,
+      "avg_per_task": 2.0,
+      "detail": [
+        {
+          "task": "W01",
+          "hits": [
+            "exp-070cde8d3e25",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "W02",
+          "hits": [
+            "exp-56d434f43f4a",
+            "exp-070cde8d3e25"
+          ]
+        },
+        {
+          "task": "W03",
+          "hits": [
+            "exp-56d434f43f4a",
+            "exp-070cde8d3e25"
+          ]
+        }
+      ]
+    },
+    {
+      "store": "runs/full-plan/20261118-231325/experiences.jsonl",
+      "store_size": 5,
+      "task_set": "shop_eval",
+      "tasks": 20,
+      "hit_tasks": 12,
+      "hit_total": 20,
+      "avg_per_task": 1.0,
+      "detail": [
+        {
+          "task": "S01",
+          "hits": [
+            "exp-4225ebcdcd42"
+          ]
+        },
+        {
+          "task": "S02",
+          "hits": []
+        },
+        {
+          "task": "S03",
+          "hits": []
+        },
+        {
+          "task": "S04",
+          "hits": []
+        },
+        {
+          "task": "S05",
+          "hits": [
+            "exp-4225ebcdcd42"
+          ]
+        },
+        {
+          "task": "S06",
+          "hits": [
+            "exp-3a30913c112a"
+          ]
+        },
+        {
+          "task": "S07",
+          "hits": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a",
+            "exp-4225ebcdcd42"
+          ]
+        },
+        {
+          "task": "S08",
+          "hits": [
+            "exp-4225ebcdcd42"
+          ]
+        },
+        {
+          "task": "S09",
+          "hits": []
+        },
+        {
+          "task": "S10",
+          "hits": []
+        },
+        {
+          "task": "S11",
+          "hits": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "S12",
+          "hits": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "S13",
+          "hits": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "S14",
+          "hits": [
+            "exp-be67f50547cc"
+          ]
+        },
+        {
+          "task": "S15",
+          "hits": [
+            "exp-4225ebcdcd42",
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "S16",
+          "hits": []
+        },
+        {
+          "task": "S17",
+          "hits": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "S18",
+          "hits": []
+        },
+        {
+          "task": "S19",
+          "hits": []
+        },
+        {
+          "task": "S20",
+          "hits": [
+            "exp-3a30913c112a"
+          ]
+        }
+      ]
+    },
+    {
+      "store": "runs/full-plan/20261118-231325/experiences.jsonl",
+      "store_size": 5,
+      "task_set": "shop_multi",
+      "tasks": 10,
+      "hit_tasks": 6,
+      "hit_total": 9,
+      "avg_per_task": 0.9,
+      "detail": [
+        {
+          "task": "M01",
+          "hits": [
+            "exp-c8e70cd9d11b"
+          ]
+        },
+        {
+          "task": "M02",
+          "hits": []
+        },
+        {
+          "task": "M03",
+          "hits": []
+        },
+        {
+          "task": "M04",
+          "hits": [
+            "exp-be67f50547cc"
+          ]
+        },
+        {
+          "task": "M05",
+          "hits": []
+        },
+        {
+          "task": "M06",
+          "hits": [
+            "exp-c8e70cd9d11b",
+            "exp-be67f50547cc"
+          ]
+        },
+        {
+          "task": "M07",
+          "hits": [
+            "exp-c8e70cd9d11b",
+            "exp-be67f50547cc"
+          ]
+        },
+        {
+          "task": "M08",
+          "hits": []
+        },
+        {
+          "task": "M09",
+          "hits": [
+            "exp-c8e70cd9d11b"
+          ]
+        },
+        {
+          "task": "M10",
+          "hits": [
+            "exp-c8e70cd9d11b",
+            "exp-be67f50547cc"
+          ]
+        }
+      ]
+    },
+    {
+      "store": "runs/full-plan/20261118-231325/experiences.jsonl",
+      "store_size": 5,
+      "task_set": "shop_hard",
+      "tasks": 13,
+      "hit_tasks": 4,
+      "hit_total": 7,
+      "avg_per_task": 0.54,
+      "detail": [
+        {
+          "task": "H01",
+          "hits": []
+        },
+        {
+          "task": "H02",
+          "hits": []
+        },
+        {
+          "task": "H03",
+          "hits": []
+        },
+        {
+          "task": "H04",
+          "hits": []
+        },
+        {
+          "task": "H05",
+          "hits": []
+        },
+        {
+          "task": "H06",
+          "hits": []
+        },
+        {
+          "task": "H07",
+          "hits": [
+            "exp-3a30913c112a"
+          ]
+        },
+        {
+          "task": "H08",
+          "hits": []
+        },
+        {
+          "task": "H09",
+          "hits": []
+        },
+        {
+          "task": "H10",
+          "hits": []
+        },
+        {
+          "task": "H11",
+          "hits": [
+            "exp-56d434f43f4a",
+            "exp-3a30913c112a"
+          ]
+        },
+        {
+          "task": "H12",
+          "hits": [
+            "exp-be67f50547cc",
+            "exp-c8e70cd9d11b"
+          ]
+        },
+        {
+          "task": "H13",
+          "hits": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        }
+      ]
+    },
+    {
+      "store": "runs/full-plan/20261118-231325/experiences.jsonl",
+      "store_size": 5,
+      "task_set": "customer",
+      "tasks": 6,
+      "hit_tasks": 5,
+      "hit_total": 10,
+      "avg_per_task": 1.67,
+      "detail": [
+        {
+          "task": "C01",
+          "hits": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "C02",
+          "hits": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "C03",
+          "hits": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "C04",
+          "hits": [
+            "exp-56d434f43f4a",
+            "exp-3a30913c112a"
+          ]
+        },
+        {
+          "task": "C05",
+          "hits": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "C06",
+          "hits": []
+        }
+      ]
+    },
+    {
+      "store": "runs/full-plan/20261118-231325/experiences.jsonl",
+      "store_size": 5,
+      "task_set": "wf",
+      "tasks": 3,
+      "hit_tasks": 3,
+      "hit_total": 7,
+      "avg_per_task": 2.33,
+      "detail": [
+        {
+          "task": "W01",
+          "hits": [
+            "exp-4225ebcdcd42",
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "W02",
+          "hits": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        },
+        {
+          "task": "W03",
+          "hits": [
+            "exp-3a30913c112a",
+            "exp-56d434f43f4a"
+          ]
+        }
+      ]
+    },
+    {
+      "store": "runs/m10-search/20261117-233252/experiences.jsonl",
+      "store_size": 2,
+      "task_set": "shop_eval",
+      "tasks": 20,
+      "hit_tasks": 1,
+      "hit_total": 1,
+      "avg_per_task": 0.05,
+      "detail": [
+        {
+          "task": "S01",
+          "hits": []
+        },
+        {
+          "task": "S02",
+          "hits": []
+        },
+        {
+          "task": "S03",
+          "hits": []
+        },
+        {
+          "task": "S04",
+          "hits": []
+        },
+        {
+          "task": "S05",
+          "hits": []
+        },
+        {
+          "task": "S06",
+          "hits": []
+        },
+        {
+          "task": "S07",
+          "hits": []
+        },
+        {
+          "task": "S08",
+          "hits": []
+        },
+        {
+          "task": "S09",
+          "hits": []
+        },
+        {
+          "task": "S10",
+          "hits": []
+        },
+        {
+          "task": "S11",
+          "hits": []
+        },
+        {
+          "task": "S12",
+          "hits": []
+        },
+        {
+          "task": "S13",
+          "hits": []
+        },
+        {
+          "task": "S14",
+          "hits": [
+            "exp-011b486a50fb"
+          ]
+        },
+        {
+          "task": "S15",
+          "hits": []
+        },
+        {
+          "task": "S16",
+          "hits": []
+        },
+        {
+          "task": "S17",
+          "hits": []
+        },
+        {
+          "task": "S18",
+          "hits": []
+        },
+        {
+          "task": "S19",
+          "hits": []
+        },
+        {
+          "task": "S20",
+          "hits": []
+        }
+      ]
+    },
+    {
+      "store": "runs/m10-search/20261117-233252/experiences.jsonl",
+      "store_size": 2,
+      "task_set": "shop_multi",
+      "tasks": 10,
+      "hit_tasks": 7,
+      "hit_total": 10,
+      "avg_per_task": 1.0,
+      "detail": [
+        {
+          "task": "M01",
+          "hits": [
+            "exp-c8e70cd9d11b",
+            "exp-011b486a50fb"
+          ]
+        },
+        {
+          "task": "M02",
+          "hits": []
+        },
+        {
+          "task": "M03",
+          "hits": []
+        },
+        {
+          "task": "M04",
+          "hits": [
+            "exp-011b486a50fb"
+          ]
+        },
+        {
+          "task": "M05",
+          "hits": []
+        },
+        {
+          "task": "M06",
+          "hits": [
+            "exp-011b486a50fb",
+            "exp-c8e70cd9d11b"
+          ]
+        },
+        {
+          "task": "M07",
+          "hits": [
+            "exp-c8e70cd9d11b"
+          ]
+        },
+        {
+          "task": "M08",
+          "hits": [
+            "exp-011b486a50fb"
+          ]
+        },
+        {
+          "task": "M09",
+          "hits": [
+            "exp-011b486a50fb",
+            "exp-c8e70cd9d11b"
+          ]
+        },
+        {
+          "task": "M10",
+          "hits": [
+            "exp-c8e70cd9d11b"
+          ]
+        }
+      ]
+    },
+    {
+      "store": "runs/m10-search/20261117-233252/experiences.jsonl",
+      "store_size": 2,
+      "task_set": "shop_hard",
+      "tasks": 13,
+      "hit_tasks": 1,
+      "hit_total": 1,
+      "avg_per_task": 0.08,
+      "detail": [
+        {
+          "task": "H01",
+          "hits": []
+        },
+        {
+          "task": "H02",
+          "hits": []
+        },
+        {
+          "task": "H03",
+          "hits": []
+        },
+        {
+          "task": "H04",
+          "hits": []
+        },
+        {
+          "task": "H05",
+          "hits": []
+        },
+        {
+          "task": "H06",
+          "hits": []
+        },
+        {
+          "task": "H07",
+          "hits": []
+        },
+        {
+          "task": "H08",
+          "hits": []
+        },
+        {
+          "task": "H09",
+          "hits": []
+        },
+        {
+          "task": "H10",
+          "hits": []
+        },
+        {
+          "task": "H11",
+          "hits": []
+        },
+        {
+          "task": "H12",
+          "hits": [
+            "exp-c8e70cd9d11b"
+          ]
+        },
+        {
+          "task": "H13",
+          "hits": []
+        }
+      ]
+    },
+    {
+      "store": "runs/m10-search/20261117-233252/experiences.jsonl",
+      "store_size": 2,
+      "task_set": "customer",
+      "tasks": 6,
+      "hit_tasks": 0,
+      "hit_total": 0,
+      "avg_per_task": 0.0,
+      "detail": [
+        {
+          "task": "C01",
+          "hits": []
+        },
+        {
+          "task": "C02",
+          "hits": []
+        },
+        {
+          "task": "C03",
+          "hits": []
+        },
+        {
+          "task": "C04",
+          "hits": []
+        },
+        {
+          "task": "C05",
+          "hits": []
+        },
+        {
+          "task": "C06",
+          "hits": []
+        }
+      ]
+    },
+    {
+      "store": "runs/m10-search/20261117-233252/experiences.jsonl",
+      "store_size": 2,
+      "task_set": "wf",
+      "tasks": 3,
+      "hit_tasks": 0,
+      "hit_total": 0,
+      "avg_per_task": 0.0,
+      "detail": [
+        {
+          "task": "W01",
+          "hits": []
+        },
+        {
+          "task": "W02",
+          "hits": []
+        },
+        {
+          "task": "W03",
+          "hits": []
+        }
+      ]
+    },
+    {
+      "store": "runs/main-a2/20261119-194423/experiences.jsonl",
+      "store_size": 1,
+      "task_set": "shop_eval",
+      "tasks": 20,
+      "hit_tasks": 8,
+      "hit_total": 8,
+      "avg_per_task": 0.4,
+      "detail": [
+        {
+          "task": "S01",
+          "hits": []
+        },
+        {
+          "task": "S02",
+          "hits": []
+        },
+        {
+          "task": "S03",
+          "hits": []
+        },
+        {
+          "task": "S04",
+          "hits": []
+        },
+        {
+          "task": "S05",
+          "hits": []
+        },
+        {
+          "task": "S06",
+          "hits": [
+            "exp-3a30913c112a"
+          ]
+        },
+        {
+          "task": "S07",
+          "hits": [
+            "exp-3a30913c112a"
+          ]
+        },
+        {
+          "task": "S08",
+          "hits": []
+        },
+        {
+          "task": "S09",
+          "hits": []
+        },
+        {
+          "task": "S10",
+          "hits": []
+        },
+        {
+          "task": "S11",
+          "hits": [
+            "exp-3a30913c112a"
+          ]
+        },
+        {
+          "task": "S12",
+          "hits": [
+            "exp-3a30913c112a"
+          ]
+        },
+        {
+          "task": "S13",
+          "hits": [
+            "exp-3a30913c112a"
+          ]
+        },
+        {
+          "task": "S14",
+          "hits": []
+        },
+        {
+          "task": "S15",
+          "hits": [
+            "exp-3a30913c112a"
+          ]
+        },
+        {
+          "task": "S16",
+          "hits": []
+        },
+        {
+          "task": "S17",
+          "hits": [
+            "exp-3a30913c112a"
+          ]
+        },
+        {
+          "task": "S18",
+          "hits": []
+        },
+        {
+          "task": "S19",
+          "hits": []
+        },
+        {
+          "task": "S20",
+          "hits": [
+            "exp-3a30913c112a"
+          ]
+        }
+      ]
+    },
+    {
+      "store": "runs/main-a2/20261119-194423/experiences.jsonl",
+      "store_size": 1,
+      "task_set": "shop_multi",
+      "tasks": 10,
+      "hit_tasks": 0,
+      "hit_total": 0,
+      "avg_per_task": 0.0,
+      "detail": [
+        {
+          "task": "M01",
+          "hits": []
+        },
+        {
+          "task": "M02",
+          "hits": []
+        },
+        {
+          "task": "M03",
+          "hits": []
+        },
+        {
+          "task": "M04",
+          "hits": []
+        },
+        {
+          "task": "M05",
+          "hits": []
+        },
+        {
+          "task": "M06",
+          "hits": []
+        },
+        {
+          "task": "M07",
+          "hits": []
+        },
+        {
+          "task": "M08",
+          "hits": []
+        },
+        {
+          "task": "M09",
+          "hits": []
+        },
+        {
+          "task": "M10",
+          "hits": []
+        }
+      ]
+    },
+    {
+      "store": "runs/main-a2/20261119-194423/experiences.jsonl",
+      "store_size": 1,
+      "task_set": "shop_hard",
+      "tasks": 13,
+      "hit_tasks": 3,
+      "hit_total": 3,
+      "avg_per_task": 0.23,
+      "detail": [
+        {
+          "task": "H01",
+          "hits": []
+        },
+        {
+          "task": "H02",
+          "hits": []
+        },
+        {
+          "task": "H03",
+          "hits": []
+        },
+        {
+          "task": "H04",
+          "hits": []
+        },
+        {
+          "task": "H05",
+          "hits": []
+        },
+        {
+          "task": "H06",
+          "hits": []
+        },
+        {
+          "task": "H07",
+          "hits": [
+            "exp-3a30913c112a"
+          ]
+        },
+        {
+          "task": "H08",
+          "hits": []
+        },
+        {
+          "task": "H09",
+          "hits": []
+        },
+        {
+          "task": "H10",
+          "hits": []
+        },
+        {
+          "task": "H11",
+          "hits": [
+            "exp-3a30913c112a"
+          ]
+        },
+        {
+          "task": "H12",
+          "hits": []
+        },
+        {
+          "task": "H13",
+          "hits": [
+            "exp-3a30913c112a"
+          ]
+        }
+      ]
+    },
+    {
+      "store": "runs/main-a2/20261119-194423/experiences.jsonl",
+      "store_size": 1,
+      "task_set": "customer",
+      "tasks": 6,
+      "hit_tasks": 5,
+      "hit_total": 5,
+      "avg_per_task": 0.83,
+      "detail": [
+        {
+          "task": "C01",
+          "hits": [
+            "exp-3a30913c112a"
+          ]
+        },
+        {
+          "task": "C02",
+          "hits": [
+            "exp-3a30913c112a"
+          ]
+        },
+        {
+          "task": "C03",
+          "hits": [
+            "exp-3a30913c112a"
+          ]
+        },
+        {
+          "task": "C04",
+          "hits": [
+            "exp-3a30913c112a"
+          ]
+        },
+        {
+          "task": "C05",
+          "hits": [
+            "exp-3a30913c112a"
+          ]
+        },
+        {
+          "task": "C06",
+          "hits": []
+        }
+      ]
+    },
+    {
+      "store": "runs/main-a2/20261119-194423/experiences.jsonl",
+      "store_size": 1,
+      "task_set": "wf",
+      "tasks": 3,
+      "hit_tasks": 3,
+      "hit_total": 3,
+      "avg_per_task": 1.0,
+      "detail": [
+        {
+          "task": "W01",
+          "hits": [
+            "exp-3a30913c112a"
+          ]
+        },
+        {
+          "task": "W02",
+          "hits": [
+            "exp-3a30913c112a"
+          ]
+        },
+        {
+          "task": "W03",
+          "hits": [
+            "exp-3a30913c112a"
+          ]
+        }
+      ]
+    }
+  ],
+  "totals": {
+    "pairs": 40,
+    "hit_pairs": 31,
+    "max_avg": 2.33
+  },
+  "inject_proof": {
+    "trace": "runs/p5c/inject-20261120-221901.jsonl",
+    "store": "runs/full-plan/20261118-231325/experiences.jsonl",
+    "hit_count": 3,
+    "hits": [
+      "exp-4225ebcdcd42",
+      "exp-3a30913c112a",
+      "exp-56d434f43f4a"
+    ],
+    "llm_calls": 1,
+    "prompt_chars": 400,
+    "prompt_has_header": true,
+    "action_in_prompt": {
+      "exp-4225ebcdcd42": true,
+      "exp-3a30913c112a": true,
+      "exp-56d434f43f4a": true
+    }
+  },
+  "top_k": 6,
+  "min_score": null
+}

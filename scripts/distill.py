@@ -210,7 +210,14 @@ def write_jsonl(path: Path, rows: list[dict]) -> None:
 
 def parse_args(argv=None):
     p = argparse.ArgumentParser(description="把实验轨迹蒸馏成 SFT / 失败样本")
-    p.add_argument("--run", required=True, help="实验目录，例如 runs/full-cold/20261118-000730")
+    p.add_argument("--run", help="实验目录，例如 runs/full-cold/20261118-000730")
+    p.add_argument(
+        "--trace",
+        action="append",
+        default=None,
+        help="直接给轨迹 jsonl（可重复，与 --run 二选一）。"
+        "Workflow 的轨迹落在 runs/*.jsonl，不在实验目录约定里，用它喂进来。",
+    )
     p.add_argument(
         "--group",
         action="append",
@@ -224,14 +231,24 @@ def parse_args(argv=None):
     return p.parse_args(argv)
 
 
+def _collect_traces(paths: list[str]) -> list:
+    """从任意 jsonl 读轨迹，按传入顺序拼接。"""
+    traces: list = []
+    for item in paths:
+        path = Path(item)
+        if not path.is_absolute():
+            path = PROJECT_ROOT / path
+        if not path.exists():
+            raise FileNotFoundError(path)
+        traces.extend(load_traces(path))
+    return traces
+
+
 def main(argv=None) -> int:
     args = parse_args(argv)
 
-    run_dir = Path(args.run)
-    if not run_dir.is_absolute():
-        run_dir = PROJECT_ROOT / run_dir
-    if not run_dir.exists():
-        print(f"[错误] 实验目录不存在：{run_dir}")
+    if not args.run and not args.trace:
+        print("[错误] 需要 --run <实验目录> 或 --trace <轨迹文件>")
         return 1
 
     groups = args.group or ["fit"]
@@ -249,24 +266,54 @@ def main(argv=None) -> int:
     total_failed: list[dict] = []
     stats: dict[str, dict] = {}
 
-    for group in groups:
-        traces = _load_group(run_dir, group)
+    if args.trace:
+        try:
+            traces = _collect_traces(args.trace)
+        except FileNotFoundError as exc:
+            print(f"[错误] 轨迹文件不存在：{exc}")
+            return 1
         if not traces:
-            print(f"[跳过] {group}：{run_dir / GROUPS[group]} 不存在或为空")
-            continue
+            print("[错误] --trace 指向的文件里没有轨迹")
+            return 1
         sft, failed, extra = distill_traces(traces, tasks, min_answer=args.min_answer)
         total_sft.extend(sft)
         total_failed.extend(failed)
-        stats[group] = {
+        stats["trace"] = {
             "traces": len(traces),
             "sft": len(sft),
             "failed": len(failed),
             **extra,
         }
         print(
-            f"[{group}] 轨迹 {len(traces)} 条 → SFT {len(sft)} 条 / 失败 {len(failed)} 条"
+            f"[trace] 轨迹 {len(traces)} 条 → SFT {len(sft)} 条 / 失败 {len(failed)} 条"
             f" | 去重丢弃 {extra['duplicates']} 条 | 其它丢弃 {extra['dropped'] or '无'}"
         )
+    else:
+        run_dir = Path(args.run)
+        if not run_dir.is_absolute():
+            run_dir = PROJECT_ROOT / run_dir
+        if not run_dir.exists():
+            print(f"[错误] 实验目录不存在：{run_dir}")
+            return 1
+
+        for group in groups:
+            traces = _load_group(run_dir, group)
+            if not traces:
+                print(f"[跳过] {group}：{run_dir / GROUPS[group]} 不存在或为空")
+                continue
+            sft, failed, extra = distill_traces(traces, tasks, min_answer=args.min_answer)
+            total_sft.extend(sft)
+            total_failed.extend(failed)
+            stats[group] = {
+                "traces": len(traces),
+                "sft": len(sft),
+                "failed": len(failed),
+                **extra,
+            }
+            print(
+                f"[{group}] 轨迹 {len(traces)} 条 → SFT {len(sft)} 条 / 失败 {len(failed)} 条"
+                f" | 去重丢弃 {extra['duplicates']} 条 | 其它丢弃 {extra['dropped'] or '无'}"
+            )
 
     if not stats:
         print("[错误] 一条轨迹都没读到，检查 --run 是否指到了带 jsonl 的那层目录")
@@ -283,7 +330,8 @@ def main(argv=None) -> int:
     write_jsonl(out_dir / "failed.jsonl", total_failed)
 
     manifest = {
-        "run": str(run_dir),
+        "run": str(run_dir) if not args.trace else "",
+        "traces": [str(t) for t in (args.trace or [])],
         "groups": groups,
         "min_answer": args.min_answer,
         "tasks": len(tasks),

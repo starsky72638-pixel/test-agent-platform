@@ -1,0 +1,50 @@
+{
+  "samples": 65,
+  "files": [
+    {
+      "path": "data/distill/sft.jsonl",
+      "exists": true,
+      "samples": 22,
+      "agents": {
+        "shop-cold": 22
+      },
+      "tasks": 22,
+      "splits": {
+        "fit": 22
+      },
+      "with_tool_calls": 21,
+      "empty_or_invalid": 0,
+      "empty_reasons": {}
+    },
+    {
+      "path": "data/distill-main-a2/sft.jsonl",
+      "exists": true,
+      "samples": 25,
+      "agents": {
+        "shop-cold": 25
+      },
+      "tasks": 25,
+      "splits": {
+        "fit": 25
+      },
+      "with_tool_calls": 24,
+      "empty_or_invalid": 0,
+      "empty_reasons": {}
+    },
+    {
+      "path": "data/train_sft.jsonl",
+      "exists": true,
+      "samples": 18,
+      "agents": {
+        "unknown": 18
+      },
+      "tasks": 18,
+      "splits": {
+        "unknown": 18
+      },
+      "with_tool_calls": 17,
+      "empty_or_invalid": 0,
+      "empty_reasons": {}
+    }
+  ]
+}

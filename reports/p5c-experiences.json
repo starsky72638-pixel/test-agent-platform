@@ -1,0 +1,215 @@
+{
+  "files": 8,
+  "records": 76,
+  "unique_per_file": 20,
+  "unique_global": 9,
+  "active": 20,
+  "retired": 0,
+  "expired": 0,
+  "failure_types": {
+    "forbidden_action": 3,
+    "missing_tool": 10,
+    "wrong_arg": 3,
+    "wrong_fact": 3,
+    "wrong_order": 1
+  },
+  "detail": [
+    {
+      "path": "runs/20261117-001110/experiences.jsonl",
+      "records": 12,
+      "unique": 2,
+      "active": 2,
+      "retired": 0,
+      "expired": 0,
+      "failure_types": {
+        "forbidden_action": 1,
+        "missing_tool": 1
+      },
+      "shapes": {
+        "single": 2
+      },
+      "support": {
+        "exp-3a30913c112a": 3,
+        "exp-56d434f43f4a": 2
+      },
+      "contradict": {
+        "exp-3a30913c112a": 1,
+        "exp-56d434f43f4a": 1
+      }
+    },
+    {
+      "path": "runs/20261117-193648/experiences.jsonl",
+      "records": 3,
+      "unique": 1,
+      "active": 1,
+      "retired": 0,
+      "expired": 0,
+      "failure_types": {
+        "missing_tool": 1
+      },
+      "shapes": {
+        "multi": 1
+      },
+      "support": {
+        "exp-011b486a50fb": 2
+      },
+      "contradict": {
+        "exp-011b486a50fb": 1
+      }
+    },
+    {
+      "path": "runs/20261117-200124/experiences.jsonl",
+      "records": 7,
+      "unique": 3,
+      "active": 3,
+      "retired": 0,
+      "expired": 0,
+      "failure_types": {
+        "missing_tool": 1,
+        "wrong_fact": 1,
+        "wrong_order": 1
+      },
+      "shapes": {
+        "multi": 2,
+        "single": 1
+      },
+      "support": {
+        "exp-011b486a50fb": 2,
+        "exp-070cde8d3e25": 1,
+        "exp-d656fddf8812": 2
+      },
+      "contradict": {
+        "exp-011b486a50fb": 0,
+        "exp-070cde8d3e25": 0,
+        "exp-d656fddf8812": 0
+      }
+    },
+    {
+      "path": "runs/20261117-230554/experiences.jsonl",
+      "records": 8,
+      "unique": 2,
+      "active": 2,
+      "retired": 0,
+      "expired": 0,
+      "failure_types": {
+        "missing_tool": 2
+      },
+      "shapes": {
+        "multi": 2
+      },
+      "support": {
+        "exp-011b486a50fb": 2,
+        "exp-1704171d5dc2": 3
+      },
+      "contradict": {
+        "exp-011b486a50fb": 0,
+        "exp-1704171d5dc2": 0
+      }
+    },
+    {
+      "path": "runs/full-cold/20261118-000730/experiences.jsonl",
+      "records": 14,
+      "unique": 4,
+      "active": 4,
+      "retired": 0,
+      "expired": 0,
+      "failure_types": {
+        "forbidden_action": 1,
+        "missing_tool": 1,
+        "wrong_arg": 1,
+        "wrong_fact": 1
+      },
+      "shapes": {
+        "multi": 2,
+        "single": 2
+      },
+      "support": {
+        "exp-011b486a50fb": 2,
+        "exp-070cde8d3e25": 1,
+        "exp-56d434f43f4a": 2,
+        "exp-c8e70cd9d11b": 3
+      },
+      "contradict": {
+        "exp-011b486a50fb": 1,
+        "exp-070cde8d3e25": 0,
+        "exp-56d434f43f4a": 0,
+        "exp-c8e70cd9d11b": 0
+      }
+    },
+    {
+      "path": "runs/full-plan/20261118-231325/experiences.jsonl",
+      "records": 19,
+      "unique": 5,
+      "active": 5,
+      "retired": 0,
+      "expired": 0,
+      "failure_types": {
+        "forbidden_action": 1,
+        "missing_tool": 2,
+        "wrong_arg": 1,
+        "wrong_fact": 1
+      },
+      "shapes": {
+        "multi": 2,
+        "single": 3
+      },
+      "support": {
+        "exp-4225ebcdcd42": 1,
+        "exp-3a30913c112a": 3,
+        "exp-56d434f43f4a": 2,
+        "exp-be67f50547cc": 2,
+        "exp-c8e70cd9d11b": 3
+      },
+      "contradict": {
+        "exp-4225ebcdcd42": 0,
+        "exp-3a30913c112a": 0,
+        "exp-56d434f43f4a": 0,
+        "exp-be67f50547cc": 1,
+        "exp-c8e70cd9d11b": 0
+      }
+    },
+    {
+      "path": "runs/m10-search/20261117-233252/experiences.jsonl",
+      "records": 8,
+      "unique": 2,
+      "active": 2,
+      "retired": 0,
+      "expired": 0,
+      "failure_types": {
+        "missing_tool": 1,
+        "wrong_arg": 1
+      },
+      "shapes": {
+        "multi": 2
+      },
+      "support": {
+        "exp-011b486a50fb": 2,
+        "exp-c8e70cd9d11b": 3
+      },
+      "contradict": {
+        "exp-011b486a50fb": 0,
+        "exp-c8e70cd9d11b": 0
+      }
+    },
+    {
+      "path": "runs/main-a2/20261119-194423/experiences.jsonl",
+      "records": 5,
+      "unique": 1,
+      "active": 1,
+      "retired": 0,
+      "expired": 0,
+      "failure_types": {
+        "missing_tool": 1
+      },
+      "shapes": {
+        "single": 1
+      },
+      "support": {
+        "exp-3a30913c112a": 3
+      },
+      "contradict": {
+        "exp-3a30913c112a": 0
+      }
+    }
+  ]
+}

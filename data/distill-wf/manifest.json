@@ -1,0 +1,30 @@
+{
+  "run": "",
+  "traces": [
+    "runs/wf-branch-demo-20261120-210214.jsonl",
+    "runs/wf-canvas-demo-20261120-210241.jsonl"
+  ],
+  "groups": [
+    "fit"
+  ],
+  "min_answer": 6,
+  "tasks": 3,
+  "total": {
+    "sft": 2,
+    "failed": 2,
+    "duplicates": 0
+  },
+  "by_group": {
+    "trace": {
+      "traces": 4,
+      "sft": 2,
+      "failed": 2,
+      "dropped": {},
+      "duplicates": 0
+    }
+  },
+  "failure_types": {
+    "missing_tool": 1,
+    "wrong_arg": 1
+  }
+}

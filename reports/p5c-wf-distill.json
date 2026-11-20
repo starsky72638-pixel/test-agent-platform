@@ -1,0 +1,44 @@
+{
+  "traces": [
+    "runs/wf-branch-demo-20261120-210214.jsonl",
+    "runs/wf-canvas-demo-20261120-210241.jsonl"
+  ],
+  "sft": 2,
+  "failed": 2,
+  "duplicates": 0,
+  "problem_samples": 0,
+  "checked": [
+    {
+      "id": "sft-768cea9094c57c2f",
+      "task_id": "W01",
+      "agent": "wf:branch-demo",
+      "tools": [
+        "get_order"
+      ],
+      "messages": 4,
+      "problems": []
+    },
+    {
+      "id": "sft-c9e39e2af83c7651",
+      "task_id": "W01",
+      "agent": "wf:canvas-demo",
+      "tools": [
+        "get_order"
+      ],
+      "messages": 4,
+      "problems": []
+    }
+  ],
+  "failed_detail": [
+    {
+      "task_id": "W02",
+      "failure_type": "missing_tool",
+      "fail_turn": 1
+    },
+    {
+      "task_id": "W03",
+      "failure_type": "wrong_arg",
+      "fail_turn": 1
+    }
+  ]
+}

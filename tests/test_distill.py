@@ -8,10 +8,21 @@
 
 from __future__ import annotations
 
-from core.task import Task
-from core.trace import KIND_NODE_END, KIND_NODE_START, KIND_TOOL_CALL, ToolCall, Trace, Turn
+import json
 
-from scripts.distill import distill_traces
+from core.task import Task
+from core.trace import (
+    KIND_NODE_END,
+    KIND_NODE_START,
+    KIND_TOOL_CALL,
+    ToolCall,
+    Trace,
+    Turn,
+    save_traces,
+)
+
+from scripts.distill import distill_traces, main as distill_main
+from scripts.p5c_probe import _check_sample
 
 
 def make_task(task_id: str = "T1") -> Task:
@@ -145,3 +156,92 @@ def test_unknown_task_is_dropped():
 
     assert not sft and not failed
     assert extra["dropped"].get("no_task") == 1
+
+
+# ---------------------------------------------------------------- 直接喂轨迹文件
+#
+# Workflow 的轨迹落在 runs/*.jsonl，不在 runs/<stamp>/{fit,holdout-*}.jsonl 的
+# 目录约定里。--trace 是给它们开的口子，不加就只能先手工搬文件。
+
+
+def test_distill_accepts_trace_files_directly(tmp_path):
+    golden = tmp_path / "g.jsonl"
+    golden.write_text(
+        json.dumps(
+            {
+                "id": "T1",
+                "input": "1001 那单花了多少钱",
+                "split": "fit",
+                "assertions": {"expect_tools": ["get_order"], "must_have": ["899"]},
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    trace_path = tmp_path / "wf.jsonl"
+    save_traces([make_event_trace()], trace_path)
+
+    out = tmp_path / "out"
+    rc = distill_main(
+        ["--trace", str(trace_path), "--golden", str(golden), "--out", str(out)]
+    )
+
+    assert rc == 0
+    rows = [
+        json.loads(line)
+        for line in (out / "sft.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert len(rows) == 1
+    # workflow 形态：Turn.calls 是空的，tool_calls 必须从事件投影出来
+    assert rows[0]["tools"] == ["get_order"]
+    assert any(m.get("tool_calls") for m in rows[0]["messages"])
+    assert (out / "manifest.json").exists()
+
+
+def test_distill_without_run_or_trace_returns_error():
+    assert distill_main([]) == 1
+
+
+def test_sample_check_flags_broken_tool_pairing():
+    """产物检查要能挑出坏样本，否则"条数对"会被当成"内容对"。"""
+    good = {
+        "messages": [
+            {"role": "user", "content": "q"},
+            {
+                "role": "assistant",
+                "content": "",
+                "tool_calls": [
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "get_order",
+                            "arguments": '{"order_id": 1001}',
+                        },
+                    }
+                ],
+            },
+            {"role": "tool", "name": "get_order", "content": "ok"},
+            {"role": "assistant", "content": "答"},
+        ]
+    }
+    assert _check_sample(good) == []
+
+    broken = {
+        "messages": [
+            {"role": "user", "content": "q"},
+            {
+                "role": "assistant",
+                "content": "",
+                "tool_calls": [
+                    {"type": "function", "function": {"name": "get_order", "arguments": "{bad"}}
+                ],
+            },
+            {"role": "tool", "name": "get_logistics", "content": ""},
+        ]
+    }
+    problems = _check_sample(broken)
+    assert any("arguments" in p for p in problems)
+    assert any("不匹配" in p for p in problems)
+    assert any("末条" in p for p in problems)
