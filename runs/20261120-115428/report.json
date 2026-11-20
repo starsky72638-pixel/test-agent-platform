@@ -1,0 +1,207 @@
+{
+  "run": {
+    "stamp": "20261120-115428",
+    "agent": "customer-cold",
+    "agent_requested": "cs-cold",
+    "max_steps": 6,
+    "top_k": 6,
+    "min_score": null,
+    "fit_limit": 0,
+    "holdout_limit": 0,
+    "fit_tasks": [
+      "C01",
+      "C02",
+      "C03"
+    ],
+    "holdout_tasks": [
+      "C04",
+      "C05",
+      "C06"
+    ],
+    "store": "C:\\Users\\lenovo\\PycharmProjects\\test_agent\\runs\\20261120-115428\\experiences.jsonl",
+    "record_outcome": true
+  },
+  "learn": {
+    "stage": "learn",
+    "elapsed_ms": 26149,
+    "fit_tasks": 3,
+    "judged": 3,
+    "passed": 3,
+    "by_failure": {},
+    "candidates": 0,
+    "kept": 0,
+    "rejected": [],
+    "warnings": [],
+    "errors": [],
+    "experiences": [],
+    "store": {
+      "file": "C:\\Users\\lenovo\\PycharmProjects\\test_agent\\runs\\20261120-115428\\experiences.jsonl",
+      "lines": 0,
+      "total": 0,
+      "active": 0,
+      "retired": 0,
+      "by_failure": {},
+      "injected_total": 0,
+      "support_total": 0,
+      "contradict_total": 0
+    }
+  },
+  "verify": {
+    "stage": "verify",
+    "baseline": {
+      "label": "baseline",
+      "elapsed_ms": 48389,
+      "total": 3,
+      "passed": 3,
+      "rate": 1.0,
+      "infra_failed": 0,
+      "evaluable": 3,
+      "rate_evaluable": 1.0,
+      "by_failure": {},
+      "errors": [],
+      "per_task": {
+        "C04": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order",
+            "get_logistics",
+            "apply_refund"
+          ]
+        },
+        "C05": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order"
+          ]
+        },
+        "C06": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_logistics",
+            "get_order",
+            "apply_refund"
+          ]
+        }
+      },
+      "hits": {}
+    },
+    "injected": {
+      "label": "injected",
+      "elapsed_ms": 46285,
+      "total": 3,
+      "passed": 3,
+      "rate": 1.0,
+      "infra_failed": 0,
+      "evaluable": 3,
+      "rate_evaluable": 1.0,
+      "by_failure": {},
+      "errors": [],
+      "per_task": {
+        "C04": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order",
+            "get_logistics",
+            "apply_refund"
+          ]
+        },
+        "C05": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_order",
+            "get_logistics"
+          ]
+        },
+        "C06": {
+          "passed": true,
+          "failure_type": "",
+          "fail_turn": null,
+          "calls": [
+            "get_logistics",
+            "apply_refund"
+          ]
+        }
+      },
+      "hits": {
+        "C04": {
+          "ids": [],
+          "chars": 0
+        },
+        "C05": {
+          "ids": [],
+          "chars": 0
+        },
+        "C06": {
+          "ids": [],
+          "chars": 0
+        }
+      }
+    },
+    "delta": {
+      "baseline_rate": 1.0,
+      "injected_rate": 1.0,
+      "rate_delta": 0.0,
+      "baseline_passed": 3,
+      "injected_passed": 3,
+      "flips_up": 0,
+      "flips_down": 0,
+      "coverage_rate": 0.0
+    },
+    "flips": {
+      "up": [],
+      "down": [],
+      "same_pass": [
+        "C04",
+        "C05",
+        "C06"
+      ],
+      "same_fail": []
+    },
+    "coverage": [
+      {
+        "task_id": "C04",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "C05",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      },
+      {
+        "task_id": "C06",
+        "injected": false,
+        "exp_ids": [],
+        "chars": 0
+      }
+    ],
+    "hit_counts": {},
+    "memory": {
+      "touched": 0,
+      "retired": 0
+    }
+  },
+  "store_after": {
+    "file": "C:\\Users\\lenovo\\PycharmProjects\\test_agent\\runs\\20261120-115428\\experiences.jsonl",
+    "lines": 0,
+    "total": 0,
+    "active": 0,
+    "retired": 0,
+    "by_failure": {},
+    "injected_total": 0,
+    "support_total": 0,
+    "contradict_total": 0
+  }
+}
