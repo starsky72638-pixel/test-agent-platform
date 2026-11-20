@@ -73,6 +73,7 @@ class WorkflowDefinition:
     entry: str = ""
     version: int = 1
     name: str = ""
+    description: str = ""
     tools: list[str] = field(default_factory=list)
     meta: dict = field(default_factory=dict)
 
@@ -90,6 +91,7 @@ class WorkflowDefinition:
             "workflow_id": self.workflow_id,
             "version": int(self.version),
             "name": self.name,
+            "description": self.description,
             "entry": self.entry,
             "tools": list(self.tools),
             "nodes": [n.to_dict() for n in self.nodes],
@@ -114,6 +116,7 @@ class WorkflowDefinition:
             entry=str(raw.get("entry") or "").strip(),
             version=version,
             name=str(raw.get("name") or ""),
+            description=str(raw.get("description") or ""),
             tools=[str(t) for t in (raw.get("tools") or [])],
             meta=dict(raw.get("meta") or {}),
         )
@@ -141,16 +144,3 @@ class WorkflowDefinition:
             encoding="utf-8",
         )
         return p
-
-
-def resolve_path(ref: str) -> Path:
-    """把 'demo' / 'demo.json' / 完整路径解析成文件路径。
-
-    只做路径拼接，不检查存在性——检查交给 load，错误信息才统一。
-    """
-    if not str(ref or "").strip():
-        raise DefinitionError("缺少 workflow 名字或路径")
-    p = Path(str(ref).strip())
-    if p.suffix == ".json":
-        return p
-    return WORKFLOW_DIR / f"{p}.json"

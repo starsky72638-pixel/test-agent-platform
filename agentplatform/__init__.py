@@ -23,20 +23,21 @@ from agentplatform.definition import (
     DefinitionError,
     NodeDef,
     WorkflowDefinition,
-    resolve_path,
 )
 from agentplatform.executor import ExecutionError, Executor, render, render_obj
 from agentplatform.schema import validate
+from agentplatform.store import AgentStore, AgentSummary
 from agentplatform.topology import TopologyError, topo_sort
 
 __all__ = [
     "WorkflowAgent",
     "build_workflow_agent",
     "compile_workflow",
+    "AgentStore",
+    "AgentSummary",
     "WorkflowDefinition",
     "NodeDef",
     "DefinitionError",
-    "resolve_path",
     "NODE_START",
     "NODE_LLM",
     "NODE_TOOL",

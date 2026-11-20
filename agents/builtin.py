@@ -51,13 +51,38 @@ def register(name: str, factory: Callable[..., Any]) -> None:
     _FACTORIES[name] = factory
 
 
+# 磁盘上某个 Workflow 的可寻址前缀，形如 wf:demo。
+# 不把每个 id 都塞进 _FACTORIES：那张表回答"能造哪些类型"，
+# 而 workflow 是同一类型的多个实例，混进去会让"类型列表"失去意义。
+WORKFLOW_PREFIX = "wf:"
+
+
+def workflow_ids() -> list[str]:
+    """磁盘上现有的 Workflow id。读不到就当没有——列个表不该让入口崩。"""
+    from agentplatform.store import AgentStore
+
+    return AgentStore().ids()
+
+
 def names() -> list[str]:
-    return sorted(_FACTORIES)
+    """全部可寻址的名字：静态类型 + 磁盘上的 workflow 实例。
+
+    --list、/agents、/health 都读这个函数，所以三处不会各说一套。
+    """
+    dynamic = {f"{WORKFLOW_PREFIX}{wid}" for wid in workflow_ids()}
+    return sorted(set(_FACTORIES) | dynamic)
 
 
 def make(name: str, **kwargs) -> Any:
-    """按名字造一个 Agent。kwargs 原样传给工厂。"""
+    """按名字造一个 Agent。kwargs 原样传给工厂。
+
+    wf:<id> 会被拆成 workflow 工厂 + 对应定义，所以刚存下的 Workflow
+    不用注册、不用重启就能按名字跑（run_shop --agent wf:demo 直接可用）。
+    """
     key = ALIASES.get(name, name)
+    if key.startswith(WORKFLOW_PREFIX):
+        kwargs.setdefault("workflow", key[len(WORKFLOW_PREFIX):])
+        key = "workflow"
     try:
         factory = _FACTORIES[key]
     except KeyError:

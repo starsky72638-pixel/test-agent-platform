@@ -98,3 +98,63 @@ def test_ui_page_is_mounted():
     r = bare.get("/ui/")
     assert r.status_code == 200
     assert "Agent Runtime" in r.text
+
+
+# ---------------------------------------------------------------- 定义管理
+
+
+WF_BODY = {
+    "workflow_id": "demo-t",
+    "version": 1,
+    "name": "接口创建的 Agent",
+    "description": "只用 start/end，不联网",
+    "entry": "start",
+    "nodes": [
+        {"id": "start", "type": "start", "next": ["end"]},
+        {"id": "end", "type": "end"},
+    ],
+}
+
+
+@pytest.fixture()
+def wf_root(tmp_path: Path, monkeypatch) -> Path:
+    """定义写进临时目录，绝不碰仓库的 data/workflows。"""
+    import agentplatform.store as store_module
+
+    monkeypatch.setattr(store_module, "DEFAULT_ROOT", tmp_path / "workflows")
+    return tmp_path / "workflows"
+
+
+def test_workflow_save_list_get(client, wf_root):
+    created = client.post("/workflows", json=WF_BODY)
+    assert created.status_code == 200
+    assert created.json()["version"] == 1
+
+    listing = client.get("/workflows").json()["agents"]
+    assert [a["workflow_id"] for a in listing] == ["demo-t"]
+    assert listing[0]["description"] == "只用 start/end，不联网"
+
+    detail = client.get("/workflows/demo-t").json()
+    assert detail["workflow_id"] == "demo-t"
+    assert len(detail["nodes"]) == 2
+
+
+def test_workflow_save_rejects_invalid_definition(client, wf_root):
+    bad = dict(WF_BODY, nodes=[{"id": "start", "type": "start", "next": ["ghost"]}])
+
+    r = client.post("/workflows", json=bad)
+
+    # 结构问题属于调用方输入错误，用 400 而不是 500
+    assert r.status_code == 400
+    assert "ghost" in r.json()["detail"]
+
+
+def test_workflow_id_is_validated(client, wf_root):
+    # id 会拼成文件名：不卡字符集就等于开了目录穿越
+    bad = dict(WF_BODY, workflow_id="../evil")
+    assert client.post("/workflows", json=bad).status_code == 400
+    assert client.get("/workflows/bad%20id").status_code == 400
+
+
+def test_workflow_missing_is_404(client, wf_root):
+    assert client.get("/workflows/nope-123").status_code == 404

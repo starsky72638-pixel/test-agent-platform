@@ -43,6 +43,7 @@ Copy-Item .env.example .env
   main
   shop-cold（默认）
   shop-tuned
+  wf:demo
   workflow
 别名：cold -> shop-cold, cs -> customer, cs-cold -> customer-cold, main_agent -> main, shop -> shop-tuned, tuned -> shop-tuned, wf -> workflow
 ```
@@ -77,13 +78,32 @@ Copy-Item .env.example .env
 - 定义不合法（类型错、指向不存在的节点、有环、节点不可达、工具没注册）在**构造阶段**就报出全部问题，不会跑到一半才崩。
 - 执行过程写在 `Trace.events` 里（`node_start` / `node_end` / `tool_call` / `llm_call` / `error`）；`Trace.turns` 仍然只表示"用户说了几轮"，单轮就是 1 个，节点不写进 Turn。
 
+### 把 Agent 存到服务端
+
+定义存在 `data/workflows/<id>.json`，一个 id 一个文件，可以直接 diff、进 git。
+存下来之后**不需要注册、不需要重启**，用 `wf:<id>` 就能跑：
+
+```powershell
+.venv\Scripts\python.exe scripts\run_agent.py --agent wf:demo --question "订单 1002 到哪了"
+```
+
+HTTP 侧三个端点（保存时会做结构与图校验，不合法返回 400 并列出全部问题）：
+
+```
+GET  /workflows            列出全部定义（坏文件也会出现，带 error 字段）
+GET  /workflows/{id}       取一份定义
+POST /workflows            保存（覆盖时 version 自动 +1）
+```
+
+版本策略是"覆盖即递增，历史交给 git"，没有版本树——`git log -p data/workflows/demo.json` 就是全部改动记录。
+
 单测（离线，不花钱）：
 
 ```powershell
 .venv\Scripts\python.exe -m pytest tests -q
 ```
 
-当前 **359 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
+当前 **370 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
 
 ### 通过界面跑（可选）
 

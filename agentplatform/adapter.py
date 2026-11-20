@@ -15,15 +15,12 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Callable
 
 from core.trace import KIND_NODE_END, STATUS_INFRA, Trace, Turn, now_ms
 
-from agentplatform.definition import (
-    DefinitionError,
-    WorkflowDefinition,
-    resolve_path,
-)
+from agentplatform.definition import DefinitionError, WorkflowDefinition
 from agentplatform.executor import ExecutionError, Executor
 from agentplatform.schema import validate
 from agentplatform.topology import check as check_topology
@@ -166,5 +163,15 @@ def build_workflow_agent(
         raise DefinitionError(
             "需要指定 workflow：给 --workflow <id|路径>，或设置环境变量 WORKFLOW_ID"
         )
-    definition = WorkflowDefinition.load(resolve_path(target))
+
+    # 明确给 .json 路径时按路径读；只给 id 时一律走 store。
+    # 两者必须共用一个根目录，否则会出现"存进去的文件"和"读出来的文件"
+    # 不是同一个——那种 bug 只在换了工作目录时才暴露，极难查。
+    if Path(target).suffix == ".json":
+        definition = WorkflowDefinition.load(target)
+    else:
+        from agentplatform.store import AgentStore
+
+        definition = AgentStore().load(target)
+
     return WorkflowAgent(definition, tools=tools, llm=llm, name=name)

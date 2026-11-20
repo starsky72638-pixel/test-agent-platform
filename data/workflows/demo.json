@@ -2,6 +2,7 @@
   "workflow_id": "demo",
   "version": 1,
   "name": "订单查询演示",
+  "description": "查订单状态，再让模型解释结果；不编造接口没返回的字段",
   "entry": "start",
   "tools": ["get_order"],
   "nodes": [

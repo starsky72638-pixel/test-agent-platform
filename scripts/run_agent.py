@@ -126,6 +126,8 @@ def print_events(trace) -> None:
         elif e.kind == KIND_LLM_CALL:
             head = (e.output or "").replace("\n", " ")[:50]
             print(f"  [{e.seq}]   llm  {e.name} {e.elapsed_ms}ms -> {head}")
+        elif e.kind == KIND_NODE_END:
+            print(f"  [{e.seq}]   < {e.node_id} {e.elapsed_ms}ms")
         elif e.kind == KIND_ERROR:
             print(f"  [{e.seq}]   ERROR {(e.error or '')[:80]}")
 

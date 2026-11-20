@@ -1,6 +1,12 @@
-"""最小 HTTP API：把"按名字跑一条"暴露成 4 个端点。
+"""最小 HTTP API：执行、回读、以及 Agent 定义的管理。
 
-定位与 scripts/run_agent.py 完全一致——只执行与记录，不判分、不学经验。
+四类端点：
+    执行与回读  GET /health、GET /agents、POST /runs、GET /runs/{id}
+    定义管理    GET /workflows、GET /workflows/{id}、POST /workflows
+
+存的是定义而不是运行中的对象：保存后立刻可以用 agent="wf:<id>" 跑起来，
+不需要重启服务。本层不判分、不学经验，只执行与记录。
+
 为什么不放进 core/：core 的契约是"删掉 agents/ 仍可 import 和测试"，
 而这里必须先知道有哪些 Agent 才能列出来，属于接入层之上的薄壳。
 它只调用三样东西：builtin.make、core.runner.run_task、core.trace.save_traces。
@@ -24,7 +30,7 @@ from pathlib import Path
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Body, FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -39,6 +45,9 @@ RUNS_DIR = PROJECT_ROOT / "runs" / "api"
 
 # run_id 直接拼进文件路径，必须先卡死字符集，否则 /runs/.. 能穿越目录。
 RUN_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+# workflow_id 会变成 data/workflows/<id>.json 的文件名，同样必须先卡字符集。
+WORKFLOW_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 
 # 8000 被 mock_server 占；8010 留给本机的另一个项目，这里避开。
 DEFAULT_PORT = 8020
@@ -58,6 +67,22 @@ def new_run_id() -> str:
 
 def trace_path(run_id: str) -> Path:
     return RUNS_DIR / run_id / f"{run_id}.jsonl"
+
+
+def check_workflow_id(workflow_id: str) -> None:
+    """id 拼成文件名之前必须过这一关，否则 ../ 能写到目录外。"""
+    if not WORKFLOW_ID_RE.fullmatch(str(workflow_id or "")):
+        raise HTTPException(
+            status_code=400,
+            detail="workflow_id 只允许字母、数字、下划线与短横线，长度 1-64",
+        )
+
+
+def workflow_store():
+    """每次请求新建一个：测试会替换 store 的默认根目录，缓存住会读不到。"""
+    from agentplatform.store import AgentStore
+
+    return AgentStore()
 
 
 def summarize(trace, path: Path) -> dict:
@@ -156,6 +181,47 @@ def create_app() -> FastAPI:
         if not traces:
             raise HTTPException(status_code=500, detail="轨迹文件存在但没有内容")
         return traces[0].to_dict()
+
+    # -- Agent 管理 ----------------------------------------------
+    # 存的是定义，不是运行中的对象：保存后立刻能用 POST /runs 的
+    # agent="wf:<id>" 跑起来，不需要重启服务。
+
+    @app.get("/workflows")
+    def list_workflows() -> dict:
+        return {"agents": [s.to_dict() for s in workflow_store().list_agents()]}
+
+    @app.get("/workflows/{workflow_id}")
+    def get_workflow(workflow_id: str) -> dict:
+        from agentplatform.definition import DefinitionError
+
+        check_workflow_id(workflow_id)
+        try:
+            return workflow_store().load(workflow_id).to_dict()
+        except DefinitionError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    @app.post("/workflows")
+    def save_workflow(payload: dict = Body(...)) -> dict:
+        from agentplatform.definition import DefinitionError, WorkflowDefinition
+
+        try:
+            definition = WorkflowDefinition.from_dict(payload)
+        except DefinitionError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+        check_workflow_id(definition.workflow_id)
+        try:
+            path = workflow_store().save(definition)
+        except DefinitionError as exc:
+            # 结构/图不合法属于调用方输入错误，不是服务端 500。
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+        return {
+            "workflow_id": definition.workflow_id,
+            "version": definition.version,
+            "name": definition.name,
+            "path": str(path),
+        }
 
     # 同源挂载界面：避免 CORS，也不必把页面和 API 拆成两个进程。
     # 只挂 /ui，不动根路径，/docs 与上面四条路由都不受影响。
