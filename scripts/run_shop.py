@@ -54,6 +54,17 @@ DEFAULT_GOLDENS = (
     PROJECT_ROOT / "data" / "shop_eval_hard.jsonl",
 )
 
+
+def safe_filename(name: str) -> str:
+    """把 Agent 名字变成合法文件名。
+
+    冒号在 Windows 上是非法字符：--agent wf:demo 会拼出
+    runs/wf:demo-<stamp>.jsonl，open() 直接 OSError。更糟的是崩在
+    "评测已跑完、数字已打印"之后——数字有了、轨迹没了，事后无法复现。
+    """
+    cleaned = "".join(c if c.isalnum() or c in "-_." else "-" for c in str(name))
+    return cleaned.strip("-") or "agent"
+
 RUNS_DIR = PROJECT_ROOT / "runs"
 
 
@@ -225,10 +236,12 @@ def main(argv=None) -> int:
 
         flag = "PASS" if verdict.passed else f"FAIL {verdict.failure_type}"
         turn = f"@t{verdict.fail_turn}" if verdict.fail_turn else ""
+        # 失败落到节点：原生的 ReAct Agent 没有节点，这里不加后缀。
+        nodes = f"[{','.join(verdict.fail_nodes)}]" if verdict.fail_nodes else ""
         names = [c.name for c in trace.all_calls()]
         print(
             f"[{len(verdicts):02d}/{len(tasks)}] {trace.task_id:<5} "
-            f"{flag + turn:<24} {trace.elapsed_ms:>6}ms  "
+            f"{flag + turn + nodes:<30} {trace.elapsed_ms:>6}ms  "
             f"{trace.status}  tools={names}"
         )
 
@@ -253,13 +266,20 @@ def main(argv=None) -> int:
         print(f"通过 {passed}/{valid} ({round(100 * passed / valid)}%)")
     if types:
         print("未通过归因：" + "  ".join(f"{k} {v}" for k, v in sorted(types.items())))
+        hit = list(
+            dict.fromkeys(
+                n for v in verdicts if not v.passed for n in v.fail_nodes
+            )
+        )
+        if hit:
+            print("失败节点：" + "  ".join(hit))
     print(f"轨迹：{result.summary()}")
 
     # ---------- 落盘 ----------
     if result.traces:
         out_dir = Path(args.out) if args.out else RUNS_DIR
         stamp = time.strftime("%Y%m%d-%H%M%S")
-        out_path = out_dir / f"{args.agent}-{stamp}.jsonl"
+        out_path = out_dir / f"{safe_filename(args.agent)}-{stamp}.jsonl"
         save_traces(result.traces, out_path)
         print(f"轨迹已写入：{out_path}")
 

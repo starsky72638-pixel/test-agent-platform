@@ -53,3 +53,16 @@ def test_entrypoints_do_not_import_concrete_agent():
     for name in ("run_shop.py", "probe.py"):
         source = (root / "scripts" / name).read_text(encoding="utf-8")
         assert "from agents.shop" not in source, f"{name} 仍依赖具体 Agent 的模块"
+
+
+def test_shop_output_filename_is_windows_safe():
+    """`--agent wf:canvas-demo` 会拼出含冒号的文件名，Windows 上 open() 直接 OSError。
+
+    更糟的是它崩在"评测跑完、数字已打印"之后：数字有了、轨迹没落盘，
+    事后无法复现。这条钉住 sanitize。
+    """
+    from scripts.run_shop import safe_filename
+
+    assert safe_filename("wf:canvas-demo") == "wf-canvas-demo"
+    assert ":" not in safe_filename("a:b/c\\d")
+    assert safe_filename("") == "agent"

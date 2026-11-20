@@ -103,7 +103,7 @@ POST /workflows            保存（覆盖时 version 自动 +1）
 .venv\Scripts\python.exe -m pytest tests -q
 ```
 
-当前 **372 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
+当前 **377 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
 
 ### 通过界面跑（可选）
 
@@ -133,6 +133,14 @@ HTTP 与 Web 界面走的是和 `run_agent.py` 同一条执行链，`core/` 零�
 - 运行时先保存再执行（跑的是磁盘上的定义，不是画布里的草稿）；轨迹面板显示 `轮次 N · 事件 M`，单轮 Workflow 恒为 `轮次 1`，节点数只影响事件数
 
 画布是纯静态文件（`web/builder/`，零依赖、无 npm、无 CDN）——本机没有 Node 工具链，而答辩现场断网也不能白屏。它产出的就是 `data/workflows/<id>.json`，与手写 JSON 完全等价，两者可以互相覆盖。
+
+画布产出的 Agent 走的是同一套判分器（`data/wf_eval.jsonl`，3 条围绕订单 1002 的验证任务）：
+
+```powershell
+.venv\Scripts\python.exe scripts\run_shop.py --agent wf:canvas-demo --golden data\wf_eval.jsonl --no-compare
+```
+
+这 3 条里**有 2 条是按设计就会失败**的：一条说明流程缺 `get_logistics` 节点（`missing_tool`），一条说明参数被写死成 1002（`wrong_arg`）。它们的作用不是凑通过率，而是证明判分器确实读到了事件里的调用——`WorkflowAgent` 的 `Turn.calls` 永远是空的。
 
 ---
 

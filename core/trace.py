@@ -64,9 +64,12 @@ class ToolCall:
     ok: bool = True
     error: str = ""
     elapsed_ms: int = 0
+    # 来自哪个节点。原生 Agent 直接调工具，这里为空；Workflow 由 Event 投影时带上。
+    # 判分失败时靠它把责任落到具体节点上，否则只能到"第几轮"。
+    node_id: str = ""
 
     def to_dict(self) -> dict:
-        return {
+        raw = {
             "name": self.name,
             "args": dict(self.args or {}),
             "call_id": self.call_id,
@@ -75,6 +78,10 @@ class ToolCall:
             "error": self.error,
             "elapsed_ms": int(self.elapsed_ms or 0),
         }
+        # 空值不落键：原生 Agent 与历史 jsonl 的落盘结果保持逐字节不变。
+        if self.node_id:
+            raw["node_id"] = self.node_id
+        return raw
 
     @classmethod
     def from_dict(cls, raw: dict) -> "ToolCall":
@@ -88,6 +95,8 @@ class ToolCall:
             ok=bool(raw.get("ok", True)),
             error=str(raw.get("error") or ""),
             elapsed_ms=int(raw.get("elapsed_ms") or 0),
+            # 旧 jsonl 没有这个键，读成空串即原生 Agent 的语义。
+            node_id=str(raw.get("node_id") or ""),
         )
 
     def brief(self) -> str:
@@ -192,6 +201,9 @@ class Event:
         判分器只认 ToolCall（evaluator.verdict.judge_round），不认 Event。
         这里做一次投影，Workflow 的调用序列就能直接进五层判定，
         不必再写一套并行判分逻辑。
+
+        node_id 一并带过去：丢掉它，判分失败就只能说"第 1 轮错了"，
+        说不出是哪个节点错了。
         """
         return ToolCall(
             name=self.name,
@@ -201,6 +213,7 @@ class Event:
             ok=bool(self.ok),
             error=self.error,
             elapsed_ms=int(self.elapsed_ms or 0),
+            node_id=self.node_id,
         )
 
 

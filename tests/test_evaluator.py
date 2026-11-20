@@ -93,6 +93,63 @@ def test_evaluator_does_not_sum_turn_calls_and_events():
     assert verdict.rounds[0].call_count == 2
 
 
+def test_fail_nodes_points_at_the_workflow_node():
+    """判 wrong_arg 时要能说出"哪个节点传错了"，不能只到第几轮。
+
+    fail_nodes 是字段不是文案：消费方（报告/API/前端）直接取，
+    不用从 param_msg 里正则抠节点名。
+    """
+    trace = make_trace([one_turn([], "订单 1001 的金额是 429.0")])
+    trace.add_event(
+        KIND_TOOL_CALL,
+        node_id="get_order",
+        node_type="tool",
+        name="get_order",
+        args={"order_id": 1002},
+        output="status=200",
+    )
+    verdict = evaluate(trace, make_task({"expect_args": {"order_id": 1001}}))
+    assert verdict.failure_type == "wrong_arg"
+    assert verdict.rounds[0].fail_nodes == ["get_order"]
+    assert verdict.fail_nodes == ["get_order"]
+    # 文案同时带上节点，人看一行输出就知道改哪个节点
+    assert "get_order" in verdict.param_msg
+
+
+def test_fail_nodes_empty_for_native_agent():
+    """原生 Agent 直接调工具，没有节点：fail_nodes 必须为空，文案不变。"""
+    trace = make_trace(
+        [one_turn([call("get_order", {"order_id": 1001})], "已签收")]
+    )
+    verdict = evaluate(trace, make_task({"expect_args": {"order_id": 1002}}))
+    assert verdict.failure_type == "wrong_arg"
+    assert verdict.rounds[0].fail_nodes == []
+    assert verdict.fail_nodes == []
+    # 与改动前逐字一致：没有节点就不该凭空出现"(节点 ...)"
+    assert verdict.param_msg == "错 order_id=1002"
+
+
+def test_missing_tool_names_present_nodes_without_faking_a_culprit():
+    """缺的工具在画布里没有节点，fail_nodes 不能硬凑现有节点。
+
+    但要把本轮真正调过的节点写进 tool_msg——否则读的人会以为
+    "模型不肯调 get_logistics"，实际是该节点压根没画。
+    """
+    trace = make_trace([one_turn([], "已发货")])
+    trace.add_event(
+        KIND_TOOL_CALL,
+        node_id="get_order",
+        node_type="tool",
+        name="get_order",
+        output="status=200",
+    )
+    verdict = evaluate(trace, make_task({"expect_tools": ["get_logistics"]}))
+    assert verdict.failure_type == "missing_tool"
+    assert verdict.fail_nodes == []
+    assert "get_logistics" in verdict.tool_msg
+    assert "get_order" in verdict.tool_msg
+
+
 # ---------------------------------------------------------------- 文本匹配
 
 

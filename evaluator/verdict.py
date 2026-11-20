@@ -79,6 +79,10 @@ class RoundVerdict:
     non_answer: bool = False
     over_calls: list[list] = field(default_factory=list)
     call_count: int = 0
+    # 判定指向的具体节点（节点 id，按出现顺序去重）。
+    # Workflow 的失败要能落到"哪个节点"，原生 Agent 没有节点，这里为空。
+    # 单独成字段而不是拼进 msg：消费方要能直接取用，不必正则抠字符串。
+    fail_nodes: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -105,6 +109,7 @@ class RoundVerdict:
             "non_answer": self.non_answer,
             "over_calls": [list(x) for x in self.over_calls],
             "call_count": self.call_count,
+            "fail_nodes": list(self.fail_nodes),
         }
 
 
@@ -132,6 +137,7 @@ class Verdict:
     forbidden_tools: list[str] = field(default_factory=list)
     invalid_tools: list[str] = field(default_factory=list)
     over_calls: list[list] = field(default_factory=list)
+    fail_nodes: list[str] = field(default_factory=list)
 
     def graded_rounds(self) -> list[RoundVerdict]:
         return [r for r in self.rounds if r.judged]
@@ -161,6 +167,7 @@ class Verdict:
             "forbidden_tools": list(self.forbidden_tools),
             "invalid_tools": list(self.invalid_tools),
             "over_calls": [list(x) for x in self.over_calls],
+            "fail_nodes": list(self.fail_nodes),
         }
 
 
@@ -182,6 +189,19 @@ def calls_of_turn(trace: Trace, turn: Turn) -> list[ToolCall]:
         for e in trace.events
         if e.kind == KIND_TOOL_CALL and e.turn == turn.index
     ]
+
+
+def _nodes_where(
+    calls: Sequence[ToolCall], names: set[str] | None = None
+) -> list[str]:
+    """这些调用发生在哪些节点：按出现顺序去重，原生 Agent 的空 node_id 忽略。"""
+    out: list[str] = []
+    for c in calls:
+        if names is not None and c.name not in names:
+            continue
+        if c.node_id and c.node_id not in out:
+            out.append(c.node_id)
+    return out
 
 
 def judge_round(
@@ -215,6 +235,7 @@ def judge_round(
             r.tool_msg = f"未知工具 {','.join(unknown)}"
             r.param_msg = "未校验"
             r.failure_type = "invalid_tool"
+            r.fail_nodes = _nodes_where(calls, set(unknown))
             return r
 
     banned = [t for t in (assertions.get("forbidden_tools") or []) if t in names]
@@ -223,6 +244,7 @@ def judge_round(
         r.tool_msg = f"禁止调用 {','.join(banned)}"
         r.param_msg = "未校验"
         r.failure_type = "forbidden_action"
+        r.fail_nodes = _nodes_where(calls, set(banned))
         return r
 
     # ---------- L1 工具选择 ----------
@@ -232,20 +254,45 @@ def judge_round(
     else:
         missing = [t for t in expect if t not in names]
         r.tool_ok = not missing
-        r.tool_msg = f"缺 {','.join(missing)}" if missing else "命中"
+        if missing:
+            r.tool_msg = f"缺 {','.join(missing)}"
+            # 缺的工具在画布里没有节点，fail_nodes 只能留空——
+            # 硬塞现有节点会被读成"这些节点判错了"。
+            # 但要把本轮实际出过调用的节点写出来，读者才知道该加节点。
+            seen = _nodes_where(calls)
+            if seen:
+                r.tool_msg += f"（本轮调用来自节点 {','.join(seen)}）"
+        else:
+            r.tool_msg = "命中"
 
     # ---------- L2 参数 ----------
     expect_args = assertions.get("expect_args") or {}
     if not expect_args:
         r.param_ok, r.param_msg = True, "未校验"
     else:
-        bad = [
-            f"{k}={v}"
-            for k, v in expect_args.items()
-            if not any(same(c.args.get(k), v) for c in calls)
-        ]
+        bad: list[str] = []
+        nodes: list[str] = []
+        for k, v in expect_args.items():
+            if any(same((c.args or {}).get(k), v) for c in calls):
+                continue
+            # 谁把参数传错了：找携带这个键的调用，取它所在的节点。
+            carrier = next(
+                ((c.node_id, (c.args or {}).get(k)) for c in calls
+                 if k in (c.args or {})),
+                None,
+            )
+            if carrier and carrier[0]:
+                if carrier[0] not in nodes:
+                    nodes.append(carrier[0])
+                bad.append(f"{k}={v}（节点 {carrier[0]} 实传 {carrier[1]}）")
+            elif carrier:
+                # 原生 Agent 的调用不带节点，文案与改动前逐字一致。
+                bad.append(f"{k}={v}")
+            else:
+                bad.append(f"{k}={v}（无调用带该参数）")
         r.param_ok = not bad
         r.param_msg = f"错 {','.join(bad)}" if bad else "命中"
+        r.fail_nodes = nodes
 
     # ---------- L5 调用顺序 ----------
     # 子序列匹配：中间插入别的工具没关系，这一串的先后不能乱。
@@ -266,6 +313,9 @@ def judge_round(
             r.order_msg = f"未校验，{want[0]} 一次都没调"
         else:
             r.order_msg = f"顺序错，{want[pos]} 没在 {want[pos - 1]} 之后"
+            # 落到违反顺序的那次调用：前驱工具最后一次出现的那个节点。
+            idx = max(i for i, n in enumerate(names) if n == want[pos - 1])
+            r.fail_nodes = _nodes_where([calls[idx]])
 
     # ---------- L3 依据溯源 ----------
     r.claims = resolve_all(assertions.get("grounded_claims"), text, history)
@@ -442,6 +492,10 @@ def evaluate(
         forbidden_tools=union("forbidden_tools"),
         invalid_tools=union("invalid_tools"),
         over_calls=[[r.turn, *oc] for r in graded for oc in (r.over_calls or [])],
+        # 只汇总失败轮的节点，去重保序：通过轮不该出现在定位结果里。
+        fail_nodes=list(
+            dict.fromkeys(n for r in failed for n in (r.fail_nodes or []))
+        ),
     )
 
 

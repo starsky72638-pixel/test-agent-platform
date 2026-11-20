@@ -62,6 +62,22 @@ def test_tool_call_roundtrip():
     assert again.args == {"q": "机械键盘", "max_price": 900}
 
 
+def test_tool_call_node_id_is_optional_and_roundtrips():
+    """node_id 是后加的字段：旧数据没有它要能读，新数据要能带回来。
+
+    旧 jsonl 里没有这个键，读成空串（= 原生 Agent 直接调工具）；
+    空值也不写进 to_dict，历史轨迹落盘格式因此逐字节不变。
+    """
+    legacy = {"name": "get_order", "args": {"order_id": 1002}, "call_id": "t0c0"}
+    old = ToolCall.from_dict(legacy)
+    assert old.node_id == ""
+    assert "node_id" not in old.to_dict()
+
+    call = ToolCall(name="get_order", node_id="node_7")
+    assert ToolCall.from_dict(call.to_dict()).node_id == "node_7"
+    assert ToolCall.from_dict(call.to_dict()) == call
+
+
 def test_event_roundtrip():
     event = Event(
         kind=KIND_TOOL_CALL,
