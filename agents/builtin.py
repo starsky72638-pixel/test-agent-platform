@@ -39,6 +39,7 @@ ALIASES = {
     "shop": "shop-tuned",
     "main_agent": "main",
     "cs": "customer",
+    "cs-cold": "customer-cold",
 }
 
 
@@ -91,10 +92,30 @@ def _customer_factory(**kwargs):
     return make_customer_agent(**kwargs)
 
 
+def _customer_cold_factory(**kwargs):
+    """冷启动变体：只有角色，没有行为准则，工具描述也压到初稿水平。
+
+    它存在的目的是给经验学习一个"真的会失败"的起点。
+    两条约束都要删：prompt 里的规则、工具描述里的规则。上一版只删了前者，
+    而 apply_refund 的描述里写着"调用前先 get_order"，等于约束还在，
+    于是 6/6 全过、学不到任何东西。
+
+    不改工厂签名，只注入 prompt= 与 tools=——按 agents/customer/__init__.py
+    里已经写好的约定（要做对照就传参，不必动 make_customer_agent）。
+    """
+    from agents.customer import COLD_PROMPT, cold_tools, make_customer_agent
+
+    kwargs.setdefault("prompt", COLD_PROMPT)
+    kwargs.setdefault("tools", cold_tools())
+    kwargs.setdefault("name", "customer-cold")
+    return make_customer_agent(**kwargs)
+
+
 register("shop-cold", _shop_factory("cold"))
 register("shop-tuned", _shop_factory("tuned"))
 register("main", _main_factory)
 register("customer", _customer_factory)
+register("customer-cold", _customer_cold_factory)
 
 DEFAULT_AGENT = "shop-cold"
 

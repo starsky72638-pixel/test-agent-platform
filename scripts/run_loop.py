@@ -37,7 +37,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 import time
 from pathlib import Path
@@ -47,15 +46,15 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import agents.builtin as builtin
-from config import PROJECT_ROOT
+from config import PROJECT_ROOT, SERVICE_BASE
 from core.task import load_many
 from core.trace import save_traces
 from memory.store import ExperienceStore
 from pipeline import learn, verify
 
-# 被测服务的地址。与 agents/*/tools 读同一个环境变量，
-# 所以改地址只需要设一次 SHOP_BASE_URL，不需要改脚本。
-SHOP_BASE = (os.getenv("SHOP_BASE_URL") or "http://127.0.0.1:8000").rstrip("/")
+# 被测服务地址的单一来源是 config.SERVICE_BASE（与 agents/*/tools 同一处）。
+# 这里不再自己读环境变量：重置必须打到工具真正用的那个地址，
+# 否则会出现"重置了另一个服务"的静默错位。
 
 DEFAULT_GOLDENS = (
     PROJECT_ROOT / "data" / "shop_eval.jsonl",
@@ -97,12 +96,32 @@ def check_server() -> None:
     import httpx
 
     try:
-        httpx.get(f"{SHOP_BASE}/products/search", timeout=3.0)
-        httpx.post(f"{SHOP_BASE}/admin/reset", timeout=3.0)
+        httpx.get(f"{SERVICE_BASE}/products/search", timeout=3.0)
     except httpx.HTTPError as exc:
         raise SystemExit(
-            f"[错误] 连不上被测服务 {SHOP_BASE}（{type(exc).__name__}）\n"
+            f"[错误] 连不上被测服务 {SERVICE_BASE}（{type(exc).__name__}）\n"
             f"       先另开一个窗口执行：.venv\\Scripts\\python.exe mock_server.py"
+        ) from exc
+
+
+def reset_service() -> None:
+    """把被测服务的状态清回初始值。
+
+    为什么每次开跑前都要重置：mock 的退款记录是全局状态，同一订单二次退款
+    返回 409。学习、基线、注入三个阶段跑的是同一批订单，不重置的话后跑的
+    那一组会在同样的订单上拿到 409，回答变成"已申请过退款"，看起来像
+    "经验把题弄坏了"，实际是状态污染——那是最容易骗过自己的一种假负向。
+
+    失败直接退出，不吞掉：带着脏状态跑出来的对比没有解释价值。
+    """
+    import httpx
+
+    try:
+        httpx.post(f"{SERVICE_BASE}/admin/reset", timeout=3.0)
+    except httpx.HTTPError as exc:
+        raise SystemExit(
+            f"[错误] 无法重置被测服务 {SERVICE_BASE}/admin/reset"
+            f"（{type(exc).__name__}），拒绝在脏状态下继续"
         ) from exc
 
 
@@ -162,6 +181,7 @@ def main(argv=None) -> int:
         return 1
 
     check_server()
+    reset_service()  # 学习阶段也要一个干净起点
 
     stamp = time.strftime("%Y%m%d-%H%M%S")
     run_dir = (Path(args.out) if args.out else RUNS_DIR) / stamp
@@ -254,6 +274,9 @@ def main(argv=None) -> int:
         min_score=args.min_score,
         max_steps=args.max_steps,
         record=not args.no_record,
+        # 基线与注入用的是同一批订单，中间必须把服务清回初始状态，
+        # 否则后跑的一组会撞上 409 重复退款，产出假的"经验有害"。
+        before_side=lambda label: reset_service(),
     )
     verify_sec = int(time.perf_counter() - started)
 

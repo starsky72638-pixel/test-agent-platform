@@ -163,6 +163,58 @@ def test_registered_in_builtin():
     assert agent.name == "customer"
 
 
+def test_cold_variant_differs_in_prompt_and_tool_descriptions_only():
+    """冷变体只改两样：系统提示词、工具描述。
+
+    为什么是两样：业务约束同时存在于这两处。apply_refund 的描述里写着
+    "调用前先 get_order 确认订单状态"，工具描述每轮都随 schema 进上下文，
+    只删 prompt 等于没删约束（上一轮就是这么得出假 null 的）。
+
+    为什么不许改别的：函数体、工具名、参数名必须与常态完全一致，
+    否则"基线失败、注入后通过"就分不清是经验带来的还是工具行为变了带来的。
+    """
+    from agents.customer import COLD_PROMPT, COLD_TOOLS
+
+    cold = CustomerAgent(prompt=COLD_PROMPT, tools=list(COLD_TOOLS), name="customer-cold")
+    warm = CustomerAgent()
+
+    assert cold.prompt != warm.prompt
+    assert cold.max_steps == warm.max_steps
+    assert [t.name for t in cold.tools] == [t.name for t in warm.tools]
+
+    for c, w in zip(cold.tools, warm.tools):
+        # 同一个函数对象：工具的行为一行没改
+        assert c.func is w.func
+        assert list(c.args.keys()) == list(w.args.keys())
+        # 描述必须真的更短，且不含任何行为准则
+        assert len(c.description) < len(w.description)
+        for banned in ("必须先", "先 get_order", "不要", "不能", "必填", "再查"):
+            assert banned not in c.description
+
+    # 冷提示词里也不许再有行为准则，否则等于把答案提前写进去
+    for banned in ("必须先", "不能编造", "先问清楚"):
+        assert banned not in COLD_PROMPT
+
+
+def test_cold_variant_is_registered():
+    import agents.builtin as builtin
+
+    from agents.customer.agent import DEFAULT_PROMPT
+
+    assert "customer-cold" in builtin.names()
+    assert builtin.ALIASES["cs-cold"] == "customer-cold"
+
+    agent = builtin.make("cs-cold")
+    assert agent.name == "customer-cold"
+    assert agent.prompt != DEFAULT_PROMPT
+    # 描述必须真的是初稿水平，否则对照实验的自变量又没删干净
+    warm = builtin.make("customer")
+    assert all(len(t.description) < len(w.description)
+               for t, w in zip(agent.tools, warm.tools))
+    # 工具名不变：判分的 allowed_tools 与 expect_tools 才继续对得上
+    assert [t.name for t in agent.tools] == [t.name for t in warm.tools]
+
+
 def test_customer_does_not_import_shop():
     """agents/customer 必须独立于 agents/shop。
 

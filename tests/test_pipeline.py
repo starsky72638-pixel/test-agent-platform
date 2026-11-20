@@ -275,6 +275,70 @@ def test_verify_records_injection_and_outcome(tmp_path):
     assert compare.retired == 0
 
 
+def test_outcome_skips_tasks_that_passed_without_experience(tmp_path):
+    """基线本来就能过的题，不能把"注入后仍然通过"记成经验的功劳。
+
+    旧口径只要注入组通过就 support+1，于是"经验根本没起作用"也会涨分。
+    这里加一条不做任何断言的 H3：它必然 PASS，又因为与 H1 同关键词会被注入，
+    正好构成"基线过 + 注入过"这一格。support 只该涨 H1/H2 的两分。
+    """
+    tasks = make_tasks()
+    already_ok = Task(
+        id="H3",
+        input="这个蓝牙耳机还有现货吗",
+        assertions={},
+        split="holdout",
+    )
+    store = make_store(tmp_path)
+    learn(make_agent(), tasks, store, allowed_tools=ALLOWED)
+
+    before = store.stats()
+    compare = verify(make_agent(), tasks + [already_ok], store, allowed_tools=ALLOWED)
+    after = store.stats()
+
+    assert compare.baseline.verdicts["H3"].passed is True
+    assert compare.injected.verdicts["H3"].passed is True
+    # H1/H2 是"失败 -> 通过"，各 +1；H3 基线就过，不计
+    assert after["support_total"] - before["support_total"] == 2
+
+
+def test_verify_resets_between_sides(tmp_path):
+    """每一侧开跑前都要重置被测服务，且顺序是 基线 -> 注入。
+
+    为什么这条必须有：mock 的退款记录是全局状态，同一订单二次退款返回 409。
+    基线的写操作会污染注入组，让它在同样的订单上失败——那会产出一个
+    假的"经验有害"。pipeline 不认识 HTTP，所以这里只验钩子被正确调用，
+    真正发请求的是入口脚本。
+    """
+    tasks = make_tasks()
+    store = make_store(tmp_path)
+    learn(make_agent(), tasks, store, allowed_tools=ALLOWED)
+
+    calls: list[str] = []
+    compare = verify(
+        make_agent(),
+        tasks,
+        store,
+        allowed_tools=ALLOWED,
+        before_side=calls.append,
+    )
+
+    assert calls == ["baseline", "injected"]
+    # 钩子只负责重置，不该改变判定结果
+    assert compare.baseline.total == compare.injected.total
+
+
+def test_verify_without_hook_keeps_old_behaviour(tmp_path):
+    """不传钩子的调用方（旧代码、测试）行为不变：不需要任何回调也能跑完。"""
+    tasks = make_tasks()
+    store = make_store(tmp_path)
+    learn(make_agent(), tasks, store, allowed_tools=ALLOWED)
+
+    compare = verify(make_agent(), tasks, store, allowed_tools=ALLOWED, record=False)
+
+    assert compare.injected.total > 0
+
+
 def test_verify_creates_no_new_experience(tmp_path):
     """验证阶段不许往库里加新经验——加了就是拿验证集训练。"""
     tasks = make_tasks()

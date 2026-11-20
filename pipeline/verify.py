@@ -22,6 +22,8 @@
    record_injection 是分母（被注入过几次），record_outcome 是分子。
    两件事都在这里做，不藏在 provider 里——provider 只该返回文本，
    带副作用会让"为什么这条经验被退休了"变得查不清。
+   分子的口径限定在"基线失败"的题：基线本来就过的题无法归因，
+   不计入 support，否则经验完全没生效也会涨分。
 
 一句必须说清的话：这一层不保证"通过率会上升"。样本量是十几条，
 temperature=0 也只是"尽量确定"，单条翻转可能就是噪声。所以产出的是
@@ -42,6 +44,13 @@ from evaluator.verdict import Verdict, evaluate
 from memory.inject import make_provider
 
 SideHook = Callable[[str, Task, Trace, Verdict], None]
+# 每一侧开跑之前的回调，参数是 "baseline" / "injected"。
+# 为什么需要它：mock 后端是有状态的（同一订单二次退款返回 409），
+# 基线的写操作会把注入组的状态改掉。不重置的话，注入组会在同一批订单上
+# 拿到 409，回答变成"已申请过退款"，看起来像"经验把题弄坏了"——
+# 那是状态污染，不是能力差异。pipeline 不认识 HTTP，所以只留钩子，
+# 具体怎么重置由入口脚本决定。
+SideStart = Callable[[str], None]
 
 
 @dataclass
@@ -266,13 +275,21 @@ def verify(
     min_score: float | None = None,
     max_steps: int = 6,
     record: bool = True,
+    before_side: SideStart | None = None,
 ) -> CompareResult:
-    """holdout 跑两遍并对比。record=False 时不改动经验库（便于只看不改）。"""
+    """holdout 跑两遍并对比。record=False 时不改动经验库（便于只看不改）。
+
+    before_side 在每一侧开跑前被调用一次（先 "baseline" 后 "injected"），
+    用来把被测服务重置回初始状态。不传就保持旧行为（不重置），
+    对无状态的服务没有影响。
+    """
     items = list(tasks or [])
     holdout = [t for t in items if t.split == SPLIT_HOLDOUT]
     if not holdout:
         raise ValueError("没有 holdout 侧任务，验证阶段无从开始（检查任务划分）")
 
+    if before_side is not None:
+        before_side("baseline")
     baseline = _run_side(agent, holdout, None, "baseline", allowed_tools, on_judged, max_steps)
 
     hits_log: dict[str, dict] = {}
@@ -283,6 +300,8 @@ def verify(
         hits_log[task.id] = {"ids": list(ids), "chars": len(text or "")}
         return text, ids
 
+    if before_side is not None:
+        before_side("injected")
     injected = _run_side(
         agent, holdout, tracking, "injected", allowed_tools, on_judged, max_steps
     )
@@ -301,6 +320,16 @@ def verify(
                 continue
             verdict = injected.verdicts.get(task_id)
             if verdict is None:
+                continue
+            base = baseline.verdicts.get(task_id)
+            if base is None:
+                continue
+            # 基线就通过、注入也通过：这次注入无法归因，两边都不记。
+            # 旧口径只要求"注入通过"就 support+1，于是经验完全没起作用也会涨分：
+            # 上一轮 S12/S20 基线本来就过，support 却从 1 涨到 3，就是这么来的。
+            # 其余三种组合都要记：失败->通过 记 support，失败->失败 记反证，
+            # 通过->失败 也记反证（经验把原本正常的题弄坏了，这条最该被看见）。
+            if base.passed and verdict.passed:
                 continue
             outcome = store.record_outcome(info["ids"], passed=bool(verdict.passed))
             touched += int(outcome.get("touched") or 0)

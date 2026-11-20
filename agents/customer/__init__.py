@@ -12,8 +12,14 @@
 对外只有一个入口：make_customer_agent()。
 """
 
-from agents.customer.agent import CustomerAgent, calls_from_messages, run_turn
-from agents.customer.tools import CUSTOMER_TOOLS, allowed_tool_names, customer_tools
+from agents.customer.agent import COLD_PROMPT, CustomerAgent, calls_from_messages, run_turn
+from agents.customer.tools import (
+    COLD_TOOLS,
+    CUSTOMER_TOOLS,
+    allowed_tool_names,
+    cold_tools,
+    customer_tools,
+)
 
 
 def make_customer_agent(**kwargs) -> CustomerAgent:
@@ -28,8 +34,11 @@ def make_customer_agent(**kwargs) -> CustomerAgent:
 __all__ = [
     "CustomerAgent",
     "make_customer_agent",
+    "COLD_PROMPT",
     "CUSTOMER_TOOLS",
+    "COLD_TOOLS",
     "customer_tools",
+    "cold_tools",
     "allowed_tool_names",
     "calls_from_messages",
     "run_turn",

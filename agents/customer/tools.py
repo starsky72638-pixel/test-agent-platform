@@ -93,6 +93,42 @@ def customer_tools() -> list:
     return list(CUSTOMER_TOOLS)
 
 
+# -------------------------
+# 冷启动对照用的"初稿工具"
+# -------------------------
+# 为什么需要这一份：
+#   行为约束不只写在 prompt 里，也写在工具描述里。apply_refund 的
+#   "调用前先 get_order 确认订单状态"就是一条完整的业务规则，而工具描述
+#   每一轮都会随 schema 进上下文。上一轮只删 prompt 的 cold 变体因此
+#   仍然拿到全部约束，6/6 全过——那个 null 是自变量没删干净造成的，
+#   不是"模型太强"。这一份把描述也降到初稿水平：一个开发者照着接口
+#   随手写了三个工具、没写文档，这是真实的起点。
+#
+# 边界：只换描述。函数体、参数签名、返回格式全部复用上面三个，
+#   否则"注入后通过"就分不清是经验带来的还是工具行为变了带来的。
+COLD_DESCRIPTIONS = {
+    "get_order": "查订单。",
+    "get_logistics": "查物流。",
+    "apply_refund": "提交退款申请。",
+}
+
+
+def _terse(original):
+    """同名、同参数、同函数体，只把描述换成一句话。"""
+    clone = tool(original.func)
+    clone.name = original.name
+    clone.description = COLD_DESCRIPTIONS[original.name]
+    return clone
+
+
+COLD_TOOLS = tuple(_terse(t) for t in CUSTOMER_TOOLS)
+
+
+def cold_tools() -> list:
+    """冷变体绑定的工具列表。同样每次返回新 list。"""
+    return list(COLD_TOOLS)
+
+
 def allowed_tool_names() -> set[str]:
     """允许出现的工具名。判分的 allowed_tools 参数用它。
 
@@ -101,4 +137,11 @@ def allowed_tool_names() -> set[str]:
     return {t.name for t in CUSTOMER_TOOLS}
 
 
-__all__ = ["CUSTOMER_TOOLS", "customer_tools", "allowed_tool_names"]
+__all__ = [
+    "CUSTOMER_TOOLS",
+    "customer_tools",
+    "allowed_tool_names",
+    "COLD_TOOLS",
+    "COLD_DESCRIPTIONS",
+    "cold_tools",
+]
