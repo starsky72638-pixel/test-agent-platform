@@ -33,7 +33,7 @@
     description: '',
     nodes: [],
     tools: [],
-    required: {},
+    params: {},
     defaultTool: '',
     sel: null,
     dirty: false,
@@ -103,23 +103,67 @@
     return {};
   }
 
+  function paramsOf(toolName) {
+    return S.params[toolName] || [];
+  }
+
   function missingRequired(n) {
-    const req = S.required[n.config.tool] || [];
     const args = n.config.args || {};
-    return req.filter((k) => !(k in args));
+    return paramsOf(n.config.tool)
+      .filter((p) => p.required && !(p.name in args))
+      .map((p) => p.name);
   }
 
   function updateArgsHint(n) {
     const el = $('#args-hint');
     if (!el) return;
-    const req = S.required[n.config.tool] || [];
+    const specs = paramsOf(n.config.tool);
+    if (!specs.length) {
+      setStatus(el, '这个工具没有声明参数；确有额外参数时用下面的高级 JSON');
+      return;
+    }
+    const req = specs.filter((p) => p.required).map((p) => p.name);
     if (!req.length) {
       setStatus(el, '这个工具没有必填参数');
       return;
     }
     const miss = missingRequired(n);
     if (miss.length) setStatus(el, '必填但尚未填：' + miss.join('、'), 'err');
-    else setStatus(el, '必填参数已齐：' + req.join('、'), 'ok');
+    else setStatus(el, '必填已就绪：' + req.join('、'), 'ok');
+  }
+
+  // 只有能排在自己前面的节点，其输出才一定可用：
+  // 执行器按拓扑序跑，引用下游节点会在运行时报"尚未执行"。
+  function ancestorIds(n) {
+    return S.nodes
+      .filter((x) => x.id !== n.id && reaches(x.id, n.id, new Set()))
+      .map((x) => x.id);
+  }
+
+  function setParamValue(n, el) {
+    const name = el.dataset.param;
+    n.config.args = n.config.args || {};
+    if (el.value === '') {
+      delete n.config.args[name];
+    } else if (el.dataset.type === 'number' && /^-?\d+(\.\d+)?$/.test(el.value)) {
+      // 只有纯数字才转成 number；模板串（{{...}}）必须原样保留，
+      // 否则会被当成 NaN 或被 input[type=number] 判非法而静默丢掉。
+      n.config.args[name] = Number(el.value);
+    } else {
+      n.config.args[name] = el.value;
+    }
+    markDirty();
+    updateArgsHint(n);
+    updateSummary(n);
+  }
+
+  function fillParamRows(n) {
+    const box = $('#inspector');
+    if (!box) return;
+    box.querySelectorAll('.pval').forEach((el) => {
+      const v = (n.config.args || {})[el.dataset.param];
+      el.value = v === undefined || v === null ? '' : String(v);
+    });
   }
 
   function summary(n) {
@@ -363,9 +407,42 @@
       const opts = S.tools.map((name) => '<option value="' + esc(name) + '"' +
         (name === n.config.tool ? ' selected' : '') + '>' + esc(name) + '</option>').join('');
       html += '<label>工具<select id="cfg-tool">' + opts + '</select></label>';
-      html += '<label>参数（JSON）<textarea id="cfg-args" rows="7" spellcheck="false">' +
-        esc(JSON.stringify(n.config.args || {}, null, 2)) + '</textarea></label>';
-      html += '<p class="hint" id="args-hint">值里可以写 {{input}} 或 {{nodes.&lt;id&gt;.output}}</p>';
+
+      // 变量下拉只列"能排在自己前面"的节点，避免引用下游导致运行时报错
+      const varOpts = ['<option value="">插入变量…</option>']
+        .concat(['<option value="{{input}}">用户输入 {{input}}</option>'])
+        .concat(ancestorIds(n).map((id) =>
+          '<option value="{{nodes.' + esc(id) + '.output}}">' + esc(id) + ' 的输出</option>'))
+        .join('');
+
+      const specs = paramsOf(n.config.tool);
+      if (!specs.length) {
+        html += '<p class="hint">这个工具没有声明参数；确有额外参数时用下面的高级 JSON。</p>';
+      }
+      for (const p of specs) {
+        const raw = (n.config.args || {})[p.name];
+        const val = raw === undefined || raw === null ? '' : String(raw);
+        const isNum = p.type === 'number' || p.type === 'integer';
+        html += '<div class="param">' +
+          '<div class="param-head">' +
+          '<span class="pname">' + esc(p.name) + '</span>' +
+          '<span class="ptype">' + esc(p.type) + '</span>' +
+          (p.required ? '<span class="pneed">必填</span>' : '<span class="popt">可选</span>') +
+          '</div>' +
+          '<div class="param-line">' +
+          '<input class="pval" data-param="' + esc(p.name) + '" data-type="' + (isNum ? 'number' : 'text') +
+          '" type="text"' + (isNum ? ' inputmode="numeric"' : '') +
+          ' value="' + esc(val) + '" spellcheck="false" />' +
+          '<select class="pvar" data-param="' + esc(p.name) + '">' + varOpts + '</select>' +
+          '</div>' +
+          (p.description ? '<p class="pdesc">' + esc(p.description) + '</p>' : '') +
+          '</div>';
+      }
+
+      html += '<p class="hint" id="args-hint"></p>';
+      html += '<details class="adv"><summary>高级：直接编辑参数 JSON</summary>' +
+        '<textarea id="cfg-args" rows="6" spellcheck="false">' +
+        esc(JSON.stringify(n.config.args || {}, null, 2)) + '</textarea></details>';
     } else if (n.type === 'llm') {
       html += '<label>Prompt<textarea id="cfg-prompt" rows="9" spellcheck="false">' +
         esc(n.config.prompt || '') + '</textarea></label>';
@@ -387,12 +464,51 @@
 
     if (n.type === 'tool') {
       $('#cfg-tool').addEventListener('change', (e) => {
-        n.config.tool = e.target.value;
+        const next = e.target.value;
+        // 换工具要清掉不属于新工具的参数：
+        // 残留键会被当成未知参数原样传给工具函数，报"unexpected keyword"，
+        // 而在画布上完全看不出它从哪来的。
+        const specs = paramsOf(next);
+        let dropped = [];
+        if (specs.length) {
+          const allowed = new Set(specs.map((p) => p.name));
+          const kept = {};
+          for (const [k, v] of Object.entries(n.config.args || {})) {
+            if (allowed.has(k)) kept[k] = v;
+            else dropped.push(k);
+          }
+          n.config.args = kept;
+        }
+        n.config.tool = next;
         markDirty();
         updateSummary(n);
-        // 换工具后必填项也换了，重渲染一次把提示对齐
+        // 换工具后参数表也换了，重渲染一次把行与提示对齐
         renderInspector();
+        if (dropped.length) {
+          setStatus($('#save-state'), '已切换工具，丢弃不匹配的参数：' + dropped.join('、'), '');
+        }
       });
+
+      box.querySelectorAll('.pval').forEach((el) => {
+        el.addEventListener('input', () => setParamValue(n, el));
+      });
+
+      box.querySelectorAll('.pvar').forEach((sel) => {
+        sel.addEventListener('change', () => {
+          const template = sel.value;
+          if (!template) return;
+          const name = sel.dataset.param;
+          n.config.args = n.config.args || {};
+          n.config.args[name] = template;
+          const input = box.querySelector('.pval[data-param="' + name + '"]');
+          if (input) input.value = template;
+          sel.value = '';
+          markDirty();
+          updateArgsHint(n);
+          updateSummary(n);
+        });
+      });
+
       const ta = $('#cfg-args');
       ta.addEventListener('input', () => {
         try {
@@ -401,6 +517,8 @@
             throw new Error('必须是 JSON 对象');
           }
           n.config.args = parsed;
+          // 只回填行里的值，不整块重渲染：否则 JSON 文本框会失去焦点
+          fillParamRows(n);
           updateArgsHint(n);
           markDirty();
           updateSummary(n);
@@ -786,11 +904,11 @@
     try {
       const data = await api.get('/tools');
       S.tools = Array.isArray(data && data.tools) ? data.tools : [];
-      S.required = (data && data.required) || {};
+      S.params = (data && data.params) || {};
       S.defaultTool = (data && data.default) || '';
     } catch (err) {
       S.tools = [];
-      S.required = {};
+      S.params = {};
       S.defaultTool = '';
       setStatus($('#save-state'), '读取工具列表失败：' + err.message, 'err');
     }

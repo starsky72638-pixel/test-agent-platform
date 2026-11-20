@@ -262,6 +262,9 @@ def test_executor_emits_real_events_in_order():
     assert kinds.count(KIND_LLM_CALL) == 1
     # seq 必须连续递增，这是"事件保序"的唯一依据
     assert [e.seq for e in trace.events] == list(range(len(trace.events)))
+    # started_at 必须落盘：否则轨迹只有相对耗时，
+    # 无法把节点耗时归到绝对时间轴（并行分支、总耗时归因都要靠它）
+    assert all(e.started_at > 0 for e in trace.events)
 
     tool_event = next(e for e in trace.events if e.kind == KIND_TOOL_CALL)
     assert tool_event.name == "get_order"

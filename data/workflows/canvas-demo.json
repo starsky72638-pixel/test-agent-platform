@@ -1,0 +1,69 @@
+{
+  "workflow_id": "canvas-demo",
+  "version": 3,
+  "name": "画布示例",
+  "description": "",
+  "entry": "start",
+  "tools": [
+    "get_order"
+  ],
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start",
+      "config": {},
+      "next": [
+        "get_order"
+      ]
+    },
+    {
+      "id": "end",
+      "type": "end",
+      "config": {},
+      "next": []
+    },
+    {
+      "id": "get_order",
+      "type": "tool",
+      "config": {
+        "tool": "get_order",
+        "args": {
+          "order_id": 1002
+        }
+      },
+      "next": [
+        "llm1"
+      ]
+    },
+    {
+      "id": "llm1",
+      "type": "llm",
+      "config": {
+        "prompt": "订单接口返回：{{nodes.get_order.output}}\n请用中文简要说明订单状态和金额，只用上面出现过的信息。\n"
+      },
+      "next": [
+        "end"
+      ]
+    }
+  ],
+  "meta": {
+    "layout": {
+      "start": {
+        "x": 90,
+        "y": 120
+      },
+      "end": {
+        "x": 784,
+        "y": 301
+      },
+      "get_order": {
+        "x": 339,
+        "y": 120
+      },
+      "llm1": {
+        "x": 584,
+        "y": 140
+      }
+    }
+  }
+}

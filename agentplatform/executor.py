@@ -149,6 +149,7 @@ class Executor:
                 node_type=node.type,
                 turn=turn,
                 args={"input": _truncate(ctx["input"])},
+                started_at=started,
             )
             try:
                 output = self._exec(node, trace, turn, ctx)
@@ -161,6 +162,7 @@ class Executor:
                     turn=turn,
                     ok=False,
                     error=message,
+                    started_at=started,
                     elapsed_ms=max(0, now_ms() - started),
                 )
                 raise ExecutionError(node.id, node.type, message) from exc
@@ -174,6 +176,7 @@ class Executor:
                 node_type=node.type,
                 turn=turn,
                 output=_truncate(output),
+                started_at=started,
                 elapsed_ms=elapsed,
             )
             if node.type == NODE_END:
@@ -220,6 +223,7 @@ class Executor:
                 args=args,
                 ok=False,
                 error=f"{type(exc).__name__}: {exc}",
+                started_at=started,
                 elapsed_ms=max(0, now_ms() - started),
             )
             raise
@@ -233,6 +237,7 @@ class Executor:
             name=name,
             args=args,
             output=_truncate(text),
+            started_at=started,
             elapsed_ms=max(0, now_ms() - started),
         )
         return text
@@ -258,6 +263,7 @@ class Executor:
             name=model,
             args={"prompt": _truncate(prompt)},
             output=_truncate(text),
+            started_at=started,
             elapsed_ms=max(0, now_ms() - started),
         )
         return text

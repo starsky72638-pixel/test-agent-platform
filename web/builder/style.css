@@ -256,6 +256,33 @@ aside h3 { font-size: 12px; color: var(--muted); margin: 0 0 6px; font-weight: 6
 }
 .json-actions { display: flex; align-items: center; gap: 8px; }
 
+/* 参数行：一个参数一块，值输入框 + 变量下拉 */
+.param {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 8px;
+  margin-bottom: 8px;
+  background: var(--panel-2);
+}
+.param-head { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+.pname { font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+.ptype { font-size: 11px; color: var(--muted); }
+.pneed {
+  margin-left: auto; font-size: 11px; color: #ffb3b3;
+  border: 1px solid #6b2b2b; border-radius: 4px; padding: 0 5px;
+}
+.popt {
+  margin-left: auto; font-size: 11px; color: var(--muted);
+  border: 1px solid var(--line); border-radius: 4px; padding: 0 5px;
+}
+.param-line { display: grid; grid-template-columns: minmax(0, 1fr) 104px; gap: 6px; }
+.param-line input, .param-line select { width: 100%; }
+.pdesc { margin: 5px 0 0; font-size: 11px; color: var(--muted); line-height: 1.45; }
+
+details.adv { margin-top: 6px; }
+details.adv summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+details.adv textarea { margin-top: 6px; }
+
 /* ---------- 运行条 ---------- */
 
 .runbar { border-top: 1px solid var(--line); background: var(--panel); }

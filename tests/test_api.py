@@ -175,13 +175,25 @@ def test_tools_endpoint_matches_runtime_toolbox(client):
     assert body["tools"] == sorted(t.name for t in CUSTOMER_TOOLS)
     assert body["tools"] == ["apply_refund", "get_logistics", "get_order"]
 
-    # required 让画布在保存前就能拦住"缺必填参数"——
-    # 否则会跑出 infra_error + 空回答，看起来像模型不会答。
-    assert body["required"] == {
-        "apply_refund": ["order_id", "reason"],
-        "get_logistics": ["order_id"],
-        "get_order": ["order_id"],
-    }
+    # params 让画布能画出参数行（名字/类型/必填/说明）：
+    # 用户不必手写 JSON，也不会漏掉 reason 这种必填项。
+    params = body["params"]
+    assert [p["name"] for p in params["get_order"]] == ["order_id"]
+    assert params["get_order"][0]["type"] == "integer"
+    assert params["get_order"][0]["required"] is True
+    # LangChain 生成的 schema 不带参数级说明，这里是 docstring 兜底的结果；
+    # 断言具体字样，防止哪天兜底失效只返回空串还"看起来通过"
+    assert "订单号" in params["get_order"][0]["description"]
+
+    refund = {p["name"]: p for p in params["apply_refund"]}
+    assert refund["order_id"]["required"] is True
+    # reason 是真实踩过的坑：漏了就 ValidationError → infra_error + 空回答
+    assert refund["reason"]["required"] is True
+    assert refund["reason"]["type"] == "string"
+    assert "退款原因" in refund["reason"]["description"]
+
+    assert {p["name"] for p in params["get_logistics"]} == {"order_id"}
+
     # 默认必须是只读工具：写操作有副作用、必填参数更多，
     # 拿它当新节点的默认值，第一次拖拽就必然报错。
     assert body["default"] == "get_order"

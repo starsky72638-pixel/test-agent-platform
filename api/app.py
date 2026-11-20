@@ -85,12 +85,33 @@ def workflow_store():
     return AgentStore()
 
 
-def _required_args(tool_obj) -> list[str]:
-    """工具的必填参数名。
+def _docstring_arg_desc(tool_obj, name: str) -> str:
+    """从工具 docstring 的 Args 段兜底取参数说明。
+
+    LangChain 由函数签名生成的 args_schema 不带参数级描述
+    （实测 properties[].description 为空串），而画布的参数行需要它。
+    两个来源都试：tool.description 可能是被清理过的首段，
+    tool.func.__doc__ 才是原始 docstring。
+    """
+    sources = [str(getattr(tool_obj, "description", "") or "")]
+    func = getattr(tool_obj, "func", None)
+    if func is not None:
+        sources.append(str(getattr(func, "__doc__", "") or ""))
+
+    pattern = re.compile(rf"^\s*{re.escape(name)}\s*:\s*(.+)$", re.MULTILINE)
+    for text in sources:
+        match = pattern.search(text)
+        if match:
+            return match.group(1).strip()
+    return ""
+
+
+def _param_specs(tool_obj) -> list[dict]:
+    """工具的参数表：名字、类型、是否必填、说明。
 
     走 args_schema 的 JSON Schema，而不是直接读 pydantic 字段：
     读字段要区分 model_fields 与 __fields__，两种 pydantic 版本写法不同，
-    而 JSON Schema 两边都只有同一个键 'required'。
+    而 JSON Schema 两边都只有 properties / required 这两个键。
     """
     schema = getattr(tool_obj, "args_schema", None)
     if schema is None:
@@ -101,9 +122,23 @@ def _required_args(tool_obj) -> list[str]:
             if hasattr(schema, "model_json_schema")
             else schema.schema()
         )
-    except Exception:  # 取不到就当没有必填项，不要因为它让 /tools 整个 500
+    except Exception:  # 取不到就返回空表，不要让它把 /tools 整个打成 500
         return []
-    return [str(x) for x in (data.get("required") or [])]
+
+    required = set(data.get("required") or [])
+    specs: list[dict] = []
+    for name, spec in (data.get("properties") or {}).items():
+        spec = spec if isinstance(spec, dict) else {}
+        description = str(spec.get("description") or "") or _docstring_arg_desc(tool_obj, name)
+        specs.append(
+            {
+                "name": str(name),
+                "type": str(spec.get("type") or "string"),
+                "required": name in required,
+                "description": description,
+            }
+        )
+    return specs
 
 
 def summarize(trace, path: Path) -> dict:
@@ -159,20 +194,19 @@ def create_app() -> FastAPI:
 
     @app.get("/tools")
     def list_tools() -> dict:
-        """Workflow 能用的工具池，附带每个工具的必填参数。
+        """Workflow 能用的工具池，附带每个工具的参数表。
 
         必须与 agents/builtin.py:_workflow_factory 注入的是同一份 CUSTOMER_TOOLS。
         前端若自己写死一份名单，画布上选得到、运行时却报"工具未注册"——
         那种错误只在点"运行"那一刻才暴露，最难查。
 
-        required 是给画布做保存前校验用的：缺必填参数时后端能跑，
-        但会在节点里抛 ValidationError，结果是空回答 + infra_error。
-        那种失败看起来像"模型不会回答"，其实是参数没填。
+        params 是给画布画参数行的：有了名字、类型、必填和说明，
+        用户就不必手写 JSON，也不会漏掉 reason 这种必填项。
         """
         from agents.customer.tools import CUSTOMER_TOOLS
 
         names = sorted(t.name for t in CUSTOMER_TOOLS)
-        required = {t.name: _required_args(t) for t in CUSTOMER_TOOLS}
+        params = {t.name: _param_specs(t) for t in CUSTOMER_TOOLS}
         # 默认给只读工具：写操作有副作用、必填参数更多，
         # 拿它当新节点的默认值，等于让第一次拖拽就必然报错。
         #
@@ -187,7 +221,7 @@ def create_app() -> FastAPI:
             default = read_only[0]
         else:
             default = names[0] if names else ""
-        return {"tools": names, "required": required, "default": default}
+        return {"tools": names, "params": params, "default": default}
 
     @app.post("/runs")
     def create_run(req: RunRequest) -> dict:
