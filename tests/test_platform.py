@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -704,3 +705,39 @@ def test_schema_rejects_unknown_extract_field():
     """名字写错要在加载期报出来，不能跑到一半才抛。"""
     errors = validate(extract_definition({"order_id": "{{extract.order}}"}))
     assert any("未知抽取字段" in e and "'order'" in e for e in errors)
+
+
+# ---------------------------------------------------------------- 双工具对比
+
+
+def test_shop_demo_runs_both_tools_with_one_extracted_id():
+    """抽一次、两处用：两个节点拿到同一个订单号，不是各抽各的。"""
+    defn = WorkflowDefinition.load(ROOT / "data" / "workflows" / "shop-demo.json")
+    order = FakeTool(name="get_order", output="status=200 body=已签收 金额 899.0")
+    logistics = FakeTool(name="get_logistics", output="status=200 body=carrier=中通")
+    agent = WorkflowAgent(defn, tools=[order, logistics], llm=FakeLLM("已签收，899 元"))
+
+    trace = agent.run(Task(id="S1", input="订单 1001 现在什么状态，顺便看下物流"))
+
+    assert trace.status == STATUS_OK
+    assert order.received == [{"order_id": "1001"}]
+    assert logistics.received == [{"order_id": "1001"}]
+    nodes = [e.node_id for e in trace.events if e.kind == KIND_NODE_END]
+    assert nodes == ["start", "get_order", "get_logistics", "llm1", "end"]
+
+
+def test_wf_eval_tasks_are_well_formed():
+    """评测集是数据文件，节点名写错只会在 20 秒的真跑里暴露。这里先钉结构。"""
+    text = (ROOT / "data" / "wf_eval.jsonl").read_text(encoding="utf-8")
+    rows = [json.loads(line) for line in text.splitlines() if line.strip()]
+    assert [r["id"] for r in rows] == ["W01", "W02", "W03", "W04", "W05", "W06"]
+
+    for row in rows:
+        assert row["input"].strip()
+        assert row["split"] in ("fit", "holdout")
+        assert isinstance(row.get("expect_tools"), list)
+
+    by_id = {r["id"]: r for r in rows}
+    # W05 刻意只做负向断言：不许出现别的订单的真实状态与金额
+    assert by_id["W05"]["must_not_have"]
+    assert not by_id["W05"]["must_have"]

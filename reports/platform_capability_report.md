@@ -29,12 +29,13 @@ shop-cold / shop-tuned / main / customer / customer-cold / workflow
 
 别名：`cold→shop-cold`、`tuned→shop-tuned`、`shop→shop-tuned`、`main_agent→main`、`cs→customer`、`cs-cold→customer-cold`、`wf→workflow`。
 
-磁盘 Workflow 通过 `wf:<id>` 前缀动态可寻址，当前 3 个：
+磁盘 Workflow 通过 `wf:<id>` 前缀动态可寻址，当前 4 个：
 
 ```
 wf:demo          start → tool(get_order) → llm → end
 wf:canvas-demo   画布产出，单工具节点（P5-c 时参数写死 1002；P6 起改为 {{extract.order_id}}）
 wf:branch-demo   start → tool → memory → condition → 两支 llm → 各自 end
+wf:shop-demo     start → get_order → get_logistics → llm → end（P7 新增，双工具对照用）
 ```
 
 实现差异：

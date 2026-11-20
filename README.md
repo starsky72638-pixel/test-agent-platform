@@ -104,7 +104,7 @@ POST /workflows            保存（覆盖时 version 自动 +1）
 .venv\Scripts\python.exe -m pytest tests -q
 ```
 
-当前 **402 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
+当前 **404 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
 
 ### 通过界面跑（可选）
 
@@ -135,15 +135,21 @@ HTTP 与 Web 界面走的是和 `run_agent.py` 同一条执行链，`core/` 零�
 
 画布是纯静态文件（`web/builder/`，零依赖、无 npm、无 CDN）——本机没有 Node 工具链，而答辩现场断网也不能白屏。它产出的就是 `data/workflows/<id>.json`，与手写 JSON 完全等价，两者可以互相覆盖。
 
-画布产出的 Agent 走的是同一套判分器（`data/wf_eval.jsonl`，3 条围绕订单 1001/1002 的验证任务）：
+画布产出的 Agent 走的是同一套判分器（`data/wf_eval.jsonl`，6 条验证任务）：
 
 ```powershell
 .venv\Scripts\python.exe scripts\run_shop.py --agent wf:canvas-demo --golden data\wf_eval.jsonl --no-compare
+.venv\Scripts\python.exe scripts\run_shop.py --agent wf:shop-demo --golden data\wf_eval.jsonl --no-compare
 ```
 
-这 3 条里**只剩 1 条是按设计就会失败**的：问快递的那条说明流程缺 `get_logistics` 节点（`missing_tool`）。它的作用不是凑通过率，而是证明判分器确实读到了事件里的调用——`WorkflowAgent` 的 `Turn.calls` 永远是空的。
+`canvas-demo` 只有 `get_order` 一个工具节点，`shop-demo`（`get_order → get_logistics`，参数同样走 `{{extract.order_id}}`）两个都有。同一个任务集跑两个 Agent，分数与失败项都不该一样——**这就是「平台能评估不同 Agent」的全部意思**，也是这两份定义存在的理由。
 
-另外两条以前也是红的，现在都靠"参数从输入抽"变绿了：`order_id` 由设计期写死的 `1002` 改成 `{{extract.order_id}}`，问 1001 才会去查 1001（原来必然 `wrong_arg`）。所以通过率从 `1/3` 变成 `2/3`，这个变化本身就是 P6 的验收证据。
+- W01/W03/W04 是查得到的题，两个 Agent 都该过
+- W02 是物流题：`canvas-demo` 必然 `missing_tool`，`shop-demo` 才有机会过
+- W05 查越界订单 9999，只做负向断言（不许冒出别的订单的状态与金额），测"查不到会不会编"
+- W06 要求退款：两个 Agent 都没有 `apply_refund` 节点，都该 `missing_tool`——判分器报的是"这个 Agent 不会做"，不是"模型答错"
+
+P6 之前 W03 恒为 `wrong_arg`（订单号写死 1002）。改成 `{{extract.order_id}}` 后它自然变绿，`canvas-demo` 从 `1/3` 变 `2/3`——同一个任务集对同一处改动产生了可观测的差值，这才是评测集有用的证据。
 
 ### 分支与记忆节点（目前只有 JSON 配置）
 

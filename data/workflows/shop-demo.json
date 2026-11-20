@@ -1,0 +1,87 @@
+{
+  "workflow_id": "shop-demo",
+  "version": 1,
+  "name": "双工具示例",
+  "description": "查订单 + 查物流两个工具串联，用来和只有 get_order 的 canvas-demo 做同一任务集对比",
+  "entry": "start",
+  "tools": [
+    "get_order",
+    "get_logistics"
+  ],
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start",
+      "config": {},
+      "next": [
+        "get_order"
+      ]
+    },
+    {
+      "id": "get_order",
+      "type": "tool",
+      "config": {
+        "tool": "get_order",
+        "args": {
+          "order_id": "{{extract.order_id}}"
+        }
+      },
+      "next": [
+        "get_logistics"
+      ]
+    },
+    {
+      "id": "get_logistics",
+      "type": "tool",
+      "config": {
+        "tool": "get_logistics",
+        "args": {
+          "order_id": "{{extract.order_id}}"
+        }
+      },
+      "next": [
+        "llm1"
+      ]
+    },
+    {
+      "id": "llm1",
+      "type": "llm",
+      "config": {
+        "prompt": "用户问题：{{input}}\n\n订单接口返回：{{nodes.get_order.output}}\n\n物流接口返回：{{nodes.get_logistics.output}}\n\n请用中文回答用户问题。只使用上面两个接口返回过的信息，不要补充任何未出现过的金额、状态或承运商；某个接口里没有所需信息时，如实说查不到，不要猜。\n"
+      },
+      "next": [
+        "end"
+      ]
+    },
+    {
+      "id": "end",
+      "type": "end",
+      "config": {},
+      "next": []
+    }
+  ],
+  "meta": {
+    "layout": {
+      "start": {
+        "x": 80,
+        "y": 150
+      },
+      "get_order": {
+        "x": 300,
+        "y": 150
+      },
+      "get_logistics": {
+        "x": 520,
+        "y": 150
+      },
+      "llm1": {
+        "x": 740,
+        "y": 150
+      },
+      "end": {
+        "x": 960,
+        "y": 150
+      }
+    }
+  }
+}
