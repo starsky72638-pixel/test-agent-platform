@@ -40,6 +40,7 @@ ALIASES = {
     "main_agent": "main",
     "cs": "customer",
     "cs-cold": "customer-cold",
+    "wf": "workflow",
 }
 
 
@@ -111,11 +112,28 @@ def _customer_cold_factory(**kwargs):
     return make_customer_agent(**kwargs)
 
 
+def _workflow_factory(**kwargs):
+    """按 JSON 定义执行的 Agent。
+
+    工具池在这里注入，不在 agentplatform 里 import 业务模块——
+    平台层不该认识 shop 或 customer。默认给客服域三个工具，
+    工作流声明了没注册的工具会在构造时被 schema 校验拦下，
+    不会跑到一半才发现工具不存在。
+    """
+    from agentplatform.adapter import build_workflow_agent
+    from agents.customer.tools import CUSTOMER_TOOLS
+
+    ref = kwargs.pop("workflow", None)
+    kwargs.setdefault("tools", list(CUSTOMER_TOOLS))
+    return build_workflow_agent(ref, **kwargs)
+
+
 register("shop-cold", _shop_factory("cold"))
 register("shop-tuned", _shop_factory("tuned"))
 register("main", _main_factory)
 register("customer", _customer_factory)
 register("customer-cold", _customer_cold_factory)
+register("workflow", _workflow_factory)
 
 DEFAULT_AGENT = "shop-cold"
 

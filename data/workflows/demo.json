@@ -1,0 +1,40 @@
+{
+  "workflow_id": "demo",
+  "version": 1,
+  "name": "订单查询演示",
+  "entry": "start",
+  "tools": ["get_order"],
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start",
+      "config": {},
+      "next": ["lookup"]
+    },
+    {
+      "id": "lookup",
+      "type": "tool",
+      "config": {
+        "tool": "get_order",
+        "args": {
+          "order_id": 1002
+        }
+      },
+      "next": ["explain"]
+    },
+    {
+      "id": "explain",
+      "type": "llm",
+      "config": {
+        "prompt": "用户问：{{input}}\n\n订单接口返回：{{nodes.lookup.output}}\n\n请用中文简洁回答：订单当前状态和金额分别是多少。只使用上面接口返回里有的信息，没有的字段直接说“接口未返回”，不要推测。"
+      },
+      "next": ["end"]
+    },
+    {
+      "id": "end",
+      "type": "end",
+      "config": {},
+      "next": []
+    }
+  ]
+}

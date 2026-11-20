@@ -43,7 +43,8 @@ Copy-Item .env.example .env
   main
   shop-cold（默认）
   shop-tuned
-别名：cold -> shop-cold, cs -> customer, cs-cold -> customer-cold, main_agent -> main, shop -> shop-tuned, tuned -> shop-tuned
+  workflow
+别名：cold -> shop-cold, cs -> customer, cs-cold -> customer-cold, main_agent -> main, shop -> shop-tuned, tuned -> shop-tuned, wf -> workflow
 ```
 
 `--list` 不构造 Agent、不读密钥，这一步能过就说明"按名字加载"这一层是通的。
@@ -56,13 +57,33 @@ Copy-Item .env.example .env
 
 输出四段：状态与耗时、逐条工具调用（含实参）、最终回答、`Trace` 落盘路径。
 
+### 用 JSON 定义 Agent（workflow）
+
+一个 Agent 也可以不写 Python，只写一份 JSON：节点 + 连线，平台按拓扑序执行。
+
+```powershell
+.venv\Scripts\python.exe scripts\run_agent.py --agent workflow --workflow demo --question "订单 1002 到哪了"
+```
+
+定义放在 `data/workflows/<id>.json`，支持的节点是 `start / llm / tool / end`：
+
+```json
+{"id": "lookup", "type": "tool",
+ "config": {"tool": "get_order", "args": {"order_id": 1002}},
+ "next": ["explain"]}
+```
+
+- 引用前面的产出用 `{{input}}`、`{{nodes.<节点id>.output}}`；引用不存在的节点会**直接报错**，不会悄悄渲染成空串。
+- 定义不合法（类型错、指向不存在的节点、有环、节点不可达、工具没注册）在**构造阶段**就报出全部问题，不会跑到一半才崩。
+- 执行过程写在 `Trace.events` 里（`node_start` / `node_end` / `tool_call` / `llm_call` / `error`）；`Trace.turns` 仍然只表示"用户说了几轮"，单轮就是 1 个，节点不写进 Turn。
+
 单测（离线，不花钱）：
 
 ```powershell
 .venv\Scripts\python.exe -m pytest tests -q
 ```
 
-当前 **339 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
+当前 **359 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
 
 ### 通过界面跑（可选）
 

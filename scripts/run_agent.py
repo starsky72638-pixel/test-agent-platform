@@ -37,7 +37,14 @@ from config import PROJECT_ROOT
 from core.registry import UnknownAgentError
 from core.runner import run_task
 from core.task import SPLIT_UNASSIGNED, Task
-from core.trace import save_traces
+from core.trace import (
+    KIND_ERROR,
+    KIND_LLM_CALL,
+    KIND_NODE_END,
+    KIND_NODE_START,
+    KIND_TOOL_CALL,
+    save_traces,
+)
 
 RUNS_DIR = PROJECT_ROOT / "runs" / "adhoc"
 SEPARATOR = "-" * 74
@@ -54,6 +61,11 @@ def parse_args(argv=None):
         help=f"Agent 名字（默认 {builtin.DEFAULT_AGENT}），用 --list 查看全部",
     )
     p.add_argument("--question", default="", help="单轮用户问题")
+    p.add_argument(
+        "--workflow",
+        default="",
+        help="Workflow id 或 json 路径，配合 --agent workflow 使用",
+    )
     p.add_argument("--max-steps", type=int, default=6, help="单轮步数上限（默认 6）")
     p.add_argument(
         "--out",
@@ -86,6 +98,36 @@ def print_calls(trace) -> None:
             args = args[:69] + "…"
         flag = "ok" if call.ok else f"ERROR {call.error[:40]}"
         print(f"  {i}. {call.name} {args} {flag}")
+
+
+def print_events(trace) -> None:
+    """按发生顺序打印节点级执行过程。
+
+    与 print_calls 的区别：calls 只说"调了什么工具"，
+    events 还说"哪个节点、什么时候、花了多久、有没有分支或异常"。
+    没有事件的轨迹（ReAct Agent）不打印，保持原输出不变。
+    """
+    if not trace.events:
+        return
+    nodes = sum(1 for e in trace.events if e.kind == KIND_NODE_END)
+    print(f"节点执行 {nodes} 个 | 事件 {len(trace.events)} 条")
+    for e in trace.events:
+        if e.kind == KIND_NODE_START:
+            print(f"  [{e.seq}] > {e.node_id} ({e.node_type})")
+        elif e.kind == KIND_TOOL_CALL:
+            try:
+                args = json.dumps(e.args, ensure_ascii=False)
+            except (TypeError, ValueError):
+                args = str(e.args)
+            if len(args) > 60:
+                args = args[:59] + "…"
+            flag = "ok" if e.ok else f"ERROR {(e.error or '')[:40]}"
+            print(f"  [{e.seq}]   tool {e.name} {args} {flag} {e.elapsed_ms}ms")
+        elif e.kind == KIND_LLM_CALL:
+            head = (e.output or "").replace("\n", " ")[:50]
+            print(f"  [{e.seq}]   llm  {e.name} {e.elapsed_ms}ms -> {head}")
+        elif e.kind == KIND_ERROR:
+            print(f"  [{e.seq}]   ERROR {(e.error or '')[:80]}")
 
 
 def run_once(
@@ -128,7 +170,12 @@ def main(argv=None) -> int:
         return 2
 
     try:
-        agent = builtin.make(args.agent, max_steps=args.max_steps)
+        kwargs = {"max_steps": args.max_steps}
+        # 只有真要用 workflow 时才传这个参数：别的工厂不认识它，
+        # 无脑透传会让 --workflow 配 --agent customer 直接变成 TypeError。
+        if args.workflow and builtin.ALIASES.get(args.agent, args.agent) == "workflow":
+            kwargs["workflow"] = args.workflow
+        agent = builtin.make(args.agent, **kwargs)
     except UnknownAgentError as exc:
         # 这条异常的信息里已经带了"当前可用"的名字，原样打出即可。
         print(f"[错误] {exc.args[0] if exc.args else exc}")
@@ -152,7 +199,10 @@ def main(argv=None) -> int:
     print(f"状态 {trace.status} | 耗时 {elapsed}ms | 轮次 {len(trace.turns)}")
     if trace.error:
         print(f"错误 {trace.error}")
-    print_calls(trace)
+    if trace.events:
+        print_events(trace)
+    else:
+        print_calls(trace)
 
     print(SEPARATOR)
     print("回答：")
