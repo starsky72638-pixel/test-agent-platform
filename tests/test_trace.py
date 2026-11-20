@@ -29,9 +29,13 @@ from core.task import (
     split_counts,
 )
 from core.trace import (
+    KIND_NODE_END,
+    KIND_NODE_START,
+    KIND_TOOL_CALL,
     SCHEMA_VERSION,
     STATUS_INFRA,
     STATUS_OK,
+    Event,
     ToolCall,
     Trace,
     Turn,
@@ -56,6 +60,57 @@ def test_tool_call_roundtrip():
     again = ToolCall.from_dict(call.to_dict())
     assert again == call
     assert again.args == {"q": "机械键盘", "max_price": 900}
+
+
+def test_event_roundtrip():
+    event = Event(
+        kind=KIND_TOOL_CALL,
+        seq=3,
+        node_id="t1",
+        node_type="tool",
+        turn=1,
+        name="get_order",
+        args={"order_id": 1002},
+        output="status=200",
+        elapsed_ms=12,
+    )
+    assert Event.from_dict(event.to_dict()) == event
+
+
+def test_add_event_assigns_monotonic_seq():
+    """编号由 Trace 统一分配：不同节点各自记 seq 一定会撞号。"""
+    trace = Trace(task_id="T1", agent="wf")
+    a = trace.add_event(KIND_NODE_START, node_id="start", node_type="start")
+    b = trace.add_event(KIND_TOOL_CALL, node_id="t1", name="get_order")
+    assert (a.seq, b.seq) == (0, 1)
+    assert [e.seq for e in trace.events] == [0, 1]
+    # 事件不改 turns：两条线互不干扰，这是 Turn/Event 分开的意义
+    assert trace.turns == []
+
+
+def test_legacy_trace_without_events_field():
+    """旧 jsonl 没有 events 键，读出来必须是空列表，且往返后完全一致。"""
+    raw = {"task_id": "T1", "agent": "shop", "turns": [], "status": "ok"}
+    trace = Trace.from_dict(raw)
+    assert trace.events == []
+    assert Trace.from_dict(trace.to_dict()).to_dict() == trace.to_dict()
+
+
+def test_all_calls_sees_events_when_turn_has_none():
+    """Memory 溯源、质量闸门、蒸馏、CLI 打印都走 all_calls。
+
+    workflow 轨迹的 Turn.calls 是空的，如果这里也返回空，
+    那些消费方会静默看到"0 次调用"——比报错更难查。
+    """
+    trace = Trace(task_id="T1", agent="wf", turns=[Turn(index=0, user_input="q", answer="a")])
+    trace.add_event(KIND_NODE_START, node_id="start", node_type="start")
+    trace.add_event(
+        KIND_TOOL_CALL, node_id="t1", name="get_order", args={"order_id": 1002}, output="ok"
+    )
+    trace.add_event(KIND_NODE_END, node_id="end", node_type="end")
+
+    assert [c.name for c in trace.all_calls()] == ["get_order"]
+    assert trace.outputs_by_call() == [("get_order", {"order_id": 1002}, "ok")]
 
 
 def test_turn_preserves_call_order():

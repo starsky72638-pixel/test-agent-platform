@@ -38,10 +38,12 @@ Copy-Item .env.example .env
 
 ```
 可接入的 Agent：
+  customer
+  customer-cold
   main
   shop-cold（默认）
   shop-tuned
-别名：cold -> shop-cold, main_agent -> main, shop -> shop-tuned, tuned -> shop-tuned
+别名：cold -> shop-cold, cs -> customer, cs-cold -> customer-cold, main_agent -> main, shop -> shop-tuned, tuned -> shop-tuned
 ```
 
 `--list` 不构造 Agent、不读密钥，这一步能过就说明"按名字加载"这一层是通的。
@@ -60,7 +62,23 @@ Copy-Item .env.example .env
 .venv\Scripts\python.exe -m pytest tests -q
 ```
 
-当前 **307 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
+当前 **336 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
+
+### 通过界面跑（可选）
+
+HTTP 与 Web 界面走的是和 `run_agent.py` 同一条执行链，`core/` 零改动：
+
+```powershell
+# API + 界面（另开一个窗口；mock_server 保持运行）
+.venv\Scripts\python.exe api\app.py
+```
+
+浏览器打开 `http://127.0.0.1:8020/ui/`，选 Agent、输入问题，右侧显示逐轮工具调用与原始返回。多行输入会被当作多轮任务一次提交。
+
+- 四个端点：`GET /health`、`GET /agents`、`POST /runs`、`GET /runs/{run_id}`
+- **同步执行**：请求等跑完才返回，单条约 10–50 秒
+- 无鉴权、只监听 `127.0.0.1`，不做公网假设
+- 端口 8020：8000 是 mock_server，8010 留给本机另一个项目
 
 ---
 

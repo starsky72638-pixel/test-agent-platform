@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from typing import Sequence
 
 from core.task import Task
-from core.trace import STATUS_OK, ToolCall, Trace
+from core.trace import KIND_TOOL_CALL, STATUS_OK, ToolCall, Trace, Turn
 
 from evaluator.claims import Claim, resolve_all
 from evaluator.matching import looks_non_answer, looks_off_topic, matches, same
@@ -162,6 +162,26 @@ class Verdict:
             "invalid_tools": list(self.invalid_tools),
             "over_calls": [list(x) for x in self.over_calls],
         }
+
+
+def calls_of_turn(trace: Trace, turn: Turn) -> list[ToolCall]:
+    """取这一轮的工具调用序列，判分统一从这里取。
+
+    有 event 时以 event 为准：WorkflowAgent 的 Turn 只承载对话语义
+    （问题进、答案出），工具调用发生在节点里，只有事件记全了。
+    两者都有时**不能相加**——同一批调用会被判两次，
+    expect_order 的子序列匹配会被打乱，call_count 也会虚高。
+
+    没有 event 的老轨迹（ReAct Agent、全部历史 jsonl）走原路径，
+    行为与改动前逐字一致。
+    """
+    if not trace.events:
+        return list(turn.calls)
+    return [
+        e.as_toolcall()
+        for e in trace.events
+        if e.kind == KIND_TOOL_CALL and e.turn == turn.index
+    ]
 
 
 def judge_round(
@@ -333,8 +353,9 @@ def evaluate(
     last = len(trace.turns) - 1
 
     for i, turn in enumerate(trace.turns):
+        calls = calls_of_turn(trace, turn)
         # 依据溯源要看到"截至本轮"的全部调用，所以累积放在判分之前。
-        history.extend((turn.index, c) for c in turn.calls)
+        history.extend((turn.index, c) for c in calls)
 
         if raw_checks:
             ck = aligned[i]
@@ -351,14 +372,14 @@ def evaluate(
                     judged=False,
                     passed=None,
                     answer=turn.answer,
-                    call_count=len(turn.calls),
+                    call_count=len(calls),
                 )
             )
             continue
 
         r = judge_round(
             ck,
-            turn.calls,
+            calls,
             turn.answer,
             history,
             allowed_tools=allowed_tools,
@@ -374,8 +395,8 @@ def evaluate(
             not r.answer_ok
             and not r.non_answer
             and r.failure_type not in PRE_CONTENT_FAILURES
-            and turn.calls
-            and looks_off_topic(turn.answer, [c.output for c in turn.calls])
+            and calls
+            and looks_off_topic(turn.answer, [c.output for c in calls])
         ):
             # 查到了数据却一个字段都没用上：按缺事实记会把真因藏起来。
             r.failure_type = "off_topic"

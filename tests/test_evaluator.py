@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 
 from core.task import Task, load_many
-from core.trace import STATUS_CRASHED, ToolCall, Trace, Turn
+from core.trace import KIND_TOOL_CALL, STATUS_CRASHED, ToolCall, Trace, Turn
 from evaluator import evaluate, looks_non_answer, looks_off_topic, matches, same
 from evaluator.claims import flatten, resolve, turn_slice
 from evaluator.legacy import trace_from_case
@@ -54,6 +54,43 @@ def one_turn(calls: list[ToolCall], answer: str, status: str = "ok", index: int 
 
 def make_trace(turns: list[Turn], tid: str = "T1", status: str = "ok") -> Trace:
     return Trace(task_id=tid, agent="fake", turns=turns, status=status)
+
+
+# ---------------------------------------------------------------- Event 接入
+
+
+def test_evaluator_reads_calls_from_events():
+    """WorkflowAgent 的 Turn 只有问答，工具调用记在 Event 里，判分必须能看见。
+
+    这条如果不过，意味着 workflow 跑出来的轨迹会被判成 missing_tool——
+    "明明调了却报没调"，比不判分更糟。
+    """
+    trace = make_trace([one_turn([], "已发货，中通快递")])
+    trace.add_event(
+        KIND_TOOL_CALL,
+        node_id="t1",
+        node_type="tool",
+        name="get_logistics",
+        args={"order_id": 1002},
+        output="status=200 carrier=中通快递",
+    )
+    verdict = evaluate(
+        trace,
+        make_task({"expect_tools": ["get_logistics"], "expect_args": {"order_id": 1002}}),
+    )
+    assert verdict.passed is True
+    assert verdict.tool_ok is True
+
+
+def test_evaluator_does_not_sum_turn_calls_and_events():
+    """两者同时存在时以事件为准；相加会让 call_count 虚高、顺序被打乱。"""
+    trace = make_trace([one_turn([call("apply_refund")], "已为您退款")])
+    trace.add_event(KIND_TOOL_CALL, node_id="a", name="get_order", output="status=200")
+    trace.add_event(KIND_TOOL_CALL, node_id="b", name="apply_refund", output="status=200")
+    verdict = evaluate(trace, make_task({"expect_order": ["get_order", "apply_refund"]}))
+    assert verdict.passed is True
+    # 若把 Turn.calls 也加上，这里会是 3
+    assert verdict.rounds[0].call_count == 2
 
 
 # ---------------------------------------------------------------- 文本匹配
