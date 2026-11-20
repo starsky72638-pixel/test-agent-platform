@@ -8,7 +8,6 @@ __pycache__/
 pip_install.log
 *.log
 runs/adhoc/
-runs/cold-*.jsonl
-runs/tuned-*.jsonl
+runs/*.jsonl
 htmlcov/
 .mypy_cache/

@@ -32,11 +32,13 @@ INSTANCES = Registry("builtin")
 _FACTORIES: dict[str, Callable[..., Any]] = {}
 
 # 旧名字保持能用：之前几轮真跑用的就是 --agent cold / --agent tuned。
+# cs 是 customer 的短别名，给命令行省点打字。
 ALIASES = {
     "cold": "shop-cold",
     "tuned": "shop-tuned",
     "shop": "shop-tuned",
     "main_agent": "main",
+    "cs": "customer",
 }
 
 
@@ -83,9 +85,16 @@ def _main_factory(**kwargs):
     return MainAgent(**kwargs)
 
 
+def _customer_factory(**kwargs):
+    from agents.customer import make_customer_agent
+
+    return make_customer_agent(**kwargs)
+
+
 register("shop-cold", _shop_factory("cold"))
 register("shop-tuned", _shop_factory("tuned"))
 register("main", _main_factory)
+register("customer", _customer_factory)
 
 DEFAULT_AGENT = "shop-cold"
 

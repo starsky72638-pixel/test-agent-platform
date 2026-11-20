@@ -82,15 +82,33 @@ def check_server() -> None:
     """
     import httpx
 
-    from agents.shop.tools import SHOP_BASE
+    from config import SERVICE_BASE
 
     try:
-        httpx.get(f"{SHOP_BASE}/products/search", timeout=3.0)
-        httpx.post(f"{SHOP_BASE}/admin/reset", timeout=3.0)
+        httpx.get(f"{SERVICE_BASE}/products/search", timeout=3.0)
     except httpx.HTTPError as exc:
         raise SystemExit(
-            f"[错误] 连不上被测服务 {SHOP_BASE}（{type(exc).__name__}）\n"
+            f"[错误] 连不上被测服务 {SERVICE_BASE}（{type(exc).__name__}）\n"
             f"       先另开一个窗口执行：.venv\\Scripts\\python.exe mock_server.py"
+        ) from exc
+
+
+def reset_mock() -> None:
+    """清空退款记录，保证每次开跑的初始状态一致。
+
+    从 check_server 拆出来：探活回答"服务在不在"，reset 是实验初始条件，
+    两者的失败原因不同，混在一起时提示只能挑一个说。
+    """
+    import httpx
+
+    from config import SERVICE_BASE
+
+    try:
+        httpx.post(f"{SERVICE_BASE}/admin/reset", timeout=3.0)
+    except httpx.HTTPError as exc:
+        raise SystemExit(
+            f"[错误] 无法重置被测服务 {SERVICE_BASE}/admin/reset（{type(exc).__name__}）\n"
+            f"       服务可能起来了但接口异常，看 mock_server 窗口的输出确认"
         ) from exc
 
 
@@ -189,6 +207,7 @@ def main(argv=None) -> int:
     allowed = tool_names_of(agent)
 
     check_server()
+    reset_mock()
 
     print(
         f"Agent {agent.name} | 请求名 {args.agent} | 任务 {len(tasks)} 条 | "

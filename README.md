@@ -122,6 +122,8 @@ reports/      实验报告
 2. 在 `agents/builtin.py` 的工厂表里加一行名字映射（顺带可加别名）。
 3. 数据文件每行加 `"split": "fit"` 或 `"holdout"`——**划分由数据自己声明**，不需要改 `core/task.py` 的常量表；不写则默认进 holdout。
 
+现成参照：`agents/customer/` 是照这个流程加进来的第二个业务 Agent（订单 / 物流 / 退款三件套）。它的工具与循环都自包含，不 import `agents/shop`——`tests/test_customer_agent.py` 守着这条边界，也验证了"删掉 shop 照样跑"。
+
 不改 `core/`、`evaluator/`、`memory/`、`pipeline/` 的任何一行，之后即可：
 
 ```powershell

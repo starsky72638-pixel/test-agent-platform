@@ -15,12 +15,15 @@
 
 from __future__ import annotations
 
-import os
-
 import httpx
 from langchain_core.tools import tool
 
-SHOP_BASE = (os.getenv("SHOP_BASE_URL") or "http://127.0.0.1:8000").rstrip("/")
+from config.settings import SERVICE_BASE
+
+# 服务地址的单一来源是 config.settings.SERVICE_BASE。
+# 保留 SHOP_BASE 这个名字，是因为 tools/__init__.py 的 __all__ 与脚本都在用它，
+# 改名会扩散到 5 个文件，而收益只是"名字更好看"。
+SHOP_BASE = SERVICE_BASE
 TIMEOUT = 5.0
 MAX_BODY = 800
 

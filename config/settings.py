@@ -17,6 +17,14 @@ ENV_FILE = BASE_DIR / ".env"
 # 只加载一次，不覆盖已存在的真实环境变量
 load_dotenv(dotenv_path=ENV_FILE, override=False)
 
+# 被测服务地址：CLI 探活与 shop 工具都从这里取，避免 scripts/ 反向 import
+# 某个具体 Agent 的内部常量。SERVICE_BASE_URL 优先，兼容旧变量名 SHOP_BASE_URL。
+SERVICE_BASE = (
+    os.getenv("SERVICE_BASE_URL")
+    or os.getenv("SHOP_BASE_URL")
+    or "http://127.0.0.1:8000"
+).rstrip("/")
+
 DEFAULT_SYSTEM_PROMPT = "你是一个简洁、准确的中文 AI 助手。回答直接，不啰嗦。"
 
 

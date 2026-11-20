@@ -35,8 +35,7 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import agents.builtin as builtin
-from agents.shop.tools import SHOP_BASE
-from config import PROJECT_ROOT
+from config import PROJECT_ROOT, SERVICE_BASE
 from core.runner import run_task
 from core.registry import UnknownAgentError
 from core.task import load_many
@@ -69,10 +68,10 @@ def check_server() -> None:
     import httpx
 
     try:
-        httpx.get(f"{SHOP_BASE}/products/search", timeout=3.0)
+        httpx.get(f"{SERVICE_BASE}/products/search", timeout=3.0)
     except httpx.HTTPError as exc:
         raise SystemExit(
-            f"[错误] 连不上被测服务 {SHOP_BASE}（{type(exc).__name__}）\n"
+            f"[错误] 连不上被测服务 {SERVICE_BASE}（{type(exc).__name__}）\n"
             f"       先另开一个窗口执行：.venv\\Scripts\\python.exe mock_server.py"
         ) from exc
 
@@ -82,7 +81,7 @@ def reset_server() -> None:
     import httpx
 
     try:
-        httpx.post(f"{SHOP_BASE}/admin/reset", timeout=3.0)
+        httpx.post(f"{SERVICE_BASE}/admin/reset", timeout=3.0)
     except httpx.HTTPError:
         pass
 
@@ -254,7 +253,7 @@ def main(argv=None) -> int:
 
     check_server()
 
-    print(f"Agent {agent.name} | 变体 {args.agent} | 步数上限 {args.max_steps}")
+    print(f"Agent {agent.name} | 请求名 {args.agent} | 步数上限 {args.max_steps}")
     print(f"每组重复 {args.repeat} 次 | 注入文本 {len(args.experience)} 字")
     if args.experience.strip():
         print(f"注入内容: {one_line(args.experience, 160)}")
