@@ -90,10 +90,10 @@ class WorkflowAgent:
             "nodes": len(self.definition.nodes),
             "entry": self.definition.entry,
         }
-        # Runtime 递进来的经验只记字数：Workflow 取经验走 memory 节点，
-        # 读的是构造时注入的经验库。两条来源不合并——
-        # 合并会出现"同一条经验插两遍"，且说不清是哪条起了作用。
-        # 键名保持 experience_chars：probe 与 runbook 都按它统计注入量。
+        # Runtime 递进来的经验必须能真的到达 prompt：只记字数等于没注入，
+        # 而"注入组与基线组差值恒为 0"会被误读成 Memory 无效。
+        # 这里把原文交给 Executor，由开了 config.inject_experience 的 llm 节点使用；
+        # 没有这种节点时，经验就是一个没人取用的字符串，行为与从前一致。
         experience = getattr(ctx, "experience", "") if ctx is not None else ""
         if experience and experience.strip():
             trace.meta["experience_chars"] = len(experience)
@@ -109,7 +109,12 @@ class WorkflowAgent:
         for index, text in enumerate(task.user_turns()):
             turn_started = now_ms()
             try:
-                answer = executor.run(trace, turn=index, user_input=text)
+                answer = executor.run(
+                    trace,
+                    turn=index,
+                    user_input=text,
+                    experience=experience,
+                )
             except ExecutionError as exc:
                 # 节点崩了属于链路问题，不是"答错了"。
                 # 标成 infra_error，评测阶段会把它当链路故障剔除，

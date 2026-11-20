@@ -1,0 +1,88 @@
+{
+  "workflow_id": "report-demo",
+  "version": 1,
+  "name": "经验注入实验载体",
+  "description": "双工具 + 极简 prompt。刻意不写任何行为准则，用来观察真实的模型行为性失败（附和用户、漏报字段、串用别单数据），也是唯一会消费 Runtime 经验的 Workflow",
+  "entry": "start",
+  "tools": [
+    "get_order",
+    "get_logistics"
+  ],
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start",
+      "config": {},
+      "next": [
+        "get_order"
+      ]
+    },
+    {
+      "id": "get_order",
+      "type": "tool",
+      "config": {
+        "tool": "get_order",
+        "args": {
+          "order_id": "{{extract.order_id}}"
+        }
+      },
+      "next": [
+        "get_logistics"
+      ]
+    },
+    {
+      "id": "get_logistics",
+      "type": "tool",
+      "config": {
+        "tool": "get_logistics",
+        "args": {
+          "order_id": "{{extract.order_id}}"
+        }
+      },
+      "next": [
+        "llm1"
+      ]
+    },
+    {
+      "id": "llm1",
+      "type": "llm",
+      "config": {
+        "prompt": "用户问题：{{input}}\n\n订单接口返回：{{nodes.get_order.output}}\n\n物流接口返回：{{nodes.get_logistics.output}}\n\n请回答用户的问题。\n",
+        "inject_experience": true
+      },
+      "next": [
+        "end"
+      ]
+    },
+    {
+      "id": "end",
+      "type": "end",
+      "config": {},
+      "next": []
+    }
+  ],
+  "meta": {
+    "layout": {
+      "start": {
+        "x": 80,
+        "y": 150
+      },
+      "get_order": {
+        "x": 300,
+        "y": 150
+      },
+      "get_logistics": {
+        "x": 520,
+        "y": 150
+      },
+      "llm1": {
+        "x": 740,
+        "y": 150
+      },
+      "end": {
+        "x": 960,
+        "y": 150
+      }
+    }
+  }
+}

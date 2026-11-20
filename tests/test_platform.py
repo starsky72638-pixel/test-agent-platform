@@ -35,7 +35,7 @@ from agentplatform import (
 )
 from agentplatform.executor import TemplateError, render
 from agentplatform.topology import check as check_topology
-from core.protocol import validate_agent
+from core.protocol import RunContext, validate_agent
 from core.task import Task
 from core.trace import (
     KIND_BRANCH,
@@ -741,3 +741,72 @@ def test_wf_eval_tasks_are_well_formed():
     # W05 刻意只做负向断言：不许出现别的订单的真实状态与金额
     assert by_id["W05"]["must_not_have"]
     assert not by_id["W05"]["must_have"]
+
+
+# ---------------------------------------------------------------- 经验注入
+
+
+MEMO = (
+    "【历史经验（来自过去失败任务的教训，只说明该怎么做，不是当前事实）】\n"
+    "1. 只用本轮工具返回的内容作答，别的订单的金额不能带进来。"
+)
+
+
+def report_agent() -> tuple[WorkflowAgent, FakeLLM]:
+    defn = WorkflowDefinition.load(ROOT / "data" / "workflows" / "report-demo.json")
+    llm = FakeLLM("待支付，299 元")
+    agent = WorkflowAgent(
+        defn,
+        tools=[FakeTool(name="get_order"), FakeTool(name="get_logistics")],
+        llm=llm,
+    )
+    return agent, llm
+
+
+def test_workflow_injects_runtime_experience_into_prompt():
+    """Runtime 递进来的经验必须真的进 prompt——只记字数等于没注入。"""
+    agent, llm = report_agent()
+    task = Task(id="E1", input="订单 1003 的金额是多少")
+
+    trace = agent.run(task, RunContext(task=task, experience=MEMO, hits=["exp-x"]))
+
+    assert trace.status == STATUS_OK
+    assert llm.prompts[0].startswith(MEMO), "经验要拼在最前面，截断记录时才看得见"
+    assert trace.meta["experience_chars"] == len(MEMO)
+    event = [e for e in trace.events if e.kind == KIND_LLM_CALL][0]
+    assert event.args["experience_chars"] == len(MEMO)
+
+
+def test_workflow_without_experience_leaves_prompt_clean():
+    """基线组不能出现空的经验表头：那是往提示词里塞一句空承诺。"""
+    agent, llm = report_agent()
+    task = Task(id="E2", input="订单 1003 的金额是多少")
+
+    trace = agent.run(task)
+
+    assert trace.status == STATUS_OK
+    assert "【历史经验" not in llm.prompts[0]
+    assert "experience_chars" not in trace.meta
+    event = [e for e in trace.events if e.kind == KIND_LLM_CALL][0]
+    assert "experience_chars" not in event.args
+
+
+def test_schema_rejects_non_bool_inject_experience():
+    defn = WorkflowDefinition.from_dict(
+        {
+            "workflow_id": "t-inject",
+            "entry": "start",
+            "nodes": [
+                {"id": "start", "type": NODE_START, "next": ["llm1"]},
+                {
+                    "id": "llm1",
+                    "type": NODE_LLM,
+                    "config": {"prompt": "回答：{{input}}", "inject_experience": "yes"},
+                    "next": ["end"],
+                },
+                {"id": "end", "type": NODE_END, "next": []},
+            ],
+        }
+    )
+    errors = validate(defn)
+    assert any("inject_experience" in e for e in errors)

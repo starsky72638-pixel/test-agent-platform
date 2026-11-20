@@ -204,8 +204,12 @@ class Executor:
     def tool_names(self) -> list[str]:
         return sorted(self._tools)
 
-    def run(self, trace: Trace, *, turn: int, user_input: str) -> str:
+    def run(self, trace: Trace, *, turn: int, user_input: str, experience: str = "") -> str:
         """执行一轮，事件写进 trace，返回最终答案。
+
+        experience 是 Runtime 递进来的经验文本（已由 memory.inject 渲染好），
+        只有显式开了 config.inject_experience 的 llm 节点才会用它。
+        默认空串＝不注入，基线组因此与"没有 runtime 经验"的老行为逐字一致。
 
         从 entry 出发，只跑被激活的节点：普通节点把 next 全部激活；
         condition 只激活命中的那一支，另一支整体跳过，连 node_start 都不发——
@@ -217,7 +221,11 @@ class Executor:
 
         遇到 end 就停：不提前停会把与本次无关的分支也跑掉，事件跟着虚增。
         """
-        ctx: dict = {"input": str(user_input or ""), "nodes": {}}
+        ctx: dict = {
+            "input": str(user_input or ""),
+            "nodes": {},
+            "experience": str(experience or ""),
+        }
         answer = ""
         last_output = ""
         active: set[str] = {self.definition.entry} if self.definition.entry else set()
@@ -344,6 +352,17 @@ class Executor:
 
     def _run_llm(self, node: NodeDef, trace: Trace, turn: int, ctx: dict) -> str:
         prompt = render(str(node.config.get("prompt") or ""), ctx)
+        # 经验只在显式开启的节点上拼，且原样拼在 prompt 之前：
+        # memory.inject 已经把表头、边界声明、尾注都拼好了，这里不再包一层，
+        # 否则原生 Agent 与 Workflow 的注入形态就不一致，报告里没法对比。
+        # 空经验完全不拼——基线组不能出现一个空的"【历史经验】"表头，
+        # 那是往提示词里塞了一句空承诺。
+        experience = str(ctx.get("experience") or "")
+        injected = 0
+        if node.config.get("inject_experience") and experience.strip():
+            prompt = f"{experience}\n\n{prompt}"
+            injected = len(experience)
+
         llm = self._get_llm()
         model = str(
             node.config.get("model")
@@ -355,13 +374,17 @@ class Executor:
         started = now_ms()
         response = llm.invoke(prompt)
         text = str(getattr(response, "content", response) or "")
+        args: dict = {"prompt": _truncate(prompt)}
+        if injected:
+            # 只在真的注入了才加这个键：老轨迹的 llm_call.args 保持原样。
+            args["experience_chars"] = injected
         trace.add_event(
             KIND_LLM_CALL,
             node_id=node.id,
             node_type=NODE_LLM,
             turn=turn,
             name=model,
-            args={"prompt": _truncate(prompt)},
+            args=args,
             output=_truncate(text),
             started_at=started,
             elapsed_ms=max(0, now_ms() - started),

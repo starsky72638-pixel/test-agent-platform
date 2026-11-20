@@ -104,7 +104,7 @@ POST /workflows            保存（覆盖时 version 自动 +1）
 .venv\Scripts\python.exe -m pytest tests -q
 ```
 
-当前 **404 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
+当前 **407 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
 
 ### 通过界面跑（可选）
 
@@ -150,6 +150,25 @@ HTTP 与 Web 界面走的是和 `run_agent.py` 同一条执行链，`core/` 零�
 - W06 要求退款：两个 Agent 都没有 `apply_refund` 节点，都该 `missing_tool`——判分器报的是"这个 Agent 不会做"，不是"模型答错"
 
 P6 之前 W03 恒为 `wrong_arg`（订单号写死 1002）。改成 `{{extract.order_id}}` 后它自然变绿，`canvas-demo` 从 `1/3` 变 `2/3`——同一个任务集对同一处改动产生了可观测的差值，这才是评测集有用的证据。
+
+### 让 Workflow 吃 Runtime 的经验
+
+原生 Agent 由自己的 prompt 决定怎么用经验；Workflow 默认不吃——经验只记在 `trace.meta["experience_chars"]` 里。要让某个 llm 节点吃，给它开 `"inject_experience": true`：
+
+```json
+{"id": "llm1", "type": "llm",
+ "config": {"prompt": "…", "inject_experience": true}}
+```
+
+开了之后，`core.runner` 递进来的经验文本会**原样拼在该节点 prompt 最前面**（`memory.inject` 已经把表头、边界声明、尾注都拼好了，平台层不再包一层）。经验为空时**完全不拼**——基线组的 prompt 里不会出现一个空的「【历史经验】」表头。
+
+为什么要有这个开关而不是自动注入：注入是有代价的行为。默认关，等于「这份定义的行为不因有没有经验而变」，基线组和注入组才可比。
+
+配套的实验载体是 `data/workflows/report-demo.json`（双工具 + 极简 prompt，刻意不写行为准则）与 `data/wf_learn.jsonl`（3 条 fit / 4 条 holdout）：
+
+```powershell
+.venv\Scripts\python.exe scripts\run_loop.py --agent wf:report-demo --golden data\wf_learn.jsonl
+```
 
 ### 分支与记忆节点（目前只有 JSON 配置）
 

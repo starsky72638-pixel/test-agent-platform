@@ -185,6 +185,13 @@ def validate(
             prompt = node.config.get("prompt")
             if not isinstance(prompt, str) or not prompt.strip():
                 errors.append(f"节点 {node.id} 是 llm，必须配置非空 config.prompt")
+            if "inject_experience" in node.config and not isinstance(
+                node.config["inject_experience"], bool
+            ):
+                errors.append(
+                    f"节点 {node.id} 的 config.inject_experience 必须是 true/false，"
+                    f"收到 {node.config['inject_experience']!r}"
+                )
 
         if node.type == NODE_TOOL:
             tool = node.config.get("tool")
