@@ -43,6 +43,7 @@ from core.trace import (
     KIND_MEMORY_CALL,
     KIND_NODE_END,
     KIND_NODE_START,
+    KIND_SLOT_REUSE,
     KIND_TOOL_CALL,
     STATUS_INFRA,
     STATUS_OK,
@@ -393,23 +394,110 @@ def test_single_turn_context_shape_is_unchanged():
     assert {e.turn for e in trace.events} == {0}
 
 
-def test_missing_order_id_still_fails_instead_of_reusing_previous_turn():
-    """P8-a 不做槽位回退：第 2 轮没单号就报错，不偷偷沿用第 1 轮的值。"""
+# ---------------------------------------------------------------- 参数槽位
+
+
+def report_agent_with_tools():
+    """report-demo 的离线版：两个工具分开持有，才看得出每次调用拿到的参数。"""
     defn = WorkflowDefinition.load(ROOT / "data" / "workflows" / "report-demo.json")
-    agent = WorkflowAgent(
-        defn,
-        tools=[FakeTool(name="get_order"), FakeTool(name="get_logistics")],
-        llm=FakeLLM(),
-    )
+    order = FakeTool(name="get_order")
+    logistics = FakeTool(name="get_logistics")
+    agent = WorkflowAgent(defn, tools=[order, logistics], llm=FakeLLM("ok"))
+    return agent, order
+
+
+def test_second_turn_reuses_slot_when_input_has_no_order_id():
+    """第一轮 1002，第二轮省略单号 -> 沿用 1002，并留一条复用事件。"""
+    agent, order = report_agent_with_tools()
 
     trace = agent.run(Task(id="T1", turns=["订单 1002 的状态", "那物流呢"]))
 
+    assert trace.status == STATUS_OK
+    assert [r["order_id"] for r in order.received] == ["1002", "1002"]
+
+    reuse = [e for e in trace.events if e.kind == KIND_SLOT_REUSE]
+    assert len(reuse) == 1
+    assert reuse[0].turn == 1
+    assert reuse[0].args["reused_from_previous_turn"] is True
+    assert reuse[0].args["from_turn"] == 0
+    assert reuse[0].args["value"] == "1002"
+    assert reuse[0].args["source"] == "previous_turn"
+
+
+def test_explicit_order_id_in_next_turn_overwrites_slot():
+    """第二轮明确写了 1001 -> 槽位更新成 1001，且不产生复用事件。"""
+    agent, order = report_agent_with_tools()
+
+    trace = agent.run(Task(id="T2", turns=["订单 1002 的状态", "订单 1001 的金额"]))
+
+    assert [r["order_id"] for r in order.received] == ["1002", "1001"]
+    assert not [e for e in trace.events if e.kind == KIND_SLOT_REUSE]
+
+
+def test_third_turn_uses_the_latest_slot():
+    """第三轮继续省略 -> 用最新的 1001，不是最早的 1002。"""
+    agent, order = report_agent_with_tools()
+
+    trace = agent.run(
+        Task(id="T3", turns=["订单 1002 的状态", "订单 1001 的金额", "那物流呢"])
+    )
+
+    assert [r["order_id"] for r in order.received] == ["1002", "1001", "1001"]
+    reuse = [e for e in trace.events if e.kind == KIND_SLOT_REUSE]
+    assert len(reuse) == 1
+    assert reuse[0].turn == 2
+    assert reuse[0].args["from_turn"] == 1
+    assert reuse[0].args["value"] == "1001"
+
+
+def test_new_task_does_not_inherit_slots():
+    """换一条 Task 就换 ctx，上一条的槽位不得带进来。"""
+    agent, order = report_agent_with_tools()
+    first = agent.run(Task(id="A", turns=["订单 1002 的状态", "那物流呢"]))
+    assert first.status == STATUS_OK
+
+    second = agent.run(Task(id="B", turns=["那物流呢"]))
+
+    assert second.status == STATUS_INFRA
+    assert "抽不到 order_id" in second.error
+    assert not [e for e in second.events if e.kind == KIND_SLOT_REUSE]
+    # 崩在参数解析上，一次工具都没调起来
+    assert order.received == [{"order_id": "1002"}, {"order_id": "1002"}]
+
+
+def test_cold_start_without_slot_still_raises():
+    """第一轮就没有单号、也没有历史槽位 -> 报错，不猜一个默认值。"""
+    agent, order = report_agent_with_tools()
+
+    trace = agent.run(Task(id="C1", turns=["那物流呢"]))
+
     assert trace.status == STATUS_INFRA
     assert "抽不到 order_id" in trace.error
-    # 崩溃轮仍然留一个 Turn（meta 标 error），但不会被归档进上下文
-    assert len(trace.turns) == 2
-    assert trace.turns[1].meta["status"] == "error"
-    assert trace.meta["context_turns"] == 1
+    assert order.received == []
+
+
+def test_slot_reuse_event_is_not_a_tool_call():
+    """复用事件不是工具调用：判分器只认 tool_call，不能因此多算一次调用。"""
+    agent, _ = report_agent_with_tools()
+
+    trace = agent.run(Task(id="T4", turns=["订单 1002 的状态", "那物流呢"]))
+
+    assert [c.name for c in calls_of_turn(trace, trace.turns[1])] == [
+        "get_order",
+        "get_logistics",
+    ]
+    assert len(trace.all_calls()) == 4
+    assert trace.events_of(KIND_SLOT_REUSE)
+
+
+def test_single_turn_has_no_slot_event():
+    """单轮任务没有"上一轮"可沿用，不该凭空产生复用事件。"""
+    agent, _ = report_agent_with_tools()
+
+    trace = agent.run(Task(id="T5", input="订单 1002 的状态"))
+
+    assert trace.status == STATUS_OK
+    assert not [e for e in trace.events if e.kind == KIND_SLOT_REUSE]
 
 
 def test_render_rejects_unknown_variable():

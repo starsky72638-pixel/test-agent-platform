@@ -42,6 +42,7 @@ from core.trace import (
     KIND_LLM_CALL,
     KIND_NODE_END,
     KIND_NODE_START,
+    KIND_SLOT_REUSE,
     KIND_TOOL_CALL,
     save_traces,
 )
@@ -128,6 +129,9 @@ def print_events(trace) -> None:
             print(f"  [{e.seq}]   llm  {e.name} {e.elapsed_ms}ms -> {head}")
         elif e.kind == KIND_NODE_END:
             print(f"  [{e.seq}]   < {e.node_id} {e.elapsed_ms}ms")
+        elif e.kind == KIND_SLOT_REUSE:
+            # 只在这一轮真的沿用了上一轮的值时出现，不是每次都打。
+            print(f"  [{e.seq}]   slot {e.name}={e.output} ← t{e.args.get('from_turn')}")
         elif e.kind == KIND_ERROR:
             print(f"  [{e.seq}]   ERROR {(e.error or '')[:80]}")
 

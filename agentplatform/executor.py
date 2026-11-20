@@ -23,6 +23,7 @@ from core.trace import (
     KIND_MEMORY_CALL,
     KIND_NODE_END,
     KIND_NODE_START,
+    KIND_SLOT_REUSE,
     KIND_TOOL_CALL,
     Trace,
     now_ms,
@@ -39,13 +40,42 @@ from agentplatform.definition import (
     NodeDef,
     WorkflowDefinition,
 )
-from agentplatform.extractor import EXTRACT_FIELDS, extract_field
+from agentplatform.extractor import EXTRACT_FIELDS, ExtractError, extract_field
 from agentplatform.topology import topo_sort
 
 _TEMPLATE = re.compile(r"\{\{\s*([A-Za-z0-9_.\-]+)\s*\}\}")
 
 # 节点输入/输出进事件时截断，避免整段 prompt 把 jsonl 撑大。
 _TEXT_LIMIT = 400
+
+
+def _scan_extract_fields(definition: WorkflowDefinition) -> tuple[str, ...]:
+    """定义里出现过哪些 `{{extract.X}}`，按首次出现顺序返回。
+
+    只扫 config 不扫别的：模板只会写在 config 里。
+    扫描结果用于"每轮开头把用得到的字段解析一遍"，
+    所以它必须覆盖全部节点，而不只是本轮会被激活的那些——
+    漏一个字段，那一轮就会退化成渲染期才报错。
+    """
+    found: list[str] = []
+
+    def walk(value):
+        if isinstance(value, str):
+            for key in _TEMPLATE.findall(value):
+                if key.startswith("extract."):
+                    field = key.split(".", 1)[1]
+                    if field not in found:
+                        found.append(field)
+        elif isinstance(value, dict):
+            for item in value.values():
+                walk(item)
+        elif isinstance(value, list):
+            for item in value:
+                walk(item)
+
+    for node in definition.nodes:
+        walk(node.config)
+    return tuple(found)
 
 
 class TemplateError(ValueError):
@@ -73,11 +103,18 @@ def _lookup(key: str, ctx: dict) -> Any:
         if parts[2] not in produced:
             raise TemplateError(f"节点 {parts[1]!r} 没有字段 {parts[2]!r}")
         return produced[parts[2]]
-    # extract.<字段>：从本轮用户输入里抽，抽不到由 extract_field 抛错。
-    # 只从 input 抽、不从节点输出抽——节点输出是工具原始报文，
+    # extract.<字段>：本轮开头已经解析过（_resolve_slots），这里只取值。
+    # 取不到说明"本轮没抽到、也没有历史值"，退回 extract_field 抛原来的错——
+    # 不返回空串、也不猜默认值：猜出来的单号会让工具去查一张不存在的订单，
+    # 最后被记成"模型答错了"。
+    # 只从用户输入抽、不从节点输出抽——节点输出是工具原始报文，
     # 要抽就得先约定格式，那是下一版的事。
     if len(parts) == 2 and parts[0] == "extract":
-        return extract_field(parts[1], str(ctx.get("input", "")))
+        field = parts[1]
+        slot = (ctx.get("slots") or {}).get(field)
+        if slot is not None:
+            return slot["value"]
+        return extract_field(field, str(ctx.get("input", "")))
     raise TemplateError(
         f"未知模板变量 {key!r}，可用：input、nodes.<节点id>.output、"
         f"extract.<字段>（{'/'.join(EXTRACT_FIELDS)}）"
@@ -198,6 +235,8 @@ class Executor:
         self._memory_store = memory_store
         # 构造即排序：让"图有环"在跑之前暴露，而不是跑到一半才发现。
         self._order = topo_sort(definition)
+        # 定义里出现过的抽取字段，每轮开头统一解析一遍。
+        self._extract_refs = _scan_extract_fields(definition)
 
     # -- 对外 -----------------------------------------------------
 
@@ -207,17 +246,27 @@ class Executor:
     def new_context(self) -> dict:
         """一条 Task 共享的执行上下文。
 
-        四个键各有归属，读代码时不用猜：
+        五个键各有归属，读代码时不用猜：
         - input       当前轮用户原话，每轮覆盖
         - nodes       仅当前轮已执行节点的产出，每轮清空
         - history     已结束轮次的快照，按发生顺序追加，只增不改
         - experience  Runtime 递进来的经验文本，整条任务共用
+        - slots       已解析的抽取字段 -> {"value", "turn"}，跨轮沿用
 
         history 存的是拷一份的值，不是引用：后面某轮再往 ctx["nodes"] 里写，
         不能把已归档的那一轮改掉——那等于"历史被当前轮改写"，
         事后对比两轮产出时会完全对不上。
+
+        slots 与 history 分开：history 是"跑过什么的记录"，只读；
+        slots 是"当前有效的参数值"，会被后续轮次覆盖。
         """
-        return {"input": "", "nodes": {}, "history": [], "experience": ""}
+        return {
+            "input": "",
+            "nodes": {},
+            "history": [],
+            "experience": "",
+            "slots": {},
+        }
 
     def run(
         self,
@@ -256,6 +305,9 @@ class Executor:
         ctx["input"] = str(user_input or "")
         ctx["nodes"] = {}
         ctx["experience"] = str(experience or "")
+        ctx.setdefault("slots", {})
+        # 槽位在本轮任何节点执行前定下来：事件顺序才是"先定参数、再跑节点"。
+        self._resolve_slots(trace, turn, ctx)
         answer = ""
         last_output = ""
         active: set[str] = {self.definition.entry} if self.definition.entry else set()
@@ -316,6 +368,43 @@ class Executor:
             }
         )
         return answer if answer else last_output
+
+    def _resolve_slots(self, trace: Trace, turn: int, ctx: dict) -> None:
+        """把本轮用得上的抽取字段定下来：先抽本轮输入，抽不到才沿用旧值。
+
+        放在每轮开头只做一次，而不是在渲染时懒解析：
+        1. 复用必须留一条事件证据；懒解析会在每个引用点各留一条，
+           "同一轮沿用了两次"看起来就像两个不同来源；
+        2. 一轮内多次引用同一字段必须拿到同一个值，集中解析天然成立。
+
+        抽不到、也没有旧值时什么都不做：留给渲染期抛 ExtractError。
+        这样"没有历史值"的报错位置与文案跟没有槽位这层时完全一致，
+        不会因为加了槽位就把错误从"缺参数"变成"缺参数但静默用了空值"。
+        """
+        for field in self._extract_refs:
+            try:
+                value = extract_field(field, str(ctx["input"]))
+            except ExtractError:
+                slot = ctx["slots"].get(field)
+                if slot is None:
+                    continue
+                # 沿用旧值时不改 slot["turn"]：from_turn 要指向值真正产生的轮次，
+                # 否则"第 3 轮沿用了第 1 轮"会被写成"沿用了第 3 轮"，证据就假了。
+                trace.add_event(
+                    KIND_SLOT_REUSE,
+                    turn=turn,
+                    name=field,
+                    args={
+                        "field": field,
+                        "value": str(slot["value"]),
+                        "source": "previous_turn",
+                        "from_turn": int(slot["turn"]),
+                        "reused_from_previous_turn": True,
+                    },
+                    output=str(slot["value"]),
+                )
+                continue
+            ctx["slots"][field] = {"value": value, "turn": turn}
 
     def _next_of(self, node: NodeDef, output: str) -> list[str]:
         """这个节点执行完之后，哪些节点被激活。

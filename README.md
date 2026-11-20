@@ -104,7 +104,7 @@ POST /workflows            保存（覆盖时 version 自动 +1）
 .venv\Scripts\python.exe -m pytest tests -q
 ```
 
-当前 **413 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
+当前 **419 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
 
 ### 通过界面跑（可选）
 
@@ -174,11 +174,21 @@ P6 之前 W03 恒为 `wrong_arg`（订单号写死 1002）。改成 `{{extract.o
 
 一条 Task 的所有轮次共用一个执行上下文（`Executor.new_context()`），`WorkflowAgent` 每轮把它传下去；换一条 Task 就新造一个，所以不同任务之间**结构性隔离**，不靠"记得清空"。
 
-上下文里四个键各归各的：`input` 每轮覆盖成本轮原话、`nodes` 每轮清空只装本轮产出、`history` 按轮归档已结束的产出、`experience` 整条任务共用。**清空是刻意的**：上一轮的产出留在 `nodes` 里，第 2 轮的 `{{nodes.x.output}}` 会读到旧值，看起来跑通了其实是拿旧数据答新问题。
+上下文里五个键各归各的：`input` 每轮覆盖成本轮原话、`nodes` 每轮清空只装本轮产出、`history` 按轮归档已结束的产出、`experience` 整条任务共用、`slots` 存当前有效的抽取参数。**清空是刻意的**：上一轮的产出留在 `nodes` 里，第 2 轮的 `{{nodes.x.output}}` 会读到旧值，看起来跑通了其实是拿旧数据答新问题。
 
 `trace.meta["context_turns"]` 记录上下文实际累积了几轮，这是"复用真的发生了"的机器可验证证据（2 轮任务跑成 1 就说明中途崩了）。
 
-**目前不做槽位回退**：第 2 轮没写订单号，`{{extract.order_id}}` 仍然抛错落 `infra_error`，不会偷偷沿用上一轮的值。多轮任务因此两轮都要自带单号——见 `data/wf_multi.jsonl`：
+**参数槽位（slots）**：每轮开头把定义里出现过的 `{{extract.X}}` 解析一次——先抽本轮输入，抽到了就写进 `slots`（带上产生它的轮次），抽不到才沿用旧值。沿用会留一条 `slot_reuse` 事件：
+
+```json
+{"kind": "slot_reuse", "turn": 2, "name": "order_id",
+ "args": {"field": "order_id", "value": "1001", "source": "previous_turn",
+          "from_turn": 1, "reused_from_previous_turn": true}}
+```
+
+所以「订单 1002 的金额」→「订单 1001 的状态」→「那物流呢」这种追问能跑，且能证明第三轮用的是**最新**的 1001（`from_turn: 1`），不是最早的 1002。两条硬边界：**没有历史值仍然报错**（不猜默认单号），**换一条 Task 就换槽位**（不跨任务继承）。
+
+槽位只在 `Task` 内有效，`WorkflowAgent.run()` 每次调用都新造 ctx；`slot_reuse` 不是工具调用，判分器不认它。真实多轮样例见 `data/wf_multi.jsonl`（M03 就是省略单号那条）：
 
 ```powershell
 .venv\Scripts\python.exe scripts\run_shop.py --agent wf:report-demo --golden data\wf_multi.jsonl --no-compare

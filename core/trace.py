@@ -121,6 +121,10 @@ KIND_ERROR = "error"
 # memory 检索不是工具调用：它读的是本地经验库，不是外部系统。
 # 单独立一种 kind，判分器（只认 KIND_TOOL_CALL）就不会把它当工具计入。
 KIND_MEMORY_CALL = "memory_call"
+# 槽位复用：本轮输入里没抽到某字段，沿用了前面轮次的值。
+# 单独立一种 kind 有两个作用：一是留证（第几轮沿用了第几轮的值），
+# 二是判分器只认 KIND_TOOL_CALL，复用不会被算成多调了一次工具。
+KIND_SLOT_REUSE = "slot_reuse"
 
 EVENT_KINDS = (
     KIND_NODE_START,
@@ -129,6 +133,7 @@ EVENT_KINDS = (
     KIND_LLM_CALL,
     KIND_BRANCH,
     KIND_MEMORY_CALL,
+    KIND_SLOT_REUSE,
     KIND_ERROR,
 )
 
