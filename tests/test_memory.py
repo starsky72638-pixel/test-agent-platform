@@ -23,6 +23,7 @@ from core.protocol import RunContext
 from core.runner import run_task
 from core.task import Task
 from core.trace import (
+    KIND_TOOL_CALL,
     STATUS_CRASHED,
     STATUS_OK,
     ToolCall,
@@ -249,6 +250,31 @@ def test_extract_missing_tool_names_the_tool():
     assert "trace" in exps[0].action
     assert exps[0].failure_type == "missing_tool"
     assert exps[0].evidence[0].trace_id == "t-1"
+
+
+def test_extract_reads_calls_from_events():
+    """workflow 轨迹的调用只在 Event 里，提炼端必须读到。
+
+    修复前 names 取自 turn.calls（空），两条工具都会被算成"没调"，
+    提炼出的经验变成"两个都必须调"——而它其实已经调了其中一个。
+    这种经验会教模型重复劳动，且看起来完全正常。
+    """
+    task = mk_task(
+        "T1",
+        assertions={"expect_tools": ["get_order", "get_logistics"], "must_have": ["已发货"]},
+    )
+    trace = mk_trace("T1", [mk_turn(0, [], answer="已发货")], trace_id="t-ev")
+    trace.add_event(
+        KIND_TOOL_CALL, node_id="o", node_type="tool", name="get_order", output="status=200"
+    )
+
+    exps = extract_one(task, trace, evaluate(trace, task))
+
+    assert len(exps) == 1
+    assert exps[0].failure_type == "missing_tool"
+    assert "get_logistics" in exps[0].action
+    # 只漏一个：证明提炼端看见了 event 里的 get_order
+    assert "get_order" not in exps[0].action
 
 
 def test_extract_reads_turn_level_assertions():

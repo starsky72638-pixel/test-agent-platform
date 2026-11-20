@@ -9,7 +9,7 @@
 from __future__ import annotations
 
 from core.task import Task
-from core.trace import ToolCall, Trace, Turn
+from core.trace import KIND_NODE_END, KIND_NODE_START, KIND_TOOL_CALL, ToolCall, Trace, Turn
 
 from scripts.distill import distill_traces
 
@@ -44,6 +44,27 @@ def make_trace(*, answer: str = "订单 1001 一共 899 元", ok: bool = True) -
     return Trace(task_id="T1", agent="fake", turns=[turn], split="fit")
 
 
+def make_event_trace(*, ok: bool = True) -> Trace:
+    """工具调用只记在 Event 里、Turn.calls 为空的轨迹。
+
+    这就是 workflow 跑出来的形态：Turn 只承载问答，节点细节全走事件。
+    """
+    trace = make_trace()
+    trace.turns[0].calls = []
+    trace.add_event(KIND_NODE_START, node_id="start", node_type="start")
+    trace.add_event(
+        KIND_TOOL_CALL,
+        node_id="t1",
+        node_type="tool",
+        name="get_order",
+        args={"order_id": 1001},
+        output='{"order_id": 1001, "amount": 899}',
+        ok=ok,
+    )
+    trace.add_event(KIND_NODE_END, node_id="end", node_type="end")
+    return trace
+
+
 def test_pass_trace_becomes_sft_sample():
     sft, failed, extra = distill_traces([make_trace()], {"T1": make_task()})
 
@@ -54,6 +75,34 @@ def test_pass_trace_becomes_sft_sample():
     assert sft[0]["messages"][1]["tool_calls"][0]["function"]["name"] == "get_order"
     assert "899" in sft[0]["messages"][2]["content"]
     assert extra["dropped"] == {}
+
+
+def test_event_only_trace_still_yields_tool_calls():
+    """Turn.calls 为空、调用只在 Event 里时，样本仍必须带 tool_calls。
+
+    修复前 _to_messages 只遍历 turn.calls，产出的是
+    "user → assistant 最终回答"，整条工具调用示范被静默丢掉——
+    样本看着合法，实际没有可学的内容。
+    """
+    sft, failed, extra = distill_traces([make_event_trace()], {"T1": make_task()})
+
+    assert not failed, "这条轨迹判分应通过"
+    assert len(sft) == 1
+    assert sft[0]["tools"] == ["get_order"]
+    messages = sft[0]["messages"]
+    assert [m["role"] for m in messages] == ["user", "assistant", "tool", "assistant"]
+    assert messages[1]["tool_calls"][0]["function"]["name"] == "get_order"
+    assert "899" in messages[2]["content"]
+    assert extra["dropped"] == {}
+
+
+def test_event_tool_error_is_dropped():
+    """事件里失败过的调用也要触发 tool_error 闸门，否则错误示范会进 SFT。"""
+    sft, failed, extra = distill_traces([make_event_trace(ok=False)], {"T1": make_task()})
+
+    assert not sft
+    assert failed == []
+    assert extra["dropped"] == {"tool_error": 1}
 
 
 def test_failed_trace_goes_to_failed_set_with_reason():

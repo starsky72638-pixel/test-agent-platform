@@ -50,7 +50,7 @@ if __package__ in (None, ""):
 
 from core.task import load_many
 from core.trace import STATUS_OK, load_traces
-from evaluator.verdict import evaluate
+from evaluator.verdict import calls_of_turn, evaluate
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -83,7 +83,7 @@ def _signature(trace) -> str:
     parts = []
     for turn in trace.turns:
         parts.append(_norm(turn.user_input))
-        for call in turn.calls:
+        for call in calls_of_turn(trace, turn):
             parts.append(f"{call.name}:{json.dumps(call.args, ensure_ascii=False, sort_keys=True)}")
         parts.append(_norm(turn.answer))
     raw = "|".join(parts)
@@ -91,7 +91,7 @@ def _signature(trace) -> str:
 
 
 def _has_tool_error(trace) -> bool:
-    return any(not call.ok for turn in trace.turns for call in turn.calls)
+    return any(not call.ok for call in trace.all_calls())
 
 
 def _to_messages(trace) -> list[dict]:
@@ -104,7 +104,7 @@ def _to_messages(trace) -> list[dict]:
     messages: list[dict] = []
     for turn in trace.turns:
         messages.append({"role": "user", "content": turn.user_input})
-        for call in turn.calls:
+        for call in calls_of_turn(trace, turn):
             messages.append(
                 {
                     "role": "assistant",
@@ -186,7 +186,7 @@ def distill_traces(traces, tasks: dict, *, min_answer: int = MIN_ANSWER_CHARS):
                 "split": trace.split,
                 "agent": trace.agent,
                 "turns": len(trace.turns),
-                "tools": sorted({c.name for t in trace.turns for c in t.calls}),
+                "tools": sorted({c.name for c in trace.all_calls()}),
                 "messages": _to_messages(trace),
             }
         )

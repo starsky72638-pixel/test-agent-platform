@@ -26,7 +26,7 @@ from typing import Iterable
 
 from core.task import Task
 from core.trace import ToolCall, Trace
-from evaluator.verdict import RoundVerdict, Verdict
+from evaluator.verdict import RoundVerdict, Verdict, calls_of_turn
 
 from memory.schema import (
     Evidence,
@@ -104,7 +104,7 @@ def _assertions_of(task: Task, turn_no: int) -> dict:
 
 def _tools_of(trace: Trace, turn_no: int) -> list[str]:
     turn = _turn_of(trace, turn_no)
-    return sorted({c.name for c in (turn.calls if turn else [])})
+    return sorted({c.name for c in (calls_of_turn(trace, turn) if turn else [])})
 
 
 def _quote_of(trace: Trace, turn_no: int) -> str:
@@ -118,7 +118,7 @@ def _quote_of(trace: Trace, turn_no: int) -> str:
     answer = (turn.answer or "").strip()
     if answer:
         return answer[:160]
-    for call in reversed(turn.calls):
+    for call in reversed(calls_of_turn(trace, turn)):
         if (call.output or "").strip():
             return call.output.strip()[:160]
     return ""
@@ -151,7 +151,8 @@ def _lesson(rv: RoundVerdict, task: Task, trace: Trace) -> tuple[str, str, str] 
     shape = shape_of_turn_count(task.turn_count())
     ft = rv.failure_type
     turn = _turn_of(trace, rv.turn)
-    names = [c.name for c in (turn.calls if turn else [])]
+    calls = calls_of_turn(trace, turn) if turn else []
+    names = [c.name for c in calls]
     # 断言必须取失败那一轮的，不能只看顶层：见 _assertions_of 的说明。
     assertions = _assertions_of(task, rv.turn)
 
@@ -193,7 +194,7 @@ def _lesson(rv: RoundVerdict, task: Task, trace: Trace) -> tuple[str, str, str] 
         expect_args = assertions.get("expect_args") or {}
         bad: list[str] = []
         for key, want in expect_args.items():
-            if not any(str(c.args.get(key)) == str(want) for c in (turn.calls if turn else [])):
+            if not any(str(c.args.get(key)) == str(want) for c in calls):
                 bad.append(str(key))
         if not bad:
             return None
