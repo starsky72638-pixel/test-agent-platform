@@ -103,7 +103,7 @@ POST /workflows            保存（覆盖时 version 自动 +1）
 .venv\Scripts\python.exe -m pytest tests -q
 ```
 
-当前 **377 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
+当前 **395 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
 
 ### 通过界面跑（可选）
 
@@ -141,6 +141,22 @@ HTTP 与 Web 界面走的是和 `run_agent.py` 同一条执行链，`core/` 零�
 ```
 
 这 3 条里**有 2 条是按设计就会失败**的：一条说明流程缺 `get_logistics` 节点（`missing_tool`），一条说明参数被写死成 1002（`wrong_arg`）。它们的作用不是凑通过率，而是证明判分器确实读到了事件里的调用——`WorkflowAgent` 的 `Turn.calls` 永远是空的。
+
+### 分支与记忆节点（目前只有 JSON 配置）
+
+画布只画 `start/llm/tool/end` 四种节点，`condition` 与 `memory` 需要手写 JSON：
+
+- `condition`：`config.field` 取待判值（可用 `{{...}}`）、`config.op` 比较方式、`config.value` 对照值，
+  `config.branches` 写 `{"true": [...], "false": [...]}`。`next` 可以省略（由 branches 派生）；
+  写了就必须与并集一致，不一致在加载期直接报错。第一版只有互斥两支：不并行、不做 AND 汇聚，
+  未选中的分支连 `node_start` 都不会产生。
+- `memory`：`config.query` 是检索词，`top_k` / `min_score` / `max_chars` 可选。
+  经验库必须显式注入（`WorkflowAgent(..., memory_store=...)`），不注入就是空——
+  刻意不设默认路径，避免一个 Workflow 悄悄读到另一个实验留下的经验。
+  轨迹里留 `memory_call` 事件，带命中数量、命中 ID、耗时与注入字数。
+
+两者都不计入工具调用：判分器只认 `tool_call` 事件，`branch` / `memory_call` 不会被算成调了工具。
+完整示例见 `data/workflows/branch-demo.json`。
 
 ---
 

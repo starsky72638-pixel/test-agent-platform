@@ -10,11 +10,16 @@
  */
 
 (() => {
+  // palette:false 的节点只能靠 JSON 写，不在左侧工具栏出现——
+  // 参数面板还没做它们的表单，放出来等于给一个配不了的空壳。
+  // 但必须登记在这里：渲染节点时按 TYPES[type] 取颜色与标题，缺条目会直接报错。
   const TYPES = {
     start: { label: 'Start', color: '#3b82f6', hint: '入口：把用户输入原样交给下游。一个 Workflow 只能有一个。' },
     tool: { label: 'Tool', color: '#10b981', hint: '调用平台已注册的工具；参数支持模板变量。' },
     llm: { label: 'LLM', color: '#a855f7', hint: '调用大模型；Prompt 支持模板变量。' },
     end: { label: 'End', color: '#f59e0b', hint: '终点：输出就是最终答案。' },
+    condition: { label: 'Condition', color: '#ef4444', palette: false, hint: '按条件二选一；field/op/value/branches 需在 JSON 里配置，画布暂不支持编辑。' },
+    memory: { label: 'Memory', color: '#14b8a6', palette: false, hint: '检索历史经验；query/top_k 需在 JSON 里配置，经验库由后端注入。' },
   };
 
   const NODE_W = 200;
@@ -175,6 +180,14 @@
     if (n.type === 'llm') return (n.config.prompt || '（空 prompt）').replace(/\s+/g, ' ').slice(0, 72);
     if (n.type === 'end') {
       return n.config.answer ? '模板：' + String(n.config.answer).slice(0, 46) : '取上一个节点的输出';
+    }
+    if (n.type === 'condition') {
+      const cfg = n.config || {};
+      const left = String(cfg.field || '?').replace(/\s+/g, ' ').slice(0, 28);
+      return left + ' ' + (cfg.op || '?') + ' ' + String(cfg.value == null ? '' : cfg.value).slice(0, 16) + ' → 二选一';
+    }
+    if (n.type === 'memory') {
+      return '检索经验：' + String(n.config.query || '?').slice(0, 40);
     }
     return '用户输入 → 下游';
   }
@@ -452,6 +465,13 @@
     } else if (n.type === 'end') {
       html += '<label>答案模板（留空则取上一个节点的输出）<textarea id="cfg-answer" rows="4" spellcheck="false">' +
         esc(n.config.answer || '') + '</textarea></label>';
+    } else if (n.type === 'condition' || n.type === 'memory') {
+      // 别落进下面的"入口节点"分支：那句提示会让人以为它是 start。
+      const keys = n.type === 'condition'
+        ? 'field / op / value / branches'
+        : 'query / top_k / min_score / max_chars';
+      html += '<p class="hint">这个节点的参数暂不支持在画布上编辑，请在下方 JSON 里改 config（' +
+        keys + '）。</p>';
     } else {
       html += '<p class="hint">入口节点没有配置项：它把用户输入原样交给下一个节点。</p>';
     }
@@ -836,6 +856,7 @@
     const box = $('#palette');
     box.innerHTML = '';
     for (const [type, meta] of Object.entries(TYPES)) {
+      if (meta.palette === false) continue;
       const btn = document.createElement('div');
       btn.className = 'pal-btn';
       btn.draggable = true;

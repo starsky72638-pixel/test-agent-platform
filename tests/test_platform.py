@@ -17,13 +17,16 @@ import pytest
 
 import agents.builtin as builtin
 from agentplatform import (
+    NODE_CONDITION,
     NODE_END,
     NODE_LLM,
+    NODE_MEMORY,
     NODE_START,
     NODE_TOOL,
     DefinitionError,
     WorkflowAgent,
     WorkflowDefinition,
+    compare,
     topo_sort,
     validate,
 )
@@ -32,13 +35,18 @@ from agentplatform.topology import check as check_topology
 from core.protocol import validate_agent
 from core.task import Task
 from core.trace import (
+    KIND_BRANCH,
     KIND_LLM_CALL,
+    KIND_MEMORY_CALL,
     KIND_NODE_END,
     KIND_NODE_START,
     KIND_TOOL_CALL,
     STATUS_INFRA,
     STATUS_OK,
 )
+from memory.extract import task_tags
+from memory.schema import Experience, Trigger
+from memory.store import ExperienceStore
 
 ROOT = Path(__file__).resolve().parents[1]
 DEMO = ROOT / "data" / "workflows" / "demo.json"
@@ -320,3 +328,305 @@ def test_workflow_registered_in_builtin():
     agent = builtin.make("workflow", workflow="demo")
     assert agent.name == "wf:demo"
     assert "get_order" in [t.name for t in agent.tools]
+
+
+# ---------------------------------------------------------------- 分支
+#
+# condition 第一版只做互斥两支：不并行、不做 AND 汇聚。
+# 这三条钉住的是"未选中分支不留任何痕迹"，它比"走对了哪支"更重要——
+# 半条轨迹会让人以为那个节点跑过，事后所有归因都跟着偏。
+
+BRANCH_RAW = {
+    "workflow_id": "br",
+    "entry": "start",
+    "nodes": [
+        {"id": "start", "type": NODE_START, "next": ["lookup"]},
+        {
+            "id": "lookup",
+            "type": NODE_TOOL,
+            "config": {"tool": "get_order", "args": {"order_id": 1002}},
+            "next": ["check"],
+        },
+        {
+            # next 故意不写：condition 的出边由 branches 派生，少写一份真相。
+            "id": "check",
+            "type": NODE_CONDITION,
+            "config": {
+                "field": "{{nodes.lookup.output}}",
+                "op": "contains",
+                "value": "已发货",
+                "branches": {"true": ["ship"], "false": ["other"]},
+            },
+        },
+        {
+            "id": "ship",
+            "type": NODE_LLM,
+            "config": {"prompt": "已发货：{{input}}"},
+            "next": ["end_ship"],
+        },
+        {"id": "end_ship", "type": NODE_END},
+        {
+            "id": "other",
+            "type": NODE_LLM,
+            "config": {"prompt": "未发货：{{input}}"},
+            "next": ["end_other"],
+        },
+        {"id": "end_other", "type": NODE_END},
+    ],
+}
+
+MEMORY_RAW = {
+    "workflow_id": "mem",
+    "entry": "start",
+    "nodes": [
+        {"id": "start", "type": NODE_START, "next": ["recall"]},
+        {
+            "id": "recall",
+            "type": NODE_MEMORY,
+            "config": {"query": "{{input}}", "top_k": 3},
+            "next": ["answer"],
+        },
+        {
+            "id": "answer",
+            "type": NODE_LLM,
+            "config": {"prompt": "经验：{{nodes.recall.output}}；问题：{{input}}"},
+            "next": ["end"],
+        },
+        {"id": "end", "type": NODE_END},
+    ],
+}
+
+
+def branch_agent(output: str) -> tuple[WorkflowAgent, FakeLLM]:
+    llm = FakeLLM("已发货，429 元")
+    agent = WorkflowAgent(
+        WorkflowDefinition.from_dict(BRANCH_RAW),
+        tools=[FakeTool(output=output)],
+        llm=llm,
+    )
+    return agent, llm
+
+
+def test_condition_takes_true_branch_and_leaves_no_trace_of_the_other():
+    agent, llm = branch_agent("status=200 body=已发货")
+    trace = agent.run(Task(id="B1", input="订单 1002 什么状态"))
+
+    assert trace.status == STATUS_OK
+    nodes = {e.node_id for e in trace.events}
+    assert {"check", "ship", "end_ship"} <= nodes
+    # 未选中的分支连 node_start 都不该有
+    assert "other" not in nodes and "end_other" not in nodes
+    assert len(llm.prompts) == 1
+    assert llm.prompts[0].startswith("已发货")
+    assert trace.turns[0].answer == "已发货，429 元"
+
+
+def test_condition_takes_false_branch():
+    agent, llm = branch_agent("status=200 body=待付款")
+    trace = agent.run(Task(id="B2", input="订单 1002 什么状态"))
+
+    assert trace.status == STATUS_OK
+    nodes = {e.node_id for e in trace.events}
+    assert {"check", "other", "end_other"} <= nodes
+    assert "ship" not in nodes and "end_ship" not in nodes
+    assert llm.prompts[0].startswith("未发货")
+
+
+def test_condition_emits_one_branch_event_with_result():
+    agent, _ = branch_agent("status=200 body=已发货")
+    trace = agent.run(Task(id="B3", input="订单 1002 什么状态"))
+
+    events = [e for e in trace.events if e.kind == KIND_BRANCH]
+    assert len(events) == 1
+    ev = events[0]
+    assert ev.node_id == "check"
+    assert ev.args["result"] == "true"
+    assert ev.output == "true"
+
+
+@pytest.mark.parametrize(
+    "left, op, right, expected",
+    [
+        ("已发货", "contains", "发货", True),
+        ("已发货", "not_contains", "退款", True),
+        ("1002", "eq", 1002, True),  # 数值优先，不做字符串比较
+        ("10", "gt", "9", True),  # 数值序；字符串序会给出 False
+        ("abc", "gt", "9", False),  # 非数字不猜大小，直接判否
+        ("", "empty", None, True),
+        (" ", "not_empty", None, False),
+        ("order-1002", "regex", r"\d{4}", True),
+    ],
+)
+def test_compare_ops(left, op, right, expected):
+    assert compare(left, op, right) is expected
+
+
+def test_condition_next_must_match_branches():
+    """next 与 branches 不一致时必须在加载期报错，不能挑一个用。"""
+    raw = {
+        "workflow_id": "t",
+        "entry": "start",
+        "nodes": [
+            {"id": "start", "type": NODE_START, "next": ["c"]},
+            {
+                "id": "c",
+                "type": NODE_CONDITION,
+                "config": {
+                    "field": "{{input}}",
+                    "op": "contains",
+                    "value": "x",
+                    "branches": {"true": ["a"], "false": ["b"]},
+                },
+                "next": ["a"],
+            },
+            {"id": "a", "type": NODE_END},
+            {"id": "b", "type": NODE_END},
+        ],
+    }
+    with pytest.raises(DefinitionError, match="不一致"):
+        WorkflowDefinition.from_dict(raw)
+
+
+def test_schema_reports_bad_condition_and_memory_config():
+    raw = {
+        "workflow_id": "t",
+        "entry": "start",
+        "nodes": [
+            {"id": "start", "type": NODE_START, "next": ["c"]},
+            {"id": "c", "type": NODE_CONDITION, "config": {"op": "maybe"}, "next": ["m"]},
+            {"id": "m", "type": NODE_MEMORY, "config": {"top_k": 0}, "next": ["end"]},
+            {"id": "end", "type": NODE_END},
+        ],
+    }
+    errors = validate(WorkflowDefinition.from_dict(raw))
+    assert any("config.field" in e for e in errors)
+    assert any("config.op" in e for e in errors)
+    assert any("config.branches" in e for e in errors)
+    assert any("config.query" in e for e in errors)
+    assert any("config.top_k" in e for e in errors)
+
+
+# ---------------------------------------------------------------- 记忆
+
+
+def make_exp(exp_id: str, action: str, query: str) -> Experience:
+    """造一条与 query 关键词完全重合的经验，避开检索门槛的不确定性。"""
+    return Experience(
+        exp_id=exp_id,
+        failure_type="missing_tool",
+        pattern="问快递却只查了订单",
+        action=action,
+        trigger=Trigger(tags=task_tags(Task(id="t", input=query))),
+    )
+
+
+QUERY = "订单 1002 用的哪家快递"
+
+
+def memory_events(trace) -> list:
+    return [e for e in trace.events if e.kind == KIND_MEMORY_CALL]
+
+
+def test_memory_node_with_empty_store_keeps_prompt_clean(tmp_path: Path):
+    llm = FakeLLM("查不到")
+    agent = WorkflowAgent(
+        WorkflowDefinition.from_dict(MEMORY_RAW),
+        tools=[],
+        llm=llm,
+        memory_store=ExperienceStore(tmp_path / "empty.jsonl"),
+    )
+    trace = agent.run(Task(id="M1", input=QUERY))
+
+    assert trace.status == STATUS_OK
+    events = memory_events(trace)
+    assert len(events) == 1
+    assert events[0].args["hit_count"] == 0
+    assert events[0].args["hits"] == []
+    assert events[0].output == ""
+    # 空库不能往 prompt 里塞一段"历史经验"表头
+    assert "【历史经验" not in llm.prompts[0]
+
+
+def test_memory_node_injects_hits_into_llm_prompt(tmp_path: Path):
+    """检索到不等于用上了：必须验证经验文本真的进了 LLM 的 prompt。"""
+    store = ExperienceStore(tmp_path / "mem.jsonl")
+    store.add(make_exp("exp-1", "先调 get_logistics 查快递再回答", QUERY))
+
+    llm = FakeLLM("中通快递")
+    agent = WorkflowAgent(
+        WorkflowDefinition.from_dict(MEMORY_RAW),
+        tools=[],
+        llm=llm,
+        memory_store=store,
+    )
+    trace = agent.run(Task(id="M2", input=QUERY))
+
+    event = memory_events(trace)[0]
+    assert event.args["hit_count"] == 1
+    assert event.args["hits"] == ["exp-1"]
+    assert event.args["injected_chars"] > 0
+    assert event.elapsed_ms >= 0
+    assert "get_logistics" in llm.prompts[0]
+
+
+def test_memory_and_branch_events_are_not_tool_calls(tmp_path: Path):
+    """memory_call / branch 不是 ToolCall：判分器不能把它们算成工具调用。"""
+    from evaluator import evaluate
+
+    store = ExperienceStore(tmp_path / "mem.jsonl")
+    store.add(make_exp("exp-1", "先查快递再回答", QUERY))
+    agent = WorkflowAgent(
+        WorkflowDefinition.from_dict(MEMORY_RAW),
+        tools=[],
+        llm=FakeLLM(),
+        memory_store=store,
+    )
+    trace = agent.run(Task(id="M3", input=QUERY))
+
+    assert trace.all_calls() == []
+    verdict = evaluate(
+        trace,
+        Task(id="M3", input=QUERY, assertions={"expect_tools": []}),
+    )
+    assert verdict.rounds[0].call_count == 0
+    assert verdict.passed is True
+
+
+def test_two_workflows_do_not_share_experience(tmp_path: Path):
+    """两个 Workflow 各用各的库：检索只读，不写回，也不会互相看见。"""
+    store_a = ExperienceStore(tmp_path / "a.jsonl")
+    store_a.add(make_exp("exp-a", "A 的做法", QUERY))
+    store_b = ExperienceStore(tmp_path / "b.jsonl")
+    store_b.add(make_exp("exp-b", "B 的做法", QUERY))
+
+    defn = WorkflowDefinition.from_dict(MEMORY_RAW)
+    trace_a = WorkflowAgent(defn, tools=[], llm=FakeLLM(), memory_store=store_a).run(
+        Task(id="A", input=QUERY)
+    )
+    trace_b = WorkflowAgent(defn, tools=[], llm=FakeLLM(), memory_store=store_b).run(
+        Task(id="B", input=QUERY)
+    )
+
+    assert memory_events(trace_a)[0].args["hits"] == ["exp-a"]
+    assert memory_events(trace_b)[0].args["hits"] == ["exp-b"]
+    # 检索是只读的：跑完两个库各自还是 1 条
+    assert len(ExperienceStore(tmp_path / "a.jsonl")) == 1
+    assert len(ExperienceStore(tmp_path / "b.jsonl")) == 1
+
+
+def test_branch_demo_definition_runs_end_to_end():
+    """示例定义要能真跑：带 memory 节点、未注入经验库时也不能崩。"""
+    defn = WorkflowDefinition.load(ROOT / "data" / "workflows" / "branch-demo.json")
+    llm = FakeLLM("已发货，429 元")
+    agent = WorkflowAgent(
+        defn,
+        tools=[FakeTool(name="get_order", output="status=200 body=已发货")],
+        llm=llm,
+    )
+    trace = agent.run(Task(id="BD1", input="订单 1002 什么状态"))
+
+    assert trace.status == STATUS_OK
+    nodes = {e.node_id for e in trace.events}
+    assert {"recall", "check_status", "llm_ship"} <= nodes
+    assert "llm_other" not in nodes
+    assert trace.turns[0].answer == "已发货，429 元"

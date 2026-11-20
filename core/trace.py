@@ -118,6 +118,9 @@ KIND_TOOL_CALL = "tool_call"
 KIND_LLM_CALL = "llm_call"
 KIND_BRANCH = "branch"
 KIND_ERROR = "error"
+# memory 检索不是工具调用：它读的是本地经验库，不是外部系统。
+# 单独立一种 kind，判分器（只认 KIND_TOOL_CALL）就不会把它当工具计入。
+KIND_MEMORY_CALL = "memory_call"
 
 EVENT_KINDS = (
     KIND_NODE_START,
@@ -125,6 +128,7 @@ EVENT_KINDS = (
     KIND_TOOL_CALL,
     KIND_LLM_CALL,
     KIND_BRANCH,
+    KIND_MEMORY_CALL,
     KIND_ERROR,
 )
 

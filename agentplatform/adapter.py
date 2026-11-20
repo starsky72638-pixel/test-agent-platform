@@ -65,12 +65,16 @@ class WorkflowAgent:
         tools=None,
         llm: Any = None,
         name: str = "",
+        memory_store: Any = None,
     ) -> None:
         self.definition = definition
         self.name = name or f"wf:{definition.workflow_id}"
         # 暴露原始工具列表：run_loop / run_shop 的 tool_names_of 会读它。
         self.tools = list(tools or [])
         self._llm = llm
+        # 经验库显式注入：不传就是没有，memory 节点输出空串。
+        # 不设默认路径，避免 A 的 Workflow 悄悄读到 B 实验留下的经验。
+        self.memory_store = memory_store
         self._tool_map = _tool_map(self.tools)
         # 构造时就校验：一个坏定义不该等到有人点"运行"才暴露。
         compile_workflow(definition, tools=self._tool_map)
@@ -86,8 +90,10 @@ class WorkflowAgent:
             "nodes": len(self.definition.nodes),
             "entry": self.definition.entry,
         }
-        # 经验由 Runtime 递进来，Workflow 只记录"递到了多少字"，
-        # 具体怎么用留给后续版本（memory 节点）。这里不假装已用上。
+        # Runtime 递进来的经验只记字数：Workflow 取经验走 memory 节点，
+        # 读的是构造时注入的经验库。两条来源不合并——
+        # 合并会出现"同一条经验插两遍"，且说不清是哪条起了作用。
+        # 键名保持 experience_chars：probe 与 runbook 都按它统计注入量。
         experience = getattr(ctx, "experience", "") if ctx is not None else ""
         if experience and experience.strip():
             trace.meta["experience_chars"] = len(experience)
@@ -96,6 +102,7 @@ class WorkflowAgent:
             self.definition,
             tools=self._tool_map,
             llm=self._llm,
+            memory_store=self.memory_store,
         )
 
         started = now_ms()
@@ -150,6 +157,7 @@ def build_workflow_agent(
     tools=None,
     llm: Any = None,
     name: str = "",
+    memory_store: Any = None,
     **_ignored: Any,
 ) -> WorkflowAgent:
     """按 id 或路径装配一个 WorkflowAgent。
@@ -174,4 +182,10 @@ def build_workflow_agent(
 
         definition = AgentStore().load(target)
 
-    return WorkflowAgent(definition, tools=tools, llm=llm, name=name)
+    return WorkflowAgent(
+        definition,
+        tools=tools,
+        llm=llm,
+        name=name,
+        memory_store=memory_store,
+    )

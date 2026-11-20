@@ -15,8 +15,12 @@
 
 from agentplatform.adapter import WorkflowAgent, build_workflow_agent, compile_workflow
 from agentplatform.definition import (
+    BRANCH_KEYS,
+    CONDITION_OPS,
+    NODE_CONDITION,
     NODE_END,
     NODE_LLM,
+    NODE_MEMORY,
     NODE_START,
     NODE_TOOL,
     NODE_TYPES,
@@ -24,7 +28,7 @@ from agentplatform.definition import (
     NodeDef,
     WorkflowDefinition,
 )
-from agentplatform.executor import ExecutionError, Executor, render, render_obj
+from agentplatform.executor import ExecutionError, Executor, compare, render, render_obj
 from agentplatform.schema import validate
 from agentplatform.store import AgentStore, AgentSummary
 from agentplatform.topology import TopologyError, topo_sort
@@ -41,10 +45,15 @@ __all__ = [
     "NODE_START",
     "NODE_LLM",
     "NODE_TOOL",
+    "NODE_CONDITION",
+    "NODE_MEMORY",
     "NODE_END",
     "NODE_TYPES",
+    "BRANCH_KEYS",
+    "CONDITION_OPS",
     "Executor",
     "ExecutionError",
+    "compare",
     "render",
     "render_obj",
     "validate",

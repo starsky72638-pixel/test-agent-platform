@@ -12,13 +12,96 @@
 from __future__ import annotations
 
 from agentplatform.definition import (
+    BRANCH_KEYS,
+    CONDITION_OPS,
+    NODE_CONDITION,
     NODE_END,
     NODE_LLM,
+    NODE_MEMORY,
     NODE_START,
     NODE_TOOL,
     NODE_TYPES,
     WorkflowDefinition,
 )
+
+
+def _positive_int(value) -> bool:
+    # bool 是 int 的子类，True 不该被当成 top_k=1。
+    return isinstance(value, int) and not isinstance(value, bool) and value > 0
+
+
+def _check_condition(node) -> list[str]:
+    """condition 的配置问题。分支语义在第一版是互斥两支，不做并行/AND 汇聚。"""
+    errors: list[str] = []
+    cfg = node.config
+
+    field = cfg.get("field")
+    if not isinstance(field, str) or not field.strip():
+        errors.append(f"节点 {node.id} 是 condition，必须配置非空 config.field")
+
+    op = cfg.get("op")
+    if op not in CONDITION_OPS:
+        errors.append(
+            f"节点 {node.id} 是 condition，config.op 必须是 {list(CONDITION_OPS)} 之一，"
+            f"收到 {op!r}"
+        )
+    elif op not in ("empty", "not_empty") and "value" not in cfg:
+        # empty/not_empty 只判空，强行要求 value 会让人写一个没用的字段。
+        errors.append(f"节点 {node.id} 的 op={op} 需要 config.value")
+
+    branches = cfg.get("branches")
+    if not isinstance(branches, dict) or not branches:
+        errors.append(f"节点 {node.id} 是 condition，必须配置 config.branches")
+        return errors
+
+    unknown = sorted(set(branches) - set(BRANCH_KEYS))
+    if unknown:
+        errors.append(
+            f"节点 {node.id} 的 branches 只支持 {list(BRANCH_KEYS)}，收到 {unknown}"
+        )
+    union: list[str] = []
+    for key in BRANCH_KEYS:
+        if key not in branches:
+            continue
+        seq = branches[key]
+        if not isinstance(seq, list):
+            errors.append(f"节点 {node.id} 的 branches.{key} 必须是数组")
+            continue
+        for item in seq:
+            target = str(item)
+            if target and target not in union:
+                union.append(target)
+
+    # from_dict 已经拦过一次；这里再查，是为了拦住手工拼的 NodeDef。
+    if node.next and set(node.next) != set(union):
+        errors.append(
+            f"节点 {node.id} 的 next 与 branches 不一致："
+            f"next={list(node.next)}，branches 并集={union}"
+        )
+    return errors
+
+
+def _check_memory(node) -> list[str]:
+    errors: list[str] = []
+    cfg = node.config
+
+    query = cfg.get("query")
+    if not isinstance(query, str) or not query.strip():
+        errors.append(f"节点 {node.id} 是 memory，必须配置非空 config.query")
+
+    for key in ("top_k", "max_chars"):
+        if key in cfg and not _positive_int(cfg[key]):
+            errors.append(
+                f"节点 {node.id} 的 config.{key} 必须是正整数，收到 {cfg[key]!r}"
+            )
+
+    if "min_score" in cfg:
+        val = cfg["min_score"]
+        if isinstance(val, bool) or not isinstance(val, (int, float)):
+            errors.append(f"节点 {node.id} 的 config.min_score 必须是数字，收到 {val!r}")
+        elif not 0 <= float(val) <= 1:
+            errors.append(f"节点 {node.id} 的 config.min_score 应在 0~1，收到 {val!r}")
+    return errors
 
 
 def validate(
@@ -77,6 +160,12 @@ def validate(
             args = node.config.get("args")
             if args is not None and not isinstance(args, dict):
                 errors.append(f"节点 {node.id} 的 config.args 必须是对象")
+
+        if node.type == NODE_CONDITION:
+            errors.extend(_check_condition(node))
+
+        if node.type == NODE_MEMORY:
+            errors.extend(_check_memory(node))
 
     starts = [n for n in defn.nodes if n.type == NODE_START]
     ends = [n for n in defn.nodes if n.type == NODE_END]

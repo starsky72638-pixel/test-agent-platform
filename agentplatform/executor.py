@@ -17,8 +17,10 @@ import re
 from typing import Any, Callable
 
 from core.trace import (
+    KIND_BRANCH,
     KIND_ERROR,
     KIND_LLM_CALL,
+    KIND_MEMORY_CALL,
     KIND_NODE_END,
     KIND_NODE_START,
     KIND_TOOL_CALL,
@@ -27,8 +29,11 @@ from core.trace import (
 )
 
 from agentplatform.definition import (
+    CONDITION_OPS,
+    NODE_CONDITION,
     NODE_END,
     NODE_LLM,
+    NODE_MEMORY,
     NODE_START,
     NODE_TOOL,
     NodeDef,
@@ -99,6 +104,46 @@ def _truncate(text: str, limit: int = _TEXT_LIMIT) -> str:
     return text if len(text) <= limit else text[: limit - 1] + "…"
 
 
+def _as_number(text: str) -> float | None:
+    try:
+        return float(str(text).strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def compare(left, op: str, right=None) -> bool:
+    """condition 的判定，只做单条比较。
+
+    数值优先：两边都能转成数字时按数值比，"1002" 与 1002 视为相等；
+    任一边不是数字就退回字符串比较（去首尾空白）。
+    大小比较（gt/lt/gte/lte）遇到非数字一律判否——不猜，"9" > "10" 这种
+    字符串序对比数字序的错，比判否更难发现。
+    """
+    a = str(left if left is not None else "")
+    b = str(right if right is not None else "")
+
+    if op == "empty":
+        return not a.strip()
+    if op == "not_empty":
+        return bool(a.strip())
+    if op == "contains":
+        return b in a
+    if op == "not_contains":
+        return b not in a
+    if op == "regex":
+        return re.search(b, a) is not None
+    if op in ("eq", "ne"):
+        x, y = _as_number(a), _as_number(b)
+        same = (x == y) if (x is not None and y is not None) else (a.strip() == b.strip())
+        return same if op == "eq" else not same
+    if op in ("gt", "lt", "gte", "lte"):
+        x, y = _as_number(a), _as_number(b)
+        if x is None or y is None:
+            return False
+        return {"gt": x > y, "lt": x < y, "gte": x >= y, "lte": x <= y}[op]
+    raise ValueError(f"未知条件运算符 {op!r}，可选 {list(CONDITION_OPS)}")
+
+
 def _last_output(ctx: dict) -> str:
     produced = ctx.get("nodes") or {}
     for value in reversed(list(produced.values())):
@@ -106,6 +151,20 @@ def _last_output(ctx: dict) -> str:
         if out.strip():
             return out
     return ""
+
+
+def _render_experience(hits, *, top_k: int, max_chars: int) -> str:
+    """把命中经验渲染成可拼进 prompt 的文本。没有命中就返回空串。
+
+    空串是关键：空库时下游 prompt 里 {{nodes.recall.output}} 渲染成空，
+    不该出现"【历史经验】"表头，否则等于往提示词里塞了一段空承诺。
+    延迟 import，不用 memory 节点的 Workflow 不必加载整个 memory 包。
+    """
+    if not hits:
+        return ""
+    from memory.inject import render as render_experience
+
+    return render_experience(hits, max_items=top_k, max_chars=max_chars)
 
 
 class Executor:
@@ -117,12 +176,17 @@ class Executor:
         *,
         tools: dict[str, Callable] | None = None,
         llm: Any = None,
+        memory_store: Any = None,
     ) -> None:
         self.definition = definition
         self._tools: dict[str, Callable] = dict(tools or {})
         # llm 不在这里构造：读配置需要密钥，而"造一个 Agent 对象"
         # 不该因为当前机器没有 key 就失败。延迟到 _get_llm。
         self._llm = llm
+        # 经验库由调用方注入。刻意不设"默认路径"：
+        # 一旦默认去读某个全局文件，A 的实验就可能吃到 B 留下的经验，
+        # 结果对了也说不清是谁的功劳。没注入就是空，宁可不注入。
+        self._memory_store = memory_store
         # 构造即排序：让"图有环"在跑之前暴露，而不是跑到一半才发现。
         self._order = topo_sort(definition)
 
@@ -134,14 +198,25 @@ class Executor:
     def run(self, trace: Trace, *, turn: int, user_input: str) -> str:
         """执行一轮，事件写进 trace，返回最终答案。
 
-        只沿拓扑序前进，遇到 end 就停：DAG 里可能存在与本次无关的分支，
-        不提前停会把不该跑的节点也跑掉，事件也就跟着虚增。
+        从 entry 出发，只跑被激活的节点：普通节点把 next 全部激活；
+        condition 只激活命中的那一支，另一支整体跳过，连 node_start 都不发——
+        "没被选中的分支留下半条轨迹"会让人以为它跑过。
+
+        汇聚用 OR：任一入边激活就执行，不要求所有入边都到（不做 AND 汇聚）。
+        第一版不做并行：两条边同时激活时谁先谁后没有确定答案，
+        事件顺序不稳定，两次轨迹就无法逐条对比。
+
+        遇到 end 就停：不提前停会把与本次无关的分支也跑掉，事件跟着虚增。
         """
         ctx: dict = {"input": str(user_input or ""), "nodes": {}}
         answer = ""
         last_output = ""
+        active: set[str] = {self.definition.entry} if self.definition.entry else set()
 
         for node in self._order:
+            if node.id not in active:
+                continue
+
             started = now_ms()
             trace.add_event(
                 KIND_NODE_START,
@@ -179,11 +254,23 @@ class Executor:
                 started_at=started,
                 elapsed_ms=elapsed,
             )
+            active.update(self._next_of(node, output))
             if node.type == NODE_END:
                 answer = output
                 break
 
         return answer if answer else last_output
+
+    def _next_of(self, node: NodeDef, output: str) -> list[str]:
+        """这个节点执行完之后，哪些节点被激活。
+
+        condition 按判定结果只取一支；其余节点走 next（无条件）。
+        """
+        if node.type != NODE_CONDITION:
+            return list(node.next)
+        key = "true" if str(output).strip().lower() == "true" else "false"
+        seq = (node.config.get("branches") or {}).get(key) or []
+        return [str(x) for x in seq if str(x)]
 
     # -- 节点实现 -------------------------------------------------
 
@@ -194,6 +281,10 @@ class Executor:
             return self._run_llm(node, trace, turn, ctx)
         if node.type == NODE_TOOL:
             return self._run_tool(node, trace, turn, ctx)
+        if node.type == NODE_CONDITION:
+            return self._run_condition(node, trace, turn, ctx)
+        if node.type == NODE_MEMORY:
+            return self._run_memory(node, trace, turn, ctx)
         if node.type == NODE_END:
             template = node.config.get("answer")
             return render(str(template), ctx) if template else _last_output(ctx)
@@ -267,6 +358,84 @@ class Executor:
             elapsed_ms=max(0, now_ms() - started),
         )
         return text
+
+    def _run_condition(self, node: NodeDef, trace: Trace, turn: int, ctx: dict) -> str:
+        """判定并返回 "true"/"false"。
+
+        branch 事件单独记一条：轨迹里要能看出"这一步选了哪支"，
+        否则只能从后续节点反推，一旦两支的下游节点相同就完全看不出来。
+        """
+        field = render(str(node.config.get("field") or ""), ctx)
+        op = str(node.config.get("op") or "")
+        value = node.config.get("value")
+        if isinstance(value, str):
+            value = render(value, ctx)
+
+        result = compare(field, op, value)
+        key = "true" if result else "false"
+        trace.add_event(
+            KIND_BRANCH,
+            node_id=node.id,
+            node_type=NODE_CONDITION,
+            turn=turn,
+            name=op,
+            args={
+                "field": _truncate(field),
+                "value": _truncate(value),
+                "result": key,
+            },
+            output=key,
+            started_at=now_ms(),
+        )
+        return key
+
+    def _run_memory(self, node: NodeDef, trace: Trace, turn: int, ctx: dict) -> str:
+        """检索经验并渲染成可注入的文本。
+
+        事件里必须留下命中数量、命中 ID、耗时、注入内容摘要：
+        以后判断"这条经验有没有用"，靠的就是这几个字段，不是感觉。
+        """
+        cfg = node.config
+        query = render(str(cfg.get("query") or ""), ctx)
+        top_k = int(cfg.get("top_k") or 3)
+        max_chars = int(cfg.get("max_chars") or 1200)
+        min_score = cfg.get("min_score")
+
+        started = now_ms()
+        hits = self._recall(query, top_k=top_k, min_score=min_score)
+        text = _render_experience(hits, top_k=top_k, max_chars=max_chars)
+        ids = [h.exp.exp_id for h in hits]
+        trace.add_event(
+            KIND_MEMORY_CALL,
+            node_id=node.id,
+            node_type=NODE_MEMORY,
+            turn=turn,
+            name="memory",
+            args={
+                "query": _truncate(query),
+                "top_k": top_k,
+                "hit_count": len(hits),
+                "hits": ids,
+                "injected_chars": len(text),
+            },
+            output=_truncate(text),
+            started_at=started,
+            elapsed_ms=max(0, now_ms() - started),
+        )
+        return text
+
+    def _recall(self, query: str, *, top_k: int, min_score):
+        """从注入的经验库里检索。没注入或 query 为空时返回空列表。"""
+        if self._memory_store is None or not str(query or "").strip():
+            return []
+        from core.task import Task
+        from memory.retrieve import retrieve_from_store
+
+        task = Task(id=f"wf:{self.definition.workflow_id}", input=str(query))
+        kwargs = {}
+        if min_score is not None:
+            kwargs["min_score"] = float(min_score)
+        return retrieve_from_store(self._memory_store, task, top_k=top_k, **kwargs)
 
     def _get_llm(self):
         if self._llm is None:

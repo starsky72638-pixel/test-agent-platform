@@ -18,15 +18,77 @@ from pathlib import Path
 NODE_START = "start"
 NODE_LLM = "llm"
 NODE_TOOL = "tool"
+NODE_CONDITION = "condition"
+NODE_MEMORY = "memory"
 NODE_END = "end"
 
-NODE_TYPES = (NODE_START, NODE_LLM, NODE_TOOL, NODE_END)
+NODE_TYPES = (NODE_START, NODE_LLM, NODE_TOOL, NODE_CONDITION, NODE_MEMORY, NODE_END)
+
+# condition 能用的比较运算符。第一版只做单条比较：
+# 不做 and/or 组合、不做正则替换、不做表达式求值——
+# 需要组合就串两个 condition 节点，这样每一步都能被 schema 逐项校验，
+# 也不会为了"灵活"引入一个 eval 后门。
+CONDITION_OPS = (
+    "eq",
+    "ne",
+    "contains",
+    "not_contains",
+    "gt",
+    "lt",
+    "gte",
+    "lte",
+    "empty",
+    "not_empty",
+    "regex",
+)
+
+# 第一版只支持互斥的 true/false 两支。并行与 AND 汇聚都不做：
+# 两条边同时激活时谁是终态、事件怎么排序，都没有确定答案。
+BRANCH_KEYS = ("true", "false")
 
 WORKFLOW_DIR = Path(__file__).resolve().parents[1] / "data" / "workflows"
 
 
 class DefinitionError(ValueError):
     """定义本身不合法：JSON 坏了、字段类型不对、文件不存在。"""
+
+
+def _branch_targets(node_id: str, config: dict, declared: list[str]) -> list[str]:
+    """condition 的出边：branches 是权威，next 只是它的展开。
+
+    两份信息不一致时必须报错，不能挑一个用：校验按 next 认为"能到"、
+    执行按 branches 走不到，轨迹里就会有个节点凭空消失，事后无从解释。
+    只写 branches 不写 next 是允许的，这里补齐。
+    """
+    raw = config.get("branches")
+    if raw is None:
+        return declared
+    if not isinstance(raw, dict):
+        raise DefinitionError(f"节点 {node_id} 的 config.branches 必须是对象")
+    unknown = sorted(set(raw) - set(BRANCH_KEYS))
+    if unknown:
+        raise DefinitionError(
+            f"节点 {node_id} 的 branches 只支持 {list(BRANCH_KEYS)}，收到 {unknown}"
+        )
+
+    targets: list[str] = []
+    for key in BRANCH_KEYS:
+        seq = raw.get(key)
+        if seq is None:
+            continue
+        if not isinstance(seq, list):
+            raise DefinitionError(f"节点 {node_id} 的 branches.{key} 必须是数组")
+        for item in seq:
+            target = str(item)
+            if target and target not in targets:
+                targets.append(target)
+
+    if declared and set(declared) != set(targets):
+        raise DefinitionError(
+            f"节点 {node_id} 的 next 与 branches 不一致："
+            f"next={declared}，branches 并集={targets}"
+        )
+    return targets
 
 
 @dataclass
@@ -58,11 +120,14 @@ class NodeDef:
         next_ids = raw.get("next") or []
         if not isinstance(next_ids, list):
             raise DefinitionError(f"节点 {node_id or '?'} 的 next 必须是数组")
+        targets = [str(x) for x in next_ids]
+        if node_type == NODE_CONDITION:
+            targets = _branch_targets(node_id, config, targets)
         return cls(
             id=node_id,
             type=node_type,
             config=dict(config),
-            next=[str(x) for x in next_ids],
+            next=targets,
         )
 
 

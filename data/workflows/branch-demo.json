@@ -1,0 +1,101 @@
+{
+  "workflow_id": "branch-demo",
+  "version": 1,
+  "name": "分支与记忆示例",
+  "description": "先按订单号查状态，再检索历史经验，然后按是否已发货走两支之一。用来验证 condition 的互斥分支与 memory 的注入链路。",
+  "entry": "start",
+  "tools": [
+    "get_order"
+  ],
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start",
+      "config": {},
+      "next": [
+        "get_order"
+      ]
+    },
+    {
+      "id": "get_order",
+      "type": "tool",
+      "config": {
+        "tool": "get_order",
+        "args": {
+          "order_id": 1002
+        }
+      },
+      "next": [
+        "recall"
+      ]
+    },
+    {
+      "id": "recall",
+      "type": "memory",
+      "config": {
+        "query": "{{input}}",
+        "top_k": 3,
+        "max_chars": 800
+      },
+      "next": [
+        "check_status"
+      ]
+    },
+    {
+      "id": "check_status",
+      "type": "condition",
+      "config": {
+        "field": "{{nodes.get_order.output}}",
+        "op": "contains",
+        "value": "已发货",
+        "branches": {
+          "true": [
+            "llm_ship"
+          ],
+          "false": [
+            "llm_other"
+          ]
+        }
+      },
+      "next": [
+        "llm_ship",
+        "llm_other"
+      ]
+    },
+    {
+      "id": "llm_ship",
+      "type": "llm",
+      "config": {
+        "prompt": "用户问：{{input}}\n订单接口返回：{{nodes.get_order.output}}\n历史经验：{{nodes.recall.output}}\n订单已发货。请用一句话回答用户，金额以接口返回为准。"
+      },
+      "next": [
+        "end_ship"
+      ]
+    },
+    {
+      "id": "end_ship",
+      "type": "end",
+      "config": {},
+      "next": []
+    },
+    {
+      "id": "llm_other",
+      "type": "llm",
+      "config": {
+        "prompt": "用户问：{{input}}\n订单接口返回：{{nodes.get_order.output}}\n历史经验：{{nodes.recall.output}}\n订单尚未发货。请用一句话回答用户，并说明当前状态，金额以接口返回为准。"
+      },
+      "next": [
+        "end_other"
+      ]
+    },
+    {
+      "id": "end_other",
+      "type": "end",
+      "config": {},
+      "next": []
+    }
+  ],
+  "meta": {
+    "layout": {}
+  }
+}
