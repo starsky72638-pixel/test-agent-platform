@@ -24,9 +24,11 @@ from agentplatform import (
     NODE_START,
     NODE_TOOL,
     DefinitionError,
+    ExtractError,
     WorkflowAgent,
     WorkflowDefinition,
     compare,
+    extract_field,
     topo_sort,
     validate,
 )
@@ -630,3 +632,75 @@ def test_branch_demo_definition_runs_end_to_end():
     assert {"recall", "check_status", "llm_ship"} <= nodes
     assert "llm_other" not in nodes
     assert trace.turns[0].answer == "已发货，429 元"
+
+
+# ---------------------------------------------------------------- 参数抽取
+
+
+def extract_definition(args: dict) -> WorkflowDefinition:
+    """最小可跑的取参流程：start → tool(args) → end。"""
+    return WorkflowDefinition.from_dict(
+        {
+            "workflow_id": "t-extract",
+            "entry": "start",
+            "nodes": [
+                {"id": "start", "type": NODE_START, "next": ["lookup"]},
+                {
+                    "id": "lookup",
+                    "type": NODE_TOOL,
+                    "config": {"tool": "get_order", "args": args},
+                    "next": ["end"],
+                },
+                {"id": "end", "type": NODE_END, "next": []},
+            ],
+        }
+    )
+
+
+def test_extract_field_rules_prefer_context_over_bare_digits():
+    """演示 why 顺序重要：先带"订单"上下文的，再退到裸四位数。"""
+    assert extract_field("order_id", "订单 1001 的金额，预算 1002 元") == "1001"
+    assert extract_field("order_id", "1002") == "1002"
+    assert extract_field("amount", "预算 899 元以内") == "899"
+    assert extract_field("product_id", "商品 P1001 怎么样") == "P1001"
+    # 名字写错与抽不到是两类问题，必须给不同的话术
+    with pytest.raises(ExtractError, match="未知抽取字段"):
+        extract_field("ghost", "1001")
+    with pytest.raises(ExtractError, match="抽不到"):
+        extract_field("order_id", "帮我查下订单的金额")
+
+
+def test_tool_args_render_extract_from_input():
+    """模板参数按输入取，而不是设计期写死——这是 P6 的全部意义。"""
+    tool = FakeTool()
+    agent = WorkflowAgent(
+        extract_definition({"order_id": "{{extract.order_id}}"}),
+        tools=[tool],
+        llm=FakeLLM(),
+    )
+    trace = agent.run(Task(id="W03", input="帮我查下订单 1001 的金额"))
+
+    assert trace.status == STATUS_OK
+    assert tool.received == [{"order_id": "1001"}]
+
+
+def test_extract_failure_marks_infra_instead_of_calling_with_empty_arg():
+    """抽不到就别调工具：带空参数打接口会拿到 404，最后被记成"模型答错"。"""
+    tool = FakeTool()
+    agent = WorkflowAgent(
+        extract_definition({"order_id": "{{extract.order_id}}"}),
+        tools=[tool],
+        llm=FakeLLM(),
+    )
+    trace = agent.run(Task(id="W99", input="帮我查下订单的金额"))
+
+    assert trace.status == STATUS_INFRA
+    assert "抽不到" in trace.error
+    assert tool.received == []
+    assert len(trace.turns) == 1
+
+
+def test_schema_rejects_unknown_extract_field():
+    """名字写错要在加载期报出来，不能跑到一半才抛。"""
+    errors = validate(extract_definition({"order_id": "{{extract.order}}"}))
+    assert any("未知抽取字段" in e and "'order'" in e for e in errors)

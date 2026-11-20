@@ -1,6 +1,6 @@
 {
   "workflow_id": "canvas-demo",
-  "version": 3,
+  "version": 4,
   "name": "画布示例",
   "description": "",
   "entry": "start",
@@ -28,7 +28,7 @@
       "config": {
         "tool": "get_order",
         "args": {
-          "order_id": 1002
+          "order_id": "{{extract.order_id}}"
         }
       },
       "next": [

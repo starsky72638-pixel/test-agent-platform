@@ -39,6 +39,7 @@ from agentplatform.definition import (
     NodeDef,
     WorkflowDefinition,
 )
+from agentplatform.extractor import EXTRACT_FIELDS, extract_field
 from agentplatform.topology import topo_sort
 
 _TEMPLATE = re.compile(r"\{\{\s*([A-Za-z0-9_.\-]+)\s*\}\}")
@@ -72,11 +73,19 @@ def _lookup(key: str, ctx: dict) -> Any:
         if parts[2] not in produced:
             raise TemplateError(f"节点 {parts[1]!r} 没有字段 {parts[2]!r}")
         return produced[parts[2]]
-    raise TemplateError(f"未知模板变量 {key!r}，可用：input、nodes.<节点id>.output")
+    # extract.<字段>：从本轮用户输入里抽，抽不到由 extract_field 抛错。
+    # 只从 input 抽、不从节点输出抽——节点输出是工具原始报文，
+    # 要抽就得先约定格式，那是下一版的事。
+    if len(parts) == 2 and parts[0] == "extract":
+        return extract_field(parts[1], str(ctx.get("input", "")))
+    raise TemplateError(
+        f"未知模板变量 {key!r}，可用：input、nodes.<节点id>.output、"
+        f"extract.<字段>（{'/'.join(EXTRACT_FIELDS)}）"
+    )
 
 
 def render(text: str, ctx: dict) -> str:
-    """把 {{input}} / {{nodes.<id>.output}} 替换成实际值。
+    """把 {{input}} / {{nodes.<id>.output}} / {{extract.<字段>}} 替换成实际值。
 
     引用不存在时抛错而不是替换成空串：空串会让 prompt 少一段上下文，
     模型照样给出一个像样的答案，没人发现自己写错了变量名。

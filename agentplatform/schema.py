@@ -11,6 +11,8 @@
 
 from __future__ import annotations
 
+import re
+
 from agentplatform.definition import (
     BRANCH_KEYS,
     CONDITION_OPS,
@@ -23,11 +25,47 @@ from agentplatform.definition import (
     NODE_TYPES,
     WorkflowDefinition,
 )
+from agentplatform.extractor import EXTRACT_FIELDS
+
+# 与 executor 的模板语法保持一致：{{ 名字 }}，名字允许点号分段。
+_TEMPLATE_REF = re.compile(r"\{\{\s*([A-Za-z0-9_.\-]+)\s*\}\}")
 
 
 def _positive_int(value) -> bool:
     # bool 是 int 的子类，True 不该被当成 top_k=1。
     return isinstance(value, int) and not isinstance(value, bool) and value > 0
+
+
+def _iter_strings(value):
+    """把 config 里所有字符串摊平，用于扫模板引用。"""
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from _iter_strings(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from _iter_strings(item)
+
+
+def _check_extract_refs(node) -> list[str]:
+    """`{{extract.X}}` 的 X 必须在白名单里。
+
+    写在 from_dict 里拦不住（它不解析 config 内容），放到执行期拦又会
+    跑到一半才炸。放在校验层，加载时就能一次报全。
+    """
+    errors: list[str] = []
+    for text in _iter_strings(node.config):
+        for ref in _TEMPLATE_REF.findall(text):
+            if not ref.startswith("extract."):
+                continue
+            name = ref.split(".", 1)[1]
+            if name not in EXTRACT_FIELDS:
+                errors.append(
+                    f"节点 {node.id} 引用了未知抽取字段 {name!r}，"
+                    f"可用：{list(EXTRACT_FIELDS)}"
+                )
+    return errors
 
 
 def _check_condition(node) -> list[str]:
@@ -166,6 +204,9 @@ def validate(
 
         if node.type == NODE_MEMORY:
             errors.extend(_check_memory(node))
+
+        # 所有节点类型都可能写模板，统一扫一遍。
+        errors.extend(_check_extract_refs(node))
 
     starts = [n for n in defn.nodes if n.type == NODE_START]
     ends = [n for n in defn.nodes if n.type == NODE_END]

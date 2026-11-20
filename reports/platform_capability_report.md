@@ -33,7 +33,7 @@ shop-cold / shop-tuned / main / customer / customer-cold / workflow
 
 ```
 wf:demo          start → tool(get_order) → llm → end
-wf:canvas-demo   画布产出，单工具节点（参数写死 1002）
+wf:canvas-demo   画布产出，单工具节点（P5-c 时参数写死 1002；P6 起改为 {{extract.order_id}}）
 wf:branch-demo   start → tool → memory → condition → 两支 llm → 各自 end
 ```
 

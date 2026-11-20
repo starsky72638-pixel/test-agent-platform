@@ -29,6 +29,7 @@ from agentplatform.definition import (
     WorkflowDefinition,
 )
 from agentplatform.executor import ExecutionError, Executor, compare, render, render_obj
+from agentplatform.extractor import EXTRACT_FIELDS, ExtractError, extract_field
 from agentplatform.schema import validate
 from agentplatform.store import AgentStore, AgentSummary
 from agentplatform.topology import TopologyError, topo_sort
@@ -56,6 +57,9 @@ __all__ = [
     "compare",
     "render",
     "render_obj",
+    "extract_field",
+    "EXTRACT_FIELDS",
+    "ExtractError",
     "validate",
     "topo_sort",
     "TopologyError",

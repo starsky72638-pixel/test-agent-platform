@@ -66,17 +66,18 @@ Copy-Item .env.example .env
 .venv\Scripts\python.exe scripts\run_agent.py --agent workflow --workflow demo --question "订单 1002 到哪了"
 ```
 
-定义放在 `data/workflows/<id>.json`，支持的节点是 `start / llm / tool / end`：
+定义放在 `data/workflows/<id>.json`，支持的节点是 `start / llm / tool / condition / memory / end`：
 
 ```json
 {"id": "lookup", "type": "tool",
- "config": {"tool": "get_order", "args": {"order_id": 1002}},
+ "config": {"tool": "get_order", "args": {"order_id": "{{extract.order_id}}"}},
  "next": ["explain"]}
 ```
 
 - 引用前面的产出用 `{{input}}`、`{{nodes.<节点id>.output}}`；引用不存在的节点会**直接报错**，不会悄悄渲染成空串。
+- 参数要随输入变化时用 `{{extract.<字段>}}`：从本轮用户输入里抽，可选 `order_id`（4 位订单号）、`amount`（数字+元）、`product_id`（形如 P1001）。抽不到**直接报错**（该条落 `infra_error` 并被剔除），不会带着空参数去打接口。抽取值是字符串，工具侧由 pydantic 宽松模式转成 `int`。
 - 定义不合法（类型错、指向不存在的节点、有环、节点不可达、工具没注册）在**构造阶段**就报出全部问题，不会跑到一半才崩。
-- 执行过程写在 `Trace.events` 里（`node_start` / `node_end` / `tool_call` / `llm_call` / `error`）；`Trace.turns` 仍然只表示"用户说了几轮"，单轮就是 1 个，节点不写进 Turn。
+- 执行过程写在 `Trace.events` 里（`node_start` / `node_end` / `tool_call` / `llm_call` / `branch` / `memory_call` / `error`）；`Trace.turns` 仍然只表示"用户说了几轮"，单轮就是 1 个，节点不写进 Turn。
 
 ### 把 Agent 存到服务端
 
@@ -103,7 +104,7 @@ POST /workflows            保存（覆盖时 version 自动 +1）
 .venv\Scripts\python.exe -m pytest tests -q
 ```
 
-当前 **398 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
+当前 **402 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
 
 ### 通过界面跑（可选）
 
@@ -125,7 +126,7 @@ HTTP 与 Web 界面走的是和 `run_agent.py` 同一条执行链，`core/` 零�
 
 浏览器打开 `http://127.0.0.1:8020/ui/builder/`：左边选节点、中间拖拽连线、右边填参数，底部点运行就能看到节点级事件。
 
-- 节点只有四种：`start` / `tool` / `llm` / `end`——这是后端 `NODE_TYPES` 的真实范围。`condition` 与 `memory` 节点还没实现，画布上也不摆假组件
+- 工具栏只有四种节点：`start` / `tool` / `llm` / `end`。`condition` 与 `memory` 已能在后端跑，但画布还不提供参数表单，所以不摆出来——打开含这两类节点的定义能只读显示，工具栏不会给一个配不了的空壳
 - 工具下拉来自 `GET /tools`，与运行期注入的是同一份工具池；该接口还返回每个工具的参数表（名字/类型/必填/说明），新建 Tool 节点默认选 `get_order`（只读）
 - 参数按行填：一行一个参数，标出类型与「必填」，留空时保存会被拦下并指名缺哪个；值右侧「插入变量」可插 `{{input}}` 或上游节点输出，不必手打。复杂场景可展开「高级：直接编辑参数 JSON」，两边同步
 - 节点坐标存在定义的 `meta.layout` 里，保存后重新打开位置不变；执行参数只认 `config`，坐标不会被当成工具参数
@@ -140,7 +141,9 @@ HTTP 与 Web 界面走的是和 `run_agent.py` 同一条执行链，`core/` 零�
 .venv\Scripts\python.exe scripts\run_shop.py --agent wf:canvas-demo --golden data\wf_eval.jsonl --no-compare
 ```
 
-这 3 条里**有 2 条是按设计就会失败**的：一条说明流程缺 `get_logistics` 节点（`missing_tool`），一条说明参数被写死成 1002（`wrong_arg`）。它们的作用不是凑通过率，而是证明判分器确实读到了事件里的调用——`WorkflowAgent` 的 `Turn.calls` 永远是空的。
+这 3 条里**只剩 1 条是按设计就会失败**的：问快递的那条说明流程缺 `get_logistics` 节点（`missing_tool`）。它的作用不是凑通过率，而是证明判分器确实读到了事件里的调用——`WorkflowAgent` 的 `Turn.calls` 永远是空的。
+
+另外两条以前也是红的，现在都靠"参数从输入抽"变绿了：`order_id` 由设计期写死的 `1002` 改成 `{{extract.order_id}}`，问 1001 才会去查 1001（原来必然 `wrong_arg`）。所以通过率从 `1/3` 变成 `2/3`，这个变化本身就是 P6 的验收证据。
 
 ### 分支与记忆节点（目前只有 JSON 配置）
 
