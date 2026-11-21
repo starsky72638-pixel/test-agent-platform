@@ -1,0 +1,20 @@
+# 密钥绝不进镜像
+.env
+
+# 本地虚拟环境与缓存
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.git/
+
+# 测试与文档：运行时不读，进镜像只会变大
+tests/
+reports/
+docs/
+*.md
+
+# 实验产物：体积大且与运行无关；data/workflows 与 data/distill* 要保留
+runs/
+data/sft/
+data/pref/

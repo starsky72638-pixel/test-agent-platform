@@ -1,0 +1,31 @@
+services:
+  agent-platform:
+    build: .
+    container_name: agent-platform
+    restart: unless-stopped
+
+    # 密钥只从 .env 读，不进镜像（.dockerignore 已排除 .env）
+    env_file:
+      - .env
+
+    environment:
+      # 容器内两个进程互相访问，所以这里是 127.0.0.1 而不是宿主机 IP
+      SERVICE_BASE_URL: http://127.0.0.1:8000
+
+    volumes:
+      # 用户在画布上建的 Agent 落在 data/workflows，重建容器不能丢
+      - ./data:/app/data
+      # 轨迹与报告，方便直接上服务器看
+      - ./runs:/app/runs
+
+    ports:
+      # 只绑 127.0.0.1：公网必须经 Nginx，避免把无鉴权接口直接暴露
+      # 宿主机 18020 是随便挑的，和 mock(8000)/api(8020)/smart_hospital(8010) 都不冲突
+      - "127.0.0.1:18020:8020"
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx,sys;sys.exit(0 if httpx.get('http://127.0.0.1:8020/health',timeout=3).status_code==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s

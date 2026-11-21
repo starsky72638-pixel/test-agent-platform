@@ -1,0 +1,5 @@
+# 这三个文件必须保持 LF：Windows 提交成 CRLF 后，
+# 容器里的 sh 会报 "\r: not found"，表现为容器启动即退出。
+*.sh text eol=lf
+Dockerfile text eol=lf
+docker-compose.yml text eol=lf
