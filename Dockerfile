@@ -8,9 +8,16 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# 先装依赖：代码改动时这一层可以命中缓存
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+# 先装依赖：代码改动时这一层可以命中缓存。
+# 用 requirements.serve.txt（钉死版本）而不是 requirements.txt：
+# 后者是开发环境用的宽松约束，pip 会回溯上百个版本，在国内网络下经常超时后
+# 报出假的 "ResolutionImpossible"。
+COPY requirements.serve.txt ./
+RUN pip install --no-cache-dir \
+    -i https://mirrors.cloud.tencent.com/pypi/simple \
+    --trusted-host mirrors.cloud.tencent.com \
+    --timeout 120 --retries 5 \
+    -r requirements.serve.txt
 
 # 用 uid 1000 运行：宿主机 ubuntu 也是 1000，
 # 挂载卷里新建的文件属主一致，VSCode 里还能改；

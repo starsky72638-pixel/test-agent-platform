@@ -1,0 +1,15 @@
+# 服务器部署专用：钉死版本，避免每次构建都去回溯上百个版本。
+#
+# 为什么单独一个文件、不改 requirements.txt：
+# 本地虚拟环境用的是旧版本，`pip install -r requirements.txt` 升级会动到
+# 已通过 471 项测试的依赖组合。部署环境与开发环境分开锁，互不影响。
+#
+# 下面这组是 2026-11-21 在服务器上真实构建成功的那一组（见构建日志）。
+fastapi==0.165.0
+uvicorn==0.54.0
+pydantic==2.14.4
+httpx==0.28.1
+python-dotenv==1.2.4
+langchain-core==1.8.4
+langchain-openai==1.8.5
+openai==3.57.0
