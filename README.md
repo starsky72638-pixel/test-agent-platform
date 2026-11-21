@@ -335,16 +335,23 @@ data/sft/report.json       计数、隔离原因、冲突清单、输入文件�
 ## 3. 目录与职责
 
 ```
-core/         Runtime：protocol（协议）/ runner（执行+崩溃隔离）/ trace（轨迹）/ task（数据与 split）/ registry / context
-agents/       Agent：builtin（按名字构造）/ shop（ReAct+计划+恢复+槽位）/ main_agent（窗口裁剪+事实卡片，仅单测）
-evaluator/    判分：五层断言 + 失败类型，只读 Trace，不回写
-memory/       经验：extract（失败→经验）/ quality（闸门）/ store（jsonl）/ retrieve / inject
-pipeline/     learn（fit 学经验）/ verify（holdout 双跑对照）
-scripts/      CLI 入口：run_agent / run_shop / run_loop / probe / distill
-data/         43 道题（fit 26 / holdout 17）+ 蒸馏产物
-runs/         每次执行的轨迹与报告
-docs/         架构、运行手册、演示脚本
-reports/      实验报告
+core/         Runtime：protocol（协议）/ runner（执行+崩溃隔离）/ trace（轨迹）/ registry / context / task（数据与 split）
+config/       模型通道：llm_client（OpenAI 兼容调用）/ settings（读 .env，密钥只从这里进）
+agents/       Agent：builtin（按名字构造，11 个可寻址）/ shop（ReAct+计划+恢复+槽位）/ customer / main_agent（窗口裁剪+事实卡片，仅单测）
+agentplatform/ Workflow 引擎：definition（结构+图校验）/ topology / executor（分支·记忆·槽位）/ extractor（{{extract.X}}）/ adapter（产出 Trace）/ store
+evaluator/    判分：五层断言 + 失败类型 + 失败定位到节点，只读 Trace，不回写
+memory/       经验：extract（失败→经验）/ quality（闸门）/ store（jsonl + 归并）/ retrieve / inject
+pipeline/     learn（fit 学经验）/ verify（holdout 双跑）/ provenance（manifest + 哈希）/ sft（四分类闸门）/ pref（偏好配对）
+api/          FastAPI（8020）：/health /agents /tools /runs /workflows /memory /datasets，并把 web/ 挂到 /ui
+web/          纯静态零依赖：builder/（拖拽画布）、data/（产物页），无 npm、无 CDN
+scripts/      CLI：run_agent / run_shop / run_loop / probe / distill / build_sft / build_pref / merge_memory
+data/         7 个任务集共 65 条 — shop 20 / hard 13 / multi 10 / customer 6 / wf_eval 6 / wf_learn 7 / wf_multi 3
+              + workflows/ 5 份定义 + memory/ 归并库 9 条 + pref/ 偏好对 5 组 + distill*/ 蒸馏产物
+runs/         每次执行的轨迹与报告（不入库）
+docker/       entrypoint.sh：容器内先拉 mock_server（8000）再拉 api（8020）
+train/        sft_lora.py：LoRA 配方脚本，依赖未安装、未经运行验证（脚本头自述三处简化）
+docs/         架构说明 + 一页架构图 + 运行手册 + 演示脚本
+reports/      实验报告与能力总账
 ```
 
 依赖方向是硬约束：`core/` 不认识 `agents/memory/evaluator`，经验以回调形式传进执行循环；判分器只读轨迹；`pipeline/` 是唯一能同时碰四者的地方。
@@ -402,7 +409,7 @@ reports/      实验报告
 
 | 等级 | 内容 |
 |---|---|
-| 有运行证据 | Runtime 统一执行与崩溃隔离；Trace 记录与回读；五层判分与失败定位到节点；Workflow 引擎（分支节点 / 记忆节点 / `{{extract.<字段>}}` 参数抽取 / 跨轮上下文 / 参数槽位复用）；HTTP API（`api/app.py`，8020）与画布 Builder（`web/builder/`）；经验提炼 → 归并 → 检索 → 注入（含 Workflow 侧注入）；轨迹蒸馏；SFT 质量闸门 |
+| 有运行证据 | Runtime 统一执行与崩溃隔离；Trace 记录与回读；五层判分与失败定位到节点；Workflow 引擎（分支节点 / 记忆节点 / `{{extract.<字段>}}` 参数抽取 / 跨轮上下文 / 参数槽位复用）；HTTP API（`api/app.py`，8020）与画布 Builder（`web/builder/`）；经验提炼 → 归并 → 检索 → 注入（含 Workflow 侧注入）；轨迹蒸馏；SFT 质量闸门；Docker 化部署（20 秒构建、容器 healthy、线上 `/runs` 真实跑通） |
 | 只有单测 | `main_agent` 接入（窗口裁剪、事实卡片），从未进过全量实跑 |
 | 效果未证明 | **Memory 提升正确率**：P7 在 `wf_learn` 上做到注入覆盖 4/4、每题 238 字，但基线 4/4、注入 4/4、翻转 0——不是"没注入"，而是**基线已满分，没有提升空间**。早期主表同样是 null（基线 16/17、注入 15/17、有效覆盖 2/17） |
 | 未实现 | 跨会话用户偏好（千人千面）、向量检索、RL / DPO / 模型微调（本机只调 API 模型，无训练环境）、并发与超时控制、多 Agent 协作 |
@@ -424,7 +431,63 @@ reports/      实验报告
 
 ---
 
-## 8. 文档
+## 8. Docker 部署
+
+线上跑在单容器里，镜像与代码同源：`git archive` 打一个 tar，解到服务器就能重建，不需要在服务器上装 Python 环境。
+
+### 为什么单独有一份 requirements.serve.txt
+
+`requirements.txt` 用的是 `>=` 约束。第一次上线实测：pip 在镜像源上从 `langchain-core` 最新版一路回溯到 `0.2.0`，**361 秒后以 `ResolutionImpossible` 失败**。根因不是源慢，是约束太松，pip 有上百个候选可以回头试。
+
+`requirements.serve.txt` 只做一件事——把首次构建成功的 8 个版本钉死：
+
+```
+fastapi==0.165.0  uvicorn==0.54.0  pydantic==2.14.4  httpx==0.28.1
+python-dotenv==1.2.4  langchain-core==1.8.4  langchain-openai==1.8.5  openai==3.57.0
+```
+
+不含 pytest（运行时不测）。改完构建 **20 秒**，两次构建的依赖树一致。Dockerfile 里同时写死镜像源与 `--timeout 120 --retries 5`，不让源的问题再随网络抖动一次。
+
+### 构建与启动
+
+```bash
+docker compose build        # 首次 1–2 分钟，之后走缓存 20 秒
+docker compose up -d
+docker compose ps          # 期望 Up (healthy)
+```
+
+- 单容器两个进程，由 `docker/entrypoint.sh` 依次拉起：`mock_server`（`127.0.0.1:8000`）+ `api`（`0.0.0.0:8020`）
+- 宿主只绑 `127.0.0.1:18020 → 8020`，公网一律经 nginx 反代（8088），容器不直接暴露端口
+- 容器以 uid **1000**（`appuser`）运行，宿主卷里的轨迹文件属主也是 1000，不会留 root 属主的文件
+- 密钥只经 `env_file: .env` 注入；`.dockerignore` 第二行就挡住 `.env`，镜像里没有密钥
+- 改完 `.env` 要 `docker compose up -d --force-recreate`——`restart` 不会重读 `env_file`
+
+### 上线自检
+
+```bash
+curl -s http://127.0.0.1:18020/health
+# {"status":"ok","agents":11}
+
+curl -s -X POST http://127.0.0.1:18020/runs \
+     -H "Content-Type: application/json" \
+     -d '{"agent":"customer","question":"查询订单 1001 的状态和金额"}'
+# {"status":"ok","agent":"customer","answer":"订单 1001 已签收，金额 899.00 元…","elapsed_ms":2843,…}
+```
+
+`data/sft/` 不入库，容器里第一次要先算一遍，否则 `/datasets` 是空的：
+
+```bash
+docker compose exec agent-platform python scripts/build_sft.py
+# 输入 72 | canonical 30 | train 26 / holdout 4 / unknown 18 / 隔离 42
+```
+
+### 可复现性怎么证明
+
+同一份 tar 解到服务器重算 `build_sft`，产出与本地**逐字段一致**（72/30/26/4/18/42）；`report.json` 里 `inputs[].sha256` 记的 5 个输入文件哈希，与本地 `Get-FileHash` 完全相同。换机器不换结果——这才是"能复现"，而不是"我这台机器能跑"。
+
+---
+
+## 9. 文档
 
 | 文档 | 内容 |
 |---|---|
@@ -436,3 +499,15 @@ reports/      实验报告
 | `reports/platform_capability_report.md` | 平台能力与数据产物总账：Runtime / Trace / Evaluator / Memory / SFT / Workflow，含 P6–P10 实测 |
 | `reports/p7_experiment.md` | Workflow 经验注入实验：真实数字、轨迹证据、天花板结论 |
 | `reports/final_20261119.md` | 早期主表：逐条翻转归因、已知缺陷、答辩能说/不能说 |
+| `reports/final_20261120.md` | customer 域闭环：七环逐项跑通，但 fit 3 条全过 → 提炼 0 条 → 覆盖 0/3、差值 +0；含对 19 日报告的一处更正 |
+
+---
+
+## 在线演示
+
+- 平台界面（选 Agent / 拖拽画布 / 看逐轮工具调用）：`http://43.142.75.9:8088/ui/`
+- 数据产物页（经验库 / 训练集 / 质量报告 / 导出）：`http://43.142.75.9:8088/ui/data/`
+
+演示实例没有登录，`/runs` 限流 20 次/分钟，只连容器内的 mock 后端（不连外部模型商）。**请勿压测。**
+
+本地跑则把 `8088` 换成 `8020`，地址为 `http://127.0.0.1:8020/ui/`。
