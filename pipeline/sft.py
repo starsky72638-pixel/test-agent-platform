@@ -200,10 +200,56 @@ def normalize_sample(raw: dict, *, source: dict | None = None) -> tuple[dict, li
     return sample, issues
 
 
+def _split_conflicts(
+    pool: list[dict],
+    label: str,
+    quarantine_row,
+    conflicts: list[dict],
+) -> list[dict]:
+    """在一个池子里做"同输入"的去重与冲突判定，返回可保留的样本。
+
+    必须按池子分开做，不能把所有样本混在一起判：
+    unknown 来源的样本本来就不许进训练集，它没有资格否掉一条 fit 样本；
+    同理 holdout 的冲突只影响评估集，不该把训练样本一起拖走。
+    """
+    groups: dict[str, list[dict]] = {}
+    for sample in pool:
+        groups.setdefault(input_key(sample["messages"]), []).append(sample)
+
+    kept: list[dict] = []
+    for key, rows in sorted(groups.items()):
+        answers = {answer_key(r["messages"]) for r in rows}
+        if len(answers) > 1:
+            ids = sorted(r["sample_id"] for r in rows)
+            conflicts.append(
+                {
+                    "input_key": key,
+                    "split": label,
+                    "answers": len(answers),
+                    "sample_ids": ids,
+                    "files": sorted({str(r["source"].get("file") or UNKNOWN) for r in rows}),
+                }
+            )
+            for row in rows:
+                quarantine_row(row, "answer_conflict", {"input_key": key, "split": label})
+            continue
+
+        # 同一答案只留一条：按 sample_id 排序取第一条，保证两次运行结果一致
+        rows = sorted(rows, key=lambda r: r["sample_id"])
+        kept.append(rows[0])
+        for extra in rows[1:]:
+            quarantine_row(extra, "exact_duplicate", {"split": label})
+    return kept
+
+
 def build(items) -> dict:
     """items 是 [(raw_sample, source_dict), ...]，返回三份输出 + 报告。
 
     纯函数：不读盘、不写盘、不打印。所有判断都能被单测逐条钉住。
+
+    顺序是刻意的：结构校验 -> split 分流 -> 池内去重/冲突。
+    split 必须在冲突之前：unknown 样本不许进训练集，也就没有资格
+    把同问句的 fit 样本一起拖进隔离（这一版之前就是这么错的）。
     """
     prepared: list[tuple[dict, list[str]]] = []
     for raw, source in items:
@@ -233,43 +279,27 @@ def build(items) -> dict:
     for sample, issues in bad:
         quarantine_row(sample, issues[0], {"issues": list(issues)})
 
-    # ---- 输入分组：同输入不同答案 -> 冲突，全部隔离 ----
-    groups: dict[str, list[dict]] = {}
+    # ---- 先按 split 分流 ----
+    train_pool: list[dict] = []
+    eval_pool: list[dict] = []
     for sample, _ in good:
-        groups.setdefault(input_key(sample["messages"]), []).append(sample)
-
-    conflicts: list[dict] = []
-    kept: list[dict] = []
-
-    for key, rows in sorted(groups.items()):
-        answers = {answer_key(r["messages"]) for r in rows}
-        if len(answers) > 1:
-            ids = sorted(r["sample_id"] for r in rows)
-            conflicts.append({"input_key": key, "answers": len(answers), "sample_ids": ids})
-            for row in rows:
-                quarantine_row(row, "answer_conflict", {"input_key": key})
-            continue
-
-        # 同一答案只留一条：按 sample_id 排序取第一条，保证两次运行结果一致
-        rows = sorted(rows, key=lambda r: r["sample_id"])
-        kept.append(rows[0])
-        for extra in rows[1:]:
-            row = dict(extra)
-            row["reason"] = "exact_duplicate"
-            quarantine.append(row)
-            reasons["exact_duplicate"] = reasons.get("exact_duplicate", 0) + 1
-
-    # ---- split 隔离 ----
-    train: list[dict] = []
-    holdout: list[dict] = []
-    for row in sorted(kept, key=lambda r: r["sample_id"]):
-        split = row["split"]
+        split = sample["split"]
         if split in TRAIN_SPLITS:
-            train.append(row)
+            train_pool.append(sample)
         elif split in EVAL_SPLITS:
-            holdout.append(row)
+            eval_pool.append(sample)
         else:
-            quarantine_row(row, "unknown_split")
+            quarantine_row(sample, "unknown_split")
+
+    # ---- 再在各池内部去重 / 判冲突 ----
+    conflicts: list[dict] = []
+    train = _split_conflicts(train_pool, "train", quarantine_row, conflicts)
+    holdout = _split_conflicts(eval_pool, "holdout", quarantine_row, conflicts)
+
+    # 输出顺序固定，两次运行结果逐字节一致
+    train.sort(key=lambda r: r["sample_id"])
+    holdout.sort(key=lambda r: r["sample_id"])
+    quarantine.sort(key=lambda r: (r["reason"], r["sample_id"]))
 
     counts = {
         "input_samples": len(prepared),

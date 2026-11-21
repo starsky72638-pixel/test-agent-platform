@@ -95,6 +95,70 @@ def test_holdout_never_enters_train():
     assert result["quarantine"] == []
 
 
+def test_unknown_sample_cannot_block_a_trainable_one():
+    """unknown 不进训练集，也就没有资格否掉同问句的 fit 样本。"""
+    result = build(
+        make_sample("订单 1002 什么状态", "已发货", split="fit", sid="sft-fit"),
+        make_sample("订单 1002 什么状态", "查不到", split=None, sid="sft-unknown"),
+    )
+
+    assert [r["sample_id"] for r in result["train"]] == ["sft-fit"]
+    assert result["report"]["counts"]["conflicting_inputs"] == 0
+    assert {r["reason"] for r in result["quarantine"]} == {"unknown_split"}
+
+
+def test_holdout_conflict_does_not_touch_train():
+    """评估侧的冲突只影响评估集，不能把同问句的训练样本一起拖走。"""
+    result = build(
+        make_sample("订单 1002 什么状态", "已发货", split="fit", sid="sft-fit"),
+        make_sample("订单 1002 什么状态", "已发货，金额 429", split="holdout", sid="sft-h1"),
+        make_sample("订单 1002 什么状态", "已签收", split="holdout", sid="sft-h2"),
+    )
+
+    assert [r["sample_id"] for r in result["train"]] == ["sft-fit"]
+    assert result["holdout"] == []
+    conflicts = result["report"]["conflicts"]
+    assert len(conflicts) == 1
+    assert conflicts[0]["split"] == "holdout"
+    assert conflicts[0]["sample_ids"] == ["sft-h1", "sft-h2"]
+
+
+def test_conflict_record_names_split_and_source_files():
+    """人审时要一眼看出冲突发生在哪一侧、涉及哪几个文件。"""
+    result = build(
+        (
+            {
+                "id": "sft-1",
+                "task_id": "S01",
+                "agent": "shop-cold",
+                "split": "fit",
+                "messages": [
+                    {"role": "user", "content": "同一个问题"},
+                    {"role": "assistant", "content": "答案甲"},
+                ],
+            },
+            {"file": "data/x.jsonl", "line": 1},
+        ),
+        (
+            {
+                "id": "sft-2",
+                "task_id": "S01",
+                "agent": "main",
+                "split": "train",
+                "messages": [
+                    {"role": "user", "content": "同一个问题"},
+                    {"role": "assistant", "content": "答案乙"},
+                ],
+            },
+            {"file": "data/y.jsonl", "line": 2},
+        ),
+    )
+
+    entry = result["report"]["conflicts"][0]
+    assert entry["split"] == "train"  # fit 与 train 同属训练池
+    assert entry["files"] == ["data/x.jsonl", "data/y.jsonl"]
+
+
 def test_unknown_split_is_quarantined():
     result = build(make_sample("订单 1001 金额", "899 元", split="validation"))
 
@@ -125,6 +189,43 @@ def test_bad_tool_arguments_are_quarantined():
     assert result["train"] == []
     assert result["quarantine"][0]["reason"] == "tool_call_bad_arguments"
     assert result["report"]["counts"]["bad_tool_calls"] == 1
+
+
+def test_tool_call_id_style_is_accepted():
+    """OpenAI 形态：tool 消息没有 name，只有 tool_call_id，不该被判成结构异常。
+
+    真实踩过：`data/train_sft.jsonl` 就是这种形态，只按 name 比对会把
+    17 条全部误判成"调了 A 回了 B"。
+    """
+    messages = [
+        {"role": "user", "content": "预算 200 元以内有什么推荐"},
+        {
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [
+                {
+                    "id": "call_0c2d",
+                    "type": "function",
+                    "function": {
+                        "name": "search_products",
+                        "arguments": '{"max_price": 200}',
+                    },
+                }
+            ],
+        },
+        {"role": "tool", "tool_call_id": "call_0c2d", "content": "status=200"},
+        {"role": "assistant", "content": "只找到一款 159 元的充电宝"},
+    ]
+
+    result = sft.build(
+        [({"task_id": "S01", "agent": "shop-cold", "split": "fit", "messages": messages}, {"file": "t", "line": 1})]
+    )
+
+    assert result["report"]["counts"]["bad_tool_calls"] == 0
+    assert len(result["train"]) == 1
+    assert result["train"][0]["tool_calls"] == [
+        {"name": "search_products", "arguments": '{"max_price": 200}'}
+    ]
 
 
 def test_plain_text_sample_without_tool_calls_is_trainable():
