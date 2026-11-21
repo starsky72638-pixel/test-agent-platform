@@ -106,7 +106,7 @@ POST /workflows            保存（覆盖时 version 自动 +1）
 .venv\Scripts\python.exe -m pytest tests -q
 ```
 
-当前 **454 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
+当前 **465 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
 
 ### 通过界面跑（可选）
 
@@ -252,6 +252,22 @@ data/sft/report.json       计数、隔离原因、冲突清单、输入文件�
 ```powershell
 .venv\Scripts\python.exe scripts\build_sft.py
 ```
+
+### 偏好数据（chosen / rejected）
+
+从已有轨迹里配对，**不调模型、不生成新文本**——所以它可复现，也不会夹带模型幻觉。
+
+```powershell
+.venv\Scripts\python.exe scripts\build_pref.py
+```
+
+配对前提三条同时满足：同 `task_id`、同 `agent`、同 `split`；再加一条硬校验——两侧**用户轮逐字一致**，否则不是同一道题。
+
+**默认不跨 Agent 配对**，这是刻意的：`wf:canvas-demo` 挂 `missing_tool` 是画布没画那个节点，不是模型不肯调；拿它做 rejected，等于教模型去调一个不存在的工具。跨 Agent 的数量单独计数，真要开就显式 `--allow-cross-agent`。
+
+**一侧缺 `agent` 字段时会配对，但标 `agent_verified: false`**：`data/distill*/failed.jsonl` 是 P10-c 之前的产物，没有该字段（`distill.py` 现在会写，但重生成会改掉已入库的数据与哈希）。这种对被记为 `basis: agent_unverified`，`report.counts.unverified_agent_pairs` 单独统计——**允许配对不等于验证过**，用的时候要知道这个前提。
+
+产物：`data/pref/pairs.jsonl`（`prompt` / `chosen` / `rejected` / `failure_type` / `agent_verified` / 两侧 `source` 与 `source_trace`）+ `report.json`（计数、按失败类型分层、跳过原因：`agent_mismatch` / `split_mismatch` / `prompt_mismatch` / `same_answer`）。
 
 ### 分支与记忆节点（目前只有 JSON 配置）
 

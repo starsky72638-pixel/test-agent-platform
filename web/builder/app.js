@@ -887,6 +887,24 @@
 
     $('#btn-save').addEventListener('click', save);
     $('#btn-new').addEventListener('click', newWorkflow);
+
+    // 导出 = 下载当前定义的 JSON，文件名用 workflow_id。
+    // 先跑与保存同一套本地校验：结构不合法时导出，拿到的是一个跑不起来的文件，比不给更糟。
+    $('#btn-export').addEventListener('click', () => {
+      const errs = localCheck();
+      if (errs.length) { setStatus($('#save-state'), errs.join('；'), 'err'); return; }
+      const name = (S.id || 'workflow') + '.json';
+      const blob = new Blob([JSON.stringify(definition(), null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+      setStatus($('#save-state'), '已导出 ' + name, 'ok');
+    });
     $('#wf-list').addEventListener('change', (e) => openWorkflow(e.target.value));
     $('#btn-run').addEventListener('click', run);
 

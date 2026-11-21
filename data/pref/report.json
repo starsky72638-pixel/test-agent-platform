@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-11-21T15:11:31+08:00",
+  "inputs": [
+    {
+      "path": "data/distill/sft.jsonl",
+      "sha256": "12e5f68f668cd5d48ffef56cc581e2a037cc20456634d9d298e744de168aed9d",
+      "bytes": 33248,
+      "exists": true,
+      "rows": 22,
+      "side": "pass"
+    },
+    {
+      "path": "data/distill-main-a2/sft.jsonl",
+      "sha256": "d9cfd95b170b04c2f1ed8a525787229dabfff41c9126b19b9b61c5166027220d",
+      "bytes": 45711,
+      "exists": true,
+      "rows": 25,
+      "side": "pass"
+    },
+    {
+      "path": "data/distill/failed.jsonl",
+      "sha256": "26a33b77de203c53e56f6422ed68072a64196cf7cd0bafeba2a9a574a0f11616",
+      "bytes": 12295,
+      "exists": true,
+      "rows": 4,
+      "side": "fail"
+    },
+    {
+      "path": "data/distill-main-a2/failed.jsonl",
+      "sha256": "2ba2310167622e8706c52536bd7c1662d306062ba8f0cba2b900a893e519d0da",
+      "bytes": 944,
+      "exists": true,
+      "rows": 1,
+      "side": "fail"
+    }
+  ],
+  "counts": {
+    "pass_samples": 47,
+    "fail_samples": 5,
+    "tasks_with_both": 5,
+    "pairs": 5,
+    "cross_agent_pairs": 0,
+    "unverified_agent_pairs": 5
+  },
+  "by_failure_type": {
+    "forbidden_action": 1,
+    "missing_tool": 2,
+    "wrong_arg": 1,
+    "wrong_fact": 1
+  },
+  "skipped": {}
+}
