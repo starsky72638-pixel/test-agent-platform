@@ -26,6 +26,21 @@ Get-ChildItem Env:FAULT_*
 两条都必须无输出。`SHOP_PLAN=0` 会让计划分支白做；`FAULT_*` 残留会在每次实验里
 注入一次 500，`probe` 里表现为 `重试=1次`。
 
+**哪些产物在仓库里、哪些要自己生成**——clone 下来先看这一条，否则会以为文件丢了：
+
+| 路径 | 在仓库里吗 | 说明 |
+|---|---|---|
+| `data/workflows/*.json` | 在 | Agent 定义，画布产物也落这里 |
+| `data/memory/experiences.jsonl` | 在 | 9 条唯一经验，`wf:*` 默认读它 |
+| `data/distill*/` | 在 | 蒸馏产物（SFT / 失败样本 / manifest） |
+| `data/train_sft.jsonl`、`data/pref_pairs.jsonl` | 在 | 手工整理的数据 |
+| `data/sft/` | **不在** | 质量闸门的输出，跑一次 `build_sft.py` 即生成 |
+| `runs/**/*.jsonl`、`runs/adhoc/`、`runs/api/` | **不在** | 轨迹按约定不入库 |
+| `runs/*/report.json`、`manifest.json` | **不在** | 与轨迹同批生成，需要重跑才有 |
+
+所以：报告里引用的轨迹与 `report.json`，clone 后都要**重跑对应命令**才会出现；
+`data/sft/` 不跑就没有。这两件事不是文件损坏。
+
 ## 1. 起被测服务
 
 窗口 A（**保持不关**）：
