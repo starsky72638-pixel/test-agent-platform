@@ -137,19 +137,38 @@ def _customer_cold_factory(**kwargs):
     return make_customer_agent(**kwargs)
 
 
+def _default_memory_store():
+    """`wf:*` 默认读归并库 data/memory/experiences.jsonl。
+
+    库不存在就是空库：memory 节点输出空串，prompt 里不会多出空表头，
+    与"没有经验"完全等价。刻意不猜别的路径——猜错一个，实验里就会混进
+    另一个目录留下的经验，结果对了也说不清是谁的功劳。
+
+    import 写在函数里，理由同本模块其它工厂：`import agents.builtin`
+    不该顺带把 memory 整包拉进来。
+    """
+    from memory.store import DEFAULT_STORE_PATH, ExperienceStore
+
+    return ExperienceStore(DEFAULT_STORE_PATH)
+
+
 def _workflow_factory(**kwargs):
     """按 JSON 定义执行的 Agent。
 
-    工具池在这里注入，不在 agentplatform 里 import 业务模块——
-    平台层不该认识 shop 或 customer。默认给客服域三个工具，
+    工具池与经验库都在这里注入，不在 agentplatform 里 import 业务模块——
+    平台层不该认识具体业务。默认给客服域三个工具，
     工作流声明了没注册的工具会在构造时被 schema 校验拦下，
     不会跑到一半才发现工具不存在。
+
+    经验库默认指向归并库（DEFAULT_STORE_PATH）。要显式关掉就传
+    memory_store=None，要做对照实验就传自己的库——两条路都不需要改平台层。
     """
     from agentplatform.adapter import build_workflow_agent
     from agents.customer.tools import CUSTOMER_TOOLS
 
     ref = kwargs.pop("workflow", None)
     kwargs.setdefault("tools", list(CUSTOMER_TOOLS))
+    kwargs.setdefault("memory_store", _default_memory_store())
     return build_workflow_agent(ref, **kwargs)
 
 

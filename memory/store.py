@@ -39,6 +39,13 @@ from memory.schema import (
 RETIRE_MIN_INJECTED = 2
 RETIRE_CONTRADICT_MARGIN = 1
 
+# 归并后的单一库。放在 data/ 而不是 runs/：
+# runs/ 是"某一次实验的产物"，data/ 是"当前在用的数据"。
+# 路径在这里定义一次，接入层与脚本都从这里取，避免又长出一份平行定义。
+DEFAULT_STORE_PATH = (
+    Path(__file__).resolve().parents[1] / "data" / "memory" / "experiences.jsonl"
+)
+
 
 class ExperienceStore:
     """经验库。所有变更都立即落盘，进程挂掉不丢已写入的内容。"""
@@ -224,3 +231,50 @@ class ExperienceStore:
             "support_total": sum(e.support for e in exps),
             "contradict_total": sum(e.contradict for e in exps),
         }
+
+
+def merge_files(
+    paths, out_path: str | Path | None = None, *, write: bool = True
+) -> dict:
+    """把多个经验库合成一份视图：每个 exp_id 取 (updated_at, version) 最新的那条。
+
+    为什么不做"语义合并"（support / contradict 相加）：
+        同一批实验会被重复跑进多个目录，相加等于把"发生过一次"记成"发生过五次"，
+        之后任何按 support 做的判断都会偏。取最新快照是唯一不会凭空造数字的选择。
+        代价是：某个 exp_id 在不同库里各自演进过时，只保留演进得最靠后的那一份，
+        其余版本留在原文件里，不丢——本函数只读输入，绝不改它们。
+
+    为什么先写临时文件再 replace：
+        中途失败留下半个库，比没有库更糟：下次 load 会把它当完整数据读。
+    """
+    best: dict[str, Experience] = {}
+    inputs: list[str] = []
+
+    for item in paths or []:
+        p = Path(item)
+        if not p.is_file():
+            continue
+        inputs.append(str(p))
+        for exp in ExperienceStore(p).all():
+            current = best.get(exp.exp_id)
+            if current is None or (exp.updated_at, exp.version) > (
+                current.updated_at,
+                current.version,
+            ):
+                best[exp.exp_id] = exp
+
+    out = Path(out_path) if out_path else DEFAULT_STORE_PATH
+    if write:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        tmp = out.with_name(out.name + ".tmp")
+        with tmp.open("w", encoding="utf-8") as f:
+            for exp in sorted(best.values(), key=lambda e: (e.created_at, e.exp_id)):
+                f.write(exp.to_line() + "\n")
+        tmp.replace(out)
+
+    return {
+        "sources": len(inputs),
+        "inputs": inputs,
+        "unique": len(best),
+        "out": str(out) if write else None,
+    }

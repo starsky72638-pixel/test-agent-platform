@@ -49,7 +49,7 @@ import agents.builtin as builtin
 from config import PROJECT_ROOT, SERVICE_BASE
 from core.task import load_many
 from core.trace import save_traces
-from memory.store import ExperienceStore
+from memory.store import DEFAULT_STORE_PATH, ExperienceStore
 from pipeline import learn, provenance, verify
 
 # 被测服务地址的单一来源是 config.SERVICE_BASE（与 agents/*/tools 同一处）。
@@ -85,10 +85,29 @@ def parse_args(argv=None):
         help="检索阈值，不给则用 memory.retrieve 的默认值",
     )
     p.add_argument("--golden", action="append", default=None, help="任务文件，可重复传")
-    p.add_argument("--store", default=None, help="复用已有经验库（不给则新建）")
+    p.add_argument(
+        "--store",
+        default=None,
+        help="复用已有经验库（不给则新建；写 default 用归并库 data/memory/experiences.jsonl）",
+    )
     p.add_argument("--out", default=None, help="输出根目录，默认 runs/")
     p.add_argument("--no-record", action="store_true", help="不回填效果，不改动经验库")
     return p.parse_args(argv)
+
+
+def resolve_store_path(store_arg: str | None, run_dir: Path) -> Path:
+    """`--store` 的解析规则。
+
+    默认仍然是"本次实验新建一个库"，不改成共享库：record_outcome 会累加反证，
+    同一份库跑到第三次时经验可能已被自动退休，结果无法复现——这条写在模块
+    docstring 里，不能因为想"统一路径"就悄悄推翻。
+    想用归并库就显式写 `--store default`，让这次实验的来源在命令行上看得见。
+    """
+    if store_arg == "default":
+        return DEFAULT_STORE_PATH
+    if store_arg:
+        return Path(store_arg)
+    return run_dir / "experiences.jsonl"
 
 
 def check_server() -> None:
@@ -187,7 +206,7 @@ def main(argv=None) -> int:
     run_dir = (Path(args.out) if args.out else RUNS_DIR) / stamp
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    store_path = Path(args.store) if args.store else run_dir / "experiences.jsonl"
+    store_path = resolve_store_path(args.store, run_dir)
     store = ExperienceStore(store_path)
     existing = len(store.active())
 
