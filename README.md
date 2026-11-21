@@ -104,7 +104,7 @@ POST /workflows            保存（覆盖时 version 自动 +1）
 .venv\Scripts\python.exe -m pytest tests -q
 ```
 
-当前 **426 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
+当前 **446 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
 
 ### 通过界面跑（可选）
 
@@ -206,6 +206,40 @@ P6 之前 W03 恒为 `wrong_arg`（订单号写死 1002）。改成 `{{extract.o
 
 ```powershell
 .venv\Scripts\python.exe scripts\distill.py --run runs\full-cold\20261118-000730
+```
+
+### 经验库归并（默认库）
+
+每次闭环都在 `runs/<时间戳>/` 下新建一个经验库（单次实验要能独立复现），代价是同一个失败模式在多处各存一份：8 个库 76 行，全局只有 9 条不同经验。
+
+`scripts/merge_memory.py` 把散库合成一份：按 `exp_id` 取 `(updated_at, version)` 最新的那条，写到 `data/memory/experiences.jsonl`（`memory.store.DEFAULT_STORE_PATH`）。**不累加 `support/contradict`**——同一批实验被重复跑进多个目录，相加等于把"发生过一次"记成"发生过五次"；**不改任何原库**，先写 `.tmp` 再 `replace`，避免留下半个库。
+
+```powershell
+.venv\Scripts\python.exe scripts\merge_memory.py --dry-run
+.venv\Scripts\python.exe scripts\merge_memory.py
+```
+
+`wf:*` 由 `agents/builtin.py` 默认注入这个库，所以 memory 节点终于能读到经验（此前 `memory_store` 恒为 `None`，`hit_count` 永远是 0）。库不存在就是空库，与"没有经验"等价；要显式关掉传 `memory_store=None`。
+
+`run_loop --store default` 才用归并库，**默认仍是一次实验一个新库**：`record_outcome` 会累加反证并可能自动退休，共用一份库会让同一实验第二次跑出不同结果。
+
+### SFT 质量闸门
+
+`scripts/build_sft.py` 把已有的 SFT 文件过一遍闸门，产出三份互不重叠的数据 + 一份机器可读报告：
+
+```
+data/sft/train.jsonl       可训练（split=fit/train，且无结构问题、无答案冲突）
+data/sft/holdout.jsonl     只评估（split=holdout/test）
+data/sft/quarantine.jsonl  冲突 / unknown 来源 / 结构异常，每条带 reason
+data/sft/report.json       计数、隔离原因、冲突清单、输入文件哈希
+```
+
+四条规则：**同输入同答案**只留一条（按 `sample_id` 排序取首个，保证两次运行一致）；**同输入不同答案**全部隔离并记冲突——不随机留一条，因为不知道哪条对，不同 Agent 的差异也走这条路；**holdout 不进训练集**（数量少不是并入的理由）；**split/agent/task_id 缺失**写 `unknown` 并计数，默认不进训练。
+
+每条样本带 `sample_id / task_id / agent / split / source_trace / tool_calls / messages`，`messages` 原样不动；另外附 `source: {file, line}` 指回原始文件的那一行。
+
+```powershell
+.venv\Scripts\python.exe scripts\build_sft.py
 ```
 
 ### 分支与记忆节点（目前只有 JSON 配置）

@@ -153,6 +153,8 @@ def distill_traces(traces, tasks: dict, *, min_answer: int = MIN_ANSWER_CHARS):
                 {
                     "task_id": trace.task_id,
                     "split": trace.split,
+                    "agent": trace.agent,
+                    "source_trace": trace.trace_id,
                     "failure_type": verdict.failure_type,
                     "fail_turn": verdict.fail_turn,
                     "turns": len(trace.turns),
@@ -186,6 +188,9 @@ def distill_traces(traces, tasks: dict, *, min_answer: int = MIN_ANSWER_CHARS):
                 "task_id": trace.task_id,
                 "split": trace.split,
                 "agent": trace.agent,
+                # 回到原始轨迹的唯一凭据。缺了它，样本只能追到"某次实验目录"，
+                # 追不到具体哪一条 Trace——出现问题时无法逐条复查。
+                "source_trace": trace.trace_id,
                 "turns": len(trace.turns),
                 "tools": sorted({c.name for c in trace.all_calls()}),
                 "messages": _to_messages(trace),
