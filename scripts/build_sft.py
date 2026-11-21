@@ -104,18 +104,33 @@ def main(argv=None) -> int:
 
     print(f"输入 {counts['input_samples']} 条（{len(inputs_meta)} 个文件）")
     print(
-        f"有效 {counts['valid_samples']} | 精确重复 {counts['exact_duplicates']}"
-        f" | 冲突输入 {counts['conflicting_inputs']}（{counts['conflict_samples']} 条）"
-        f" | 缺字段 {counts['missing_field_samples']} | tool_calls 异常 {counts['bad_tool_calls']}"
+        f"有效 {counts['valid_samples']}"
+        f" | duplicate {counts['duplicate_samples']}"
+        f" | rerun_variance {counts['rerun_variance_groups']} 组"
+        f"（{counts['rerun_variance_samples']} 条）"
+        f" | true_conflict {counts['true_conflict_groups']} 组"
+        f"（{counts['true_conflict_samples']} 条）"
+        f" | unresolved {counts['unresolved_groups']} 组"
     )
     print(
-        f"train {counts['train_samples']} / holdout {counts['holdout_samples']}"
-        f" / unknown {counts['unknown_samples']} / 隔离 {counts['quarantined_samples']}"
+        f"缺字段 {counts['missing_field_samples']}"
+        f" | tool_calls 异常 {counts['bad_tool_calls']}"
+    )
+    print(
+        f"canonical {counts['canonical_samples']}"
+        f" | train {counts['train_samples']} / holdout {counts['holdout_samples']}"
+        f" / unknown {counts['unknown_samples']} / 隔离 {counts['isolation_samples']}"
     )
     if report["reasons"]:
         print("隔离原因：" + "  ".join(f"{k}={v}" for k, v in report["reasons"].items()))
-    if report["conflicts"]:
-        print(f"冲突输入 {len(report['conflicts'])} 组，逐组清单见 report.json 的 conflicts")
+    if report["reruns"]:
+        print(
+            f"同源重跑 {len(report['reruns'])} 组："
+            "canonical 与 rerun 的对应见 report.json 的 reruns"
+        )
+    pending = [g for g in report["groups"] if g["kind"] in ("true_conflict", "unresolved")]
+    if pending:
+        print(f"待人工审查 {len(pending)} 组（true_conflict / unresolved），逐组清单见 report.json 的 groups")
 
     print(f"\n输出：{provenance.rel_path(out_dir / 'train.jsonl')}")
     print(f"      {provenance.rel_path(out_dir / 'holdout.jsonl')}")

@@ -104,7 +104,7 @@ POST /workflows            保存（覆盖时 version 自动 +1）
 .venv\Scripts\python.exe -m pytest tests -q
 ```
 
-当前 **450 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
+当前 **453 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
 
 ### 通过界面跑（可选）
 
@@ -234,9 +234,16 @@ data/sft/quarantine.jsonl  冲突 / unknown 来源 / 结构异常，每条带 re
 data/sft/report.json       计数、隔离原因、冲突清单、输入文件哈希
 ```
 
-四条规则：**同输入同答案**只留一条（按 `sample_id` 排序取首个，保证两次运行一致）；**同输入不同答案**全部隔离并记冲突——不随机留一条，因为不知道哪条对，不同 Agent 的差异也走这条路；**holdout 不进训练集**（数量少不是并入的理由）；**split/agent/task_id 缺失**写 `unknown` 并计数，默认不进训练。
+四类判定，按证据强弱从上往下：
 
-判定顺序是**先按 split 分流、再在池内判重复与冲突**：unknown 与 holdout 的样本不参与训练侧的冲突裁决，否则一条来路不明的样本能把同问句的可训练样本一起拖进隔离。`report.conflicts` 每条带 `split` 与 `files`，人审时能看出冲突发生在哪一侧、涉及哪几个文件。
+- **duplicate**：同 `task_id`+`agent`+`split` 且答案一致——留 `sample_id` 排序第一条，其余记 `duplicate`；
+- **rerun_variance**：同 `task_id`+`agent`+`split` 但答案不同——这是同一次实验的两次运行，留 **canonical**（按源文件路径 + 行号取第一条，**不看答案长度、不做相似度打分**），其余记 `rerun_variance` 并带 `canonical_sample_id`，原样本不删；
+- **unresolved**：来源里出现 `unknown`，无法判断谁和谁同源——不猜，整组隔离；
+- **true_conflict**：多来源之间答案不一致（不同 Agent、不同 `task_id`、手工集与生成集）——整组隔离等人工裁决，不自动合并。
+
+隔离项都带 `reason` 与 `canonical_sample_id`（若适用）；`report.groups` 逐组列出 `sample_id / task_id / agent / split / 文件 / 行号`，`report.reruns` 给出 canonical 与 rerun 的对应。
+
+判定顺序是**先按 split 分流、再在池内判同源与冲突**：unknown 与 holdout 不参与训练侧判定，否则一条来路不明的样本能把同问句的可训练样本一起拖进隔离。
 
 每条样本带 `sample_id / task_id / agent / split / source_trace / tool_calls / messages`，`messages` 原样不动；另外附 `source: {file, line}` 指回原始文件的那一行。
 

@@ -200,45 +200,130 @@ def normalize_sample(raw: dict, *, source: dict | None = None) -> tuple[dict, li
     return sample, issues
 
 
-def _split_conflicts(
+def _source_order(sample: dict) -> tuple:
+    """canonical 的唯一选取依据：源文件路径、行号，最后拿 sample_id 兜底。
+
+    刻意不看答案长度、不问模型偏好、不掷随机数——那些都不可复现，
+    也不代表质量。文件与行号是"数据里真实存在的先后"，谁都能复核。
+    """
+    source = sample.get("source") or {}
+    return (
+        str(source.get("file") or ""),
+        int(source.get("line") or 0),
+        sample["sample_id"],
+    )
+
+
+def _row_ref(sample: dict) -> dict:
+    """报告里的单条索引，够人直接翻到源文件第几行核对。"""
+    source = sample.get("source") or {}
+    return {
+        "sample_id": sample["sample_id"],
+        "task_id": sample["task_id"],
+        "agent": sample["agent"],
+        "split": sample["split"],
+        "file": source.get("file"),
+        "line": source.get("line"),
+    }
+
+
+def _resolve_pool(
     pool: list[dict],
     label: str,
     quarantine_row,
-    conflicts: list[dict],
+    groups: list[dict],
+    reruns: list[dict],
 ) -> list[dict]:
-    """在一个池子里做"同输入"的去重与冲突判定，返回可保留的样本。
+    """一个池子内的分类，返回可保留的样本（每个输入至多一条 canonical）。
 
-    必须按池子分开做，不能把所有样本混在一起判：
-    unknown 来源的样本本来就不许进训练集，它没有资格否掉一条 fit 样本；
-    同理 holdout 的冲突只影响评估集，不该把训练样本一起拖走。
+    四类判定，按证据强弱从上往下，先信任最强的一条：
+
+    1. duplicate      —— 答案完全一致。同一句话留一份，其余记 duplicate。
+    2. rerun_variance —— 答案不同，但来源三元组 (task_id, agent, split) 只有一种。
+                         这是同一次实验的两次运行，留第一条为 canonical，
+                         其余记为 rerun（带 canonical_sample_id），不删原样本。
+    3. unresolved     —— 来源里出现 unknown，无法判断谁和谁同源，不猜。
+    4. true_conflict  —— 其余：多来源之间答案不一致（不同 Agent、不同 task_id、
+                         手工集与生成集），全部隔离等人工裁决。
+
+    判定依据是 task_id/agent/split 三个字段，不是输入文本相似度：
+    相似度只能说明"像不像"，说明不了"是不是同一来源"。
     """
-    groups: dict[str, list[dict]] = {}
+    buckets: dict[str, list[dict]] = {}
     for sample in pool:
-        groups.setdefault(input_key(sample["messages"]), []).append(sample)
+        buckets.setdefault(input_key(sample["messages"]), []).append(sample)
 
     kept: list[dict] = []
-    for key, rows in sorted(groups.items()):
+    for key, rows in sorted(buckets.items()):
+        rows = sorted(rows, key=_source_order)
         answers = {answer_key(r["messages"]) for r in rows}
-        if len(answers) > 1:
-            ids = sorted(r["sample_id"] for r in rows)
-            conflicts.append(
+        origins = {(r["task_id"], r["agent"]) for r in rows}
+        unknown_origin = any(
+            r["task_id"] == UNKNOWN or r["agent"] == UNKNOWN for r in rows
+        )
+
+        entry = {
+            "input_key": key,
+            "split": label,
+            "answers": len(answers),
+            "rows": [_row_ref(r) for r in rows],
+        }
+
+        if len(answers) == 1:
+            canonical = rows[0]
+            kept.append(canonical)
+            for extra in rows[1:]:
+                quarantine_row(
+                    extra,
+                    "duplicate",
+                    {
+                        "split": label,
+                        "input_key": key,
+                        "canonical_sample_id": canonical["sample_id"],
+                    },
+                )
+            if len(rows) > 1:
+                entry.update(
+                    kind="duplicate", canonical_sample_id=canonical["sample_id"]
+                )
+                groups.append(entry)
+            continue
+
+        if len(origins) == 1 and not unknown_origin:
+            canonical = rows[0]
+            kept.append(canonical)
+            rerun_ids: list[str] = []
+            for extra in rows[1:]:
+                quarantine_row(
+                    extra,
+                    "rerun_variance",
+                    {
+                        "split": label,
+                        "input_key": key,
+                        "canonical_sample_id": canonical["sample_id"],
+                    },
+                )
+                rerun_ids.append(extra["sample_id"])
+            entry.update(
+                kind="rerun_variance", canonical_sample_id=canonical["sample_id"]
+            )
+            groups.append(entry)
+            reruns.append(
                 {
                     "input_key": key,
                     "split": label,
-                    "answers": len(answers),
-                    "sample_ids": ids,
-                    "files": sorted({str(r["source"].get("file") or UNKNOWN) for r in rows}),
+                    "canonical_sample_id": canonical["sample_id"],
+                    "rerun_sample_ids": rerun_ids,
                 }
             )
-            for row in rows:
-                quarantine_row(row, "answer_conflict", {"input_key": key, "split": label})
             continue
 
-        # 同一答案只留一条：按 sample_id 排序取第一条，保证两次运行结果一致
-        rows = sorted(rows, key=lambda r: r["sample_id"])
-        kept.append(rows[0])
-        for extra in rows[1:]:
-            quarantine_row(extra, "exact_duplicate", {"split": label})
+        kind = "unresolved" if unknown_origin else "true_conflict"
+        for row in rows:
+            quarantine_row(row, kind, {"split": label, "input_key": key})
+        entry.update(kind=kind, canonical_sample_id=None)
+        groups.append(entry)
+
     return kept
 
 
@@ -291,28 +376,42 @@ def build(items) -> dict:
         else:
             quarantine_row(sample, "unknown_split")
 
-    # ---- 再在各池内部去重 / 判冲突 ----
-    conflicts: list[dict] = []
-    train = _split_conflicts(train_pool, "train", quarantine_row, conflicts)
-    holdout = _split_conflicts(eval_pool, "holdout", quarantine_row, conflicts)
+    # ---- 再在各池内部判同源重跑 / 冲突 ----
+    groups: list[dict] = []
+    reruns: list[dict] = []
+    train = _resolve_pool(train_pool, "train", quarantine_row, groups, reruns)
+    holdout = _resolve_pool(eval_pool, "holdout", quarantine_row, groups, reruns)
 
     # 输出顺序固定，两次运行结果逐字节一致
+    groups.sort(key=lambda g: (g["split"], g["kind"], g["input_key"]))
+    reruns.sort(key=lambda r: (r["split"], r["input_key"]))
     train.sort(key=lambda r: r["sample_id"])
     holdout.sort(key=lambda r: r["sample_id"])
     quarantine.sort(key=lambda r: (r["reason"], r["sample_id"]))
 
+    def kind_groups(kind: str) -> int:
+        return sum(1 for g in groups if g["kind"] == kind)
+
+    def kind_rows(kind: str) -> int:
+        return sum(len(g["rows"]) for g in groups if g["kind"] == kind)
+
     counts = {
         "input_samples": len(prepared),
         "valid_samples": len(good),
-        "exact_duplicates": reasons.get("exact_duplicate", 0),
-        "conflicting_inputs": len(conflicts),
-        "conflict_samples": reasons.get("answer_conflict", 0),
+        "duplicate_samples": reasons.get("duplicate", 0),
+        "rerun_variance_groups": kind_groups("rerun_variance"),
+        "rerun_variance_samples": kind_rows("rerun_variance"),
+        "true_conflict_groups": kind_groups("true_conflict"),
+        "true_conflict_samples": kind_rows("true_conflict"),
+        "unresolved_groups": kind_groups("unresolved"),
+        "unresolved_samples": kind_rows("unresolved"),
+        "canonical_samples": len(train) + len(holdout),
         "train_samples": len(train),
         "holdout_samples": len(holdout),
         "unknown_samples": reasons.get("unknown_split", 0),
+        "isolation_samples": len(quarantine),
         "missing_field_samples": missing_fields,
         "bad_tool_calls": bad_tool_calls,
-        "quarantined_samples": len(quarantine),
         "trainable_samples": len(train),
     }
 
@@ -324,7 +423,8 @@ def build(items) -> dict:
             "schema_version": SCHEMA_VERSION,
             "counts": counts,
             "reasons": dict(sorted(reasons.items())),
-            "conflicts": conflicts,
+            "groups": groups,
+            "reruns": reruns,
         },
     }
 
