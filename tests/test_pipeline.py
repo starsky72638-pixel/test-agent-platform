@@ -417,8 +417,13 @@ def _imported_modules(path: Path) -> set[str]:
 def test_pipeline_imports_nothing_business_specific():
     """源码级扫描：pipeline 只许依赖 core / evaluator / memory 与标准库。"""
     allowed = {"core", "evaluator", "memory", "pipeline"}
+    # 白名单显式列出，新增一个依赖必须在这里写明理由。
+    # provenance 需要算文件哈希、读 Git 状态、取当前时间、拼错误信息，
+    # 分别用到 hashlib / subprocess / datetime / sys——都是标准库，
+    # 不会把 agents、langchain、httpx 任何一层拖进来。
     stdlib_ok = {
-        "dataclasses", "typing", "json", "re", "time", "pathlib", "collections",
+        "collections", "dataclasses", "datetime", "hashlib", "json",
+        "pathlib", "re", "subprocess", "sys", "time", "typing",
     }
     for path in (ROOT / "pipeline").glob("*.py"):
         for mod in _imported_modules(path):

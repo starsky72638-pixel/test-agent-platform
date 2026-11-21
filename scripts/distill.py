@@ -51,6 +51,7 @@ if __package__ in (None, ""):
 from core.task import load_many
 from core.trace import STATUS_OK, load_traces
 from evaluator.verdict import calls_of_turn, evaluate
+from pipeline import provenance
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -231,17 +232,33 @@ def parse_args(argv=None):
     return p.parse_args(argv)
 
 
-def _collect_traces(paths: list[str]) -> list:
-    """从任意 jsonl 读轨迹，按传入顺序拼接。"""
+def _count(values) -> dict[str, int]:
+    """计数成普通 dict：manifest 要直接 json.dumps，Counter 得再转一次。"""
+    out: dict[str, int] = {}
+    for value in values:
+        key = str(value or "")
+        out[key] = out.get(key, 0) + 1
+    return out
+
+
+def _read_inputs(paths: list[str]):
+    """读任意轨迹 jsonl，同时产出每个文件的来源条目（路径/哈希/条数）。
+
+    条数顺手数掉：后面写 provenance 时再回读一遍纯属浪费，
+    而且两次读之间文件若被改动，条数与哈希会互相对不上。
+    """
     traces: list = []
+    entries: list[dict] = []
     for item in paths:
         path = Path(item)
         if not path.is_absolute():
             path = PROJECT_ROOT / path
         if not path.exists():
             raise FileNotFoundError(path)
-        traces.extend(load_traces(path))
-    return traces
+        rows = load_traces(path)
+        traces.extend(rows)
+        entries.append({**provenance.file_entry(path), "traces": len(rows)})
+    return traces, entries
 
 
 def main(argv=None) -> int:
@@ -265,13 +282,18 @@ def main(argv=None) -> int:
     total_sft: list[dict] = []
     total_failed: list[dict] = []
     stats: dict[str, dict] = {}
+    # provenance 用：读过哪些文件（含哈希）、这批轨迹是谁跑的
+    inputs: list[dict] = []
+    used: list = []
 
     if args.trace:
         try:
-            traces = _collect_traces(args.trace)
+            traces, entries = _read_inputs(args.trace)
         except FileNotFoundError as exc:
             print(f"[错误] 轨迹文件不存在：{exc}")
             return 1
+        inputs.extend(entries)
+        used.extend(traces)
         if not traces:
             print("[错误] --trace 指向的文件里没有轨迹")
             return 1
@@ -301,6 +323,14 @@ def main(argv=None) -> int:
             if not traces:
                 print(f"[跳过] {group}：{run_dir / GROUPS[group]} 不存在或为空")
                 continue
+            # 只记真正参与蒸馏的文件：被跳过的组不该出现在来源清单里
+            inputs.append(
+                {
+                    **provenance.file_entry(run_dir / GROUPS[group]),
+                    "traces": len(traces),
+                }
+            )
+            used.extend(traces)
             sft, failed, extra = distill_traces(traces, tasks, min_answer=args.min_answer)
             total_sft.extend(sft)
             total_failed.extend(failed)
@@ -342,6 +372,17 @@ def main(argv=None) -> int:
         },
         "by_group": stats,
         "failure_types": {},
+        # 来源信息单独一块：训练样本的 messages 一个字段都不动，
+        # 元数据只挂在 manifest 上，避免污染训练数据本身。
+        "provenance": provenance.distill_provenance(
+            inputs=inputs,
+            sft=len(total_sft),
+            failed=len(total_failed),
+            by_group=stats,
+            agents=dict(sorted(_count(t.agent for t in used).items())),
+            splits=dict(sorted(_count(t.split for t in used).items())),
+            code_path=Path(__file__),
+        ),
     }
     for row in total_failed:
         key = row.get("failure_type") or "unknown"

@@ -104,7 +104,7 @@ POST /workflows            保存（覆盖时 version 自动 +1）
 .venv\Scripts\python.exe -m pytest tests -q
 ```
 
-当前 **419 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
+当前 **426 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
 
 ### 通过界面跑（可选）
 
@@ -192,6 +192,20 @@ P6 之前 W03 恒为 `wrong_arg`（订单号写死 1002）。改成 `{{extract.o
 
 ```powershell
 .venv\Scripts\python.exe scripts\run_shop.py --agent wf:report-demo --golden data\wf_multi.jsonl --no-compare
+```
+
+### 实验来源（manifest）
+
+`run_loop.py` 每开一次实验，在建目录时就写一份 `manifest.json`：Agent 名、用到的任务文件及其 SHA-256、fit/holdout 实际条数与任务 id、全部运行参数、经验库路径、Python 版本，以及 Git 的 `commit / branch / dirty`。
+
+三条规则写在 `pipeline/provenance.py` 顶部：取不到写 `null` 不猜；Git 失败记 `commit=null dirty=null` 并保留 `git.error`，绝不写成"干净"；`write_manifest` 失败抛 `ManifestError`，`run_loop` 会打印警告后继续（报告仍会落盘，但这次实验缺来源信息）。
+
+先写 manifest 再开跑，所以中途崩掉也留得下配置；老实验目录不动，没有 manifest 就当作"历史产物"。
+
+`distill.py` 在原有 `manifest.json` 里增加 `provenance` 块：每个输入轨迹文件的路径/哈希/条数、输出条数、按组的统计、涉及的 Agent 与 split、以及 distill 代码自身的哈希与 Git 状态。**SFT 的 `messages` 一个字段都不动**，元数据只挂在 manifest 上。
+
+```powershell
+.venv\Scripts\python.exe scripts\distill.py --run runs\full-cold\20261118-000730
 ```
 
 ### 分支与记忆节点（目前只有 JSON 配置）

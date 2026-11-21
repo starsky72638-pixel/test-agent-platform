@@ -50,7 +50,7 @@ from config import PROJECT_ROOT, SERVICE_BASE
 from core.task import load_many
 from core.trace import save_traces
 from memory.store import ExperienceStore
-from pipeline import learn, verify
+from pipeline import learn, provenance, verify
 
 # 被测服务地址的单一来源是 config.SERVICE_BASE（与 agents/*/tools 同一处）。
 # 这里不再自己读环境变量：重置必须打到工具真正用的那个地址，
@@ -199,6 +199,36 @@ def main(argv=None) -> int:
     print(f"工具 {sorted(allowed) or '无'} | 上下文 {getattr(agent, 'keep_turns', '-')}")
     if existing:
         print(f"经验库已有 {existing} 条可用经验（本次会接续使用）")
+
+    # ---------------- 实验来源 ----------------
+    # 先落 manifest 再开跑：中途崩掉也留得下"这次是什么配置"，
+    # 而 report.json 只有全部跑完才写得出来。
+    manifest = provenance.build_run_manifest(
+        run_id=stamp,
+        agent=agent.name,
+        agent_requested=args.agent,
+        goldens=goldens,
+        tasks_total=len(all_tasks),
+        fit_ids=[t.id for t in fit],
+        holdout_ids=[t.id for t in holdout],
+        params={
+            "max_steps": args.max_steps,
+            "top_k": args.top_k,
+            "min_score": args.min_score,
+            "fit_limit": args.fit_limit,
+            "holdout_limit": args.holdout_limit,
+            "record_outcome": not args.no_record,
+            "out": str(Path(args.out)) if args.out else None,
+        },
+        store_path=store_path,
+    )
+    try:
+        manifest_path = provenance.write_manifest(run_dir / "manifest.json", manifest)
+    except provenance.ManifestError as exc:
+        # 不静默：manifest 缺了，这次实验的可追溯性就是残的，必须让人看见。
+        print(f"[警告] {exc}")
+        print("       实验继续，report.json 仍会写出，但这次实验缺少来源信息。")
+        manifest_path = None
 
     # ---------------- 学习 ----------------
     print(f"\n{SEPARATOR}\n学习阶段：只跑 fit 侧，不注入经验\n{SEPARATOR}")
@@ -362,6 +392,8 @@ def main(argv=None) -> int:
 
     print(f"\n本次实验目录：{run_dir}")
     print(f"报告：{report_path}")
+    if manifest_path is not None:
+        print(f"来源：{manifest_path}")
     print(f"经验库：{store_path}（{len(store.active())} 条可用）")
     return 0
 
