@@ -12,7 +12,16 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
+# 用 uid 1000 运行：宿主机 ubuntu 也是 1000，
+# 挂载卷里新建的文件属主一致，VSCode 里还能改；
+# 否则容器以 root 写入，宿主上变成 root 所有，普通用户改不动。
+RUN useradd -m -u 1000 appuser \
+    && mkdir -p /app/data /app/runs
+
 COPY . .
+RUN chown -R appuser:appuser /app
+
+USER appuser
 
 EXPOSE 8020
 
