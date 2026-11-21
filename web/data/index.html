@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>test_agent · 数据产物</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161a21;
+    --panel-2: #1c2129;
+    --line: #2a3038;
+    --text: #e6e9ee;
+    --muted: #8a93a0;
+    --accent: #4f8cff;
+    --ok: #3ecf8e;
+    --err: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 13px/1.6 "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 16px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+  header .title { font-size: 14px; font-weight: 600; }
+  header .sub { color: var(--muted); }
+  header .spacer { flex: 1; }
+  a.link { color: var(--accent); text-decoration: none; }
+  a.link:hover { text-decoration: underline; }
+  main {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 16px;
+    display: grid;
+    gap: 14px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .card h2 {
+    margin: 0 0 4px;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .pill {
+    font-size: 11px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-weight: 400;
+  }
+  .hint { color: var(--muted); margin: 0 0 10px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .chip {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    color: var(--muted);
+  }
+  .try { display: flex; gap: 8px; margin-bottom: 10px; }
+  .try input {
+    flex: 1;
+    padding: 7px 10px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    color: var(--text);
+    font: inherit;
+  }
+  .try input:focus { outline: none; border-color: var(--accent); }
+  button {
+    padding: 7px 14px;
+    background: var(--accent);
+    border: none;
+    border-radius: 7px;
+    color: #fff;
+    font: inherit;
+    cursor: pointer;
+  }
+  button:hover { filter: brightness(1.1); }
+  button.ghost {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--text);
+  }
+  pre.code {
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font: 12px/1.6 ui-monospace, Consolas, monospace;
+    color: var(--text);
+    max-height: 320px;
+    overflow: auto;
+  }
+  .list { display: grid; gap: 8px; }
+  .mem {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: var(--panel-2);
+  }
+  .mem .head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .mem .type {
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 5px;
+    background: #2a1f24;
+    color: var(--err);
+    border: 1px solid #432b32;
+  }
+  .mem .id { color: var(--muted); font: 11px/1 ui-monospace, Consolas, monospace; }
+  .mem .act { margin-top: 6px; }
+  .mem .meta { margin-top: 6px; color: var(--muted); font-size: 11px; }
+  .grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+  .ds {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+    background: var(--panel-2);
+  }
+  .ds .name { font-weight: 600; }
+  .ds .n { font-size: 22px; margin: 4px 0; }
+  .ds .path { color: var(--muted); font-size: 11px; word-break: break-all; }
+  .ds .row { margin-top: 8px; display: flex; gap: 8px; align-items: center; }
+  .ds.missing { opacity: .6; }
+  .kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; }
+  .kv div {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+  .kv b { display: block; font-size: 18px; }
+  .kv span { color: var(--muted); font-size: 11px; }
+  .err { color: var(--err); }
+  .ok { color: var(--ok); }
+</style>
+</head>
+<body>
+<header>
+  <span class="title">test_agent</span>
+  <span class="sub">数据产物</span>
+  <span class="spacer"></span>
+  <a class="link" href="/ui/">运行页</a>
+  <a class="link" href="/ui/builder/">画布</a>
+  <a class="link" href="/docs" target="_blank" rel="noopener">API</a>
+</header>
+
+<main>
+  <section class="card">
+    <h2>经验记忆 <span class="pill" id="mem-count">…</span></h2>
+    <p class="hint">
+      一条经验 = 某类失败 → 该补什么动作。由失败轨迹提炼、过质量闸门后入库，
+      在相似任务上被检索出来注入到提示词前面。它不是知识库，没有向量检索。
+    </p>
+    <div class="chips" id="mem-types"></div>
+    <div class="try">
+      <input id="q" placeholder="输入一句用户问题，看会命中哪几条经验（例：订单 1002 什么状态，金额多少）" />
+      <button id="btn-preview">预览注入</button>
+    </div>
+    <pre class="code" id="preview" hidden></pre>
+    <div class="list" id="mems"></div>
+  </section>
+
+  <section class="card">
+    <h2>训练 / 评估数据 <span class="pill" id="ds-count">…</span></h2>
+    <p class="hint">
+      由评测轨迹蒸馏、过四道闸门（精确去重 / 同源重跑去重 / 冲突隔离 / split 分流）后产出。
+      训练集只含 fit 侧样本，评估集只含 holdout 侧，两边不混。
+    </p>
+    <div class="grid3" id="ds"></div>
+  </section>
+
+  <section class="card">
+    <h2>质量报告 <span class="pill">report.json</span></h2>
+    <p class="hint">每一条被排除的样本都能在这里找到原因，没有静默丢弃。</p>
+    <div class="kv" id="counts"></div>
+  </section>
+</main>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s == null ? '' : s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+async function loadMemory() {
+  const r = await fetch('/memory');
+  const d = await r.json();
+  $('#mem-count').textContent = d.total + ' 条 · 生效 ' + d.active + ' 条';
+
+  const types = Object.entries(d.by_failure || {})
+    .map(([k, v]) => '<span class="chip">' + esc(k) + ' · ' + v + '</span>')
+    .join('');
+  $('#mem-types').innerHTML = types || '<span class="chip">库为空</span>';
+
+  if (!d.exists) {
+    $('#mems').innerHTML = '<div class="hint err">经验库文件不存在：' + esc(d.file) + '</div>';
+    return;
+  }
+  if (!d.items.length) {
+    $('#mems').innerHTML = '<div class="hint">库里没有经验。这通常意味着 fit 侧没有失败可提炼。</div>';
+    return;
+  }
+
+  $('#mems').innerHTML = d.items.map((e) => `
+    <div class="mem">
+      <div class="head">
+        <span class="type">${esc(e.failure_type)}</span>
+        <span class="id">${esc(e.exp_id)}</span>
+        <span class="chip">${esc(e.shape || 'single')}</span>
+      </div>
+      <div class="act">${esc(e.action)}</div>
+      ${e.guard ? '<div class="meta">边界：' + esc(e.guard) + '</div>' : ''}
+      <div class="meta">
+        工具 ${esc((e.tools || []).join(' / ') || '—')} ·
+        support ${e.support} / contradict ${e.contradict} · 已注入 ${e.injected} 次
+      </div>
+    </div>`).join('');
+}
+
+async function loadDatasets() {
+  const r = await fetch('/datasets');
+  const d = await r.json();
+  const total = (d.items || []).reduce((a, x) => a + (x.rows || 0), 0);
+  $('#ds-count').textContent = d.exists ? '共 ' + total + ' 条' : '未生成';
+
+  $('#ds').innerHTML = (d.items || []).map((x) => {
+    const label = { train: '训练集', holdout: '评估集', quarantine: '隔离区' }[x.name] || x.name;
+    const note = { train: '只进训练，可拿去微调', holdout: '只做评估，不进训练', quarantine: '冲突/未知来源，等人审' }[x.name] || '';
+    if (!x.exists) {
+      return `<div class="ds missing">
+        <div class="name">${esc(label)}</div>
+        <div class="n">—</div>
+        <div class="path">${esc(x.file)}</div>
+        <div class="meta">未生成：在服务器跑 build_sft.py</div>
+      </div>`;
+    }
+    return `<div class="ds">
+      <div class="name">${esc(label)}</div>
+      <div class="n">${x.rows} 条</div>
+      <div class="path">${esc(x.file)}</div>
+      <div class="meta">${esc(note)}</div>
+      <div class="row">
+        <a class="link" href="/datasets/${encodeURIComponent(x.name)}" download>下载 JSONL</a>
+      </div>
+    </div>`;
+  }).join('');
+
+  const c = d.counts || {};
+  const cells = [
+    ['输入样本', c.input_samples],
+    ['有效', c.valid_samples],
+    ['精确重复', c.duplicate_samples],
+    ['同源重跑', c.rerun_variance_samples],
+    ['真冲突', c.true_conflict_samples],
+    ['未知来源', c.unknown_samples],
+    ['隔离合计', c.isolation_samples],
+    ['可训练', c.trainable_samples],
+  ].filter(([, v]) => v != null);
+
+  $('#counts').innerHTML = cells.length
+    ? cells.map(([k, v]) => `<div><b>${v}</b><span>${k}</span></div>`).join('')
+    : '<div><b>—</b><span>还没有 report.json</span></div>';
+}
+
+async function preview() {
+  const q = $('#q').value.trim();
+  const box = $('#preview');
+  if (!q) { box.hidden = true; return; }
+
+  box.hidden = false;
+  box.textContent = '检索中…';
+  try {
+    const r = await fetch('/memory/preview?top_k=3&task=' + encodeURIComponent(q));
+    const d = await r.json();
+    if (!r.ok) { box.textContent = '失败：' + (d.detail || r.status); return; }
+    if (!d.hit_count) {
+      box.textContent = '命中 0 条。\n\n这不算错——说明没有经验的关键词与这句话重合，\n或者形态（单轮/多轮）不匹配。检索门槛偏松也会导致误命中，\n所以"没命中"比"乱命中"更安全。';
+      return;
+    }
+    box.textContent = '命中 ' + d.hit_count + ' 条（' + d.chars + ' 字）\n\n' + d.rendered;
+  } catch (e) {
+    box.textContent = '请求失败：' + e.message;
+  }
+}
+
+$('#btn-preview').addEventListener('click', preview);
+$('#q').addEventListener('keydown', (e) => { if (e.key === 'Enter') preview(); });
+
+loadMemory().catch((e) => { $('#mems').innerHTML = '<div class="hint err">' + esc(e.message) + '</div>'; });
+loadDatasets().catch((e) => { $('#counts').innerHTML = '<div class="hint err">' + esc(e.message) + '</div>'; });
+</script>
+</body>
+</html>

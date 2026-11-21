@@ -213,3 +213,60 @@ def test_builder_page_is_served_by_ui_mount():
     script = bare.get("/ui/builder/app.js")
     assert script.status_code == 200
     assert "POST /workflows" in script.text
+
+
+# ------------------------------------------------------------ 数据产物（只读）
+# 这三个接口回答的是"平台积累了什么"，与执行链无关，所以不需要 mock 模型。
+
+
+def test_memory_endpoint_lists_experiences(client):
+    body = client.get("/memory").json()
+
+    assert {"file", "exists", "total", "active", "by_failure", "items"} <= set(body)
+    assert body["total"] >= 0
+    assert sum(body["by_failure"].values()) == body["total"]
+    # 每一条都必须带可执行动作：没有动作的经验注入进去也只是废话
+    for item in body["items"]:
+        assert item["action"].strip()
+        assert item["exp_id"]
+        assert item["status"]  # 具体枚举值由 memory/schema.py 决定，这里只要求非空
+
+
+def test_memory_preview_matches_rendered_length(client):
+    """预览的 chars 必须等于渲染文本长度，否则"预览"和"真注入"会分叉。"""
+    body = client.get("/memory/preview", params={"task": "订单 1002 现在什么状态，金额多少"}).json()
+
+    assert body["task"]
+    assert body["hit_count"] == len(body["hits"])
+    assert body["chars"] == len(body["rendered"])
+    # 命中与不命中都要能说清楚：命中就必须带表头。
+    # 只断言前缀，不锁死括号里的说明文案——那句话会改，表头不该改。
+    if body["hit_count"]:
+        assert "【历史经验" in body["rendered"]
+
+
+def test_memory_preview_rejects_empty_task(client):
+    assert client.get("/memory/preview").status_code == 422
+
+
+def test_datasets_endpoint_lists_three_buckets(client):
+    body = client.get("/datasets").json()
+
+    names = [x["name"] for x in body["items"]]
+    assert names == ["train", "holdout", "quarantine"]
+    for item in body["items"]:
+        assert item["rows"] >= 0
+        assert item["file"].startswith("data/sft/")
+
+
+def test_dataset_download_rejects_unknown_name(client):
+    """名字走白名单，不能拼路径——否则 ../../.env 就能被下走。"""
+    assert client.get("/datasets/..%2F.env").status_code == 404
+    assert client.get("/datasets/nope").status_code == 404
+
+
+def test_data_page_is_served(client):
+    page = client.get("/ui/data/")
+    assert page.status_code == 200
+    assert "/memory/preview" in page.text
+    assert "/datasets/" in page.text

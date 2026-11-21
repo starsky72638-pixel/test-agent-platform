@@ -106,7 +106,7 @@ POST /workflows            保存（覆盖时 version 自动 +1）
 .venv\Scripts\python.exe -m pytest tests -q
 ```
 
-当前 **465 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
+当前 **471 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
 
 ### 通过界面跑（可选）
 
@@ -119,10 +119,22 @@ HTTP 与 Web 界面走的是和 `run_agent.py` 同一条执行链，`core/` 零�
 
 浏览器打开 `http://127.0.0.1:8020/ui/`，选 Agent、输入问题，右侧显示逐轮工具调用与原始返回。多行输入会被当作多轮任务一次提交。
 
-- 四个端点：`GET /health`、`GET /agents`、`POST /runs`、`GET /runs/{run_id}`
+- 执行类端点：`GET /health`、`GET /agents`、`POST /runs`、`GET /runs/{run_id}`
+- 定义类端点：`GET /tools`、`GET /workflows`、`GET /workflows/{id}`、`POST /workflows`
+- 产物类端点（只读）：`GET /memory`、`GET /memory/preview?task=…`、`GET /datasets`、`GET /datasets/{name}`
 - **同步执行**：请求等跑完才返回，单条约 10–50 秒
 - 无鉴权、只监听 `127.0.0.1`，不做公网假设
 - 端口 8020：8000 是 mock_server，8010 留给本机另一个项目
+
+### 看平台积累了什么（数据产物页）
+
+浏览器打开 `http://127.0.0.1:8020/ui/data/`：
+
+- **经验记忆**：库里多少条、按失败类型分布、每条的动作与边界；输入一句用户问题，能看到**会命中哪几条、渲染成什么样**（复用 `memory.inject.render_for_task`，与真正注入的是同一套渲染）
+- **训练 / 评估数据**：`train` / `holdout` / `quarantine` 各多少条，点「下载 JSONL」直接拿走
+- **质量报告**：`data/sft/report.json` 的计数——输入多少、去重多少、冲突多少、隔离多少
+
+这一页只读磁盘，不判分、不写库。判分与蒸馏仍是离线批处理。
 
 ### 拖拽搭一个 Agent（画布）
 

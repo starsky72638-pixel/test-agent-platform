@@ -20,6 +20,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import secrets
 import sys
@@ -31,6 +32,7 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from fastapi import Body, FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -67,6 +69,18 @@ def new_run_id() -> str:
 
 def trace_path(run_id: str) -> Path:
     return RUNS_DIR / run_id / f"{run_id}.jsonl"
+
+
+def _rel(path: Path) -> str:
+    """尽量给相对仓库根的路径；不在仓库内时原样返回。
+
+    统一用正斜杠（as_posix）：同一个接口在 Windows 与 Linux 上
+    必须返回同一种写法，否则前端和测试都要按平台分支。
+    """
+    try:
+        return path.relative_to(PROJECT_ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
 
 
 def check_workflow_id(workflow_id: str) -> None:
@@ -309,6 +323,134 @@ def create_app() -> FastAPI:
             "name": definition.name,
             "path": str(path),
         }
+
+    # -- 数据产物（只读） ----------------------------------------
+    # 这三个接口只读磁盘、不改任何东西：回答"平台到底积累了什么"。
+    # 判分与蒸馏仍是离线批处理（run_loop / build_sft），这里不重复实现。
+
+    @app.get("/memory")
+    def list_memory(limit: int = 50) -> dict:
+        """经验库：一条经验 = 某类失败 → 该补什么动作。"""
+        from memory.store import DEFAULT_STORE_PATH, ExperienceStore
+
+        store = ExperienceStore(DEFAULT_STORE_PATH)
+        exps = store.all()
+
+        cap = max(1, min(int(limit or 50), 200))
+        ordered = sorted(exps, key=lambda e: (-e.support, e.exp_id))[:cap]
+        items = [
+            {
+                "exp_id": e.exp_id,
+                "failure_type": e.failure_type,
+                "action": e.action,
+                "guard": e.guard,
+                "shape": e.trigger.shape,
+                "tools": list(e.trigger.tools),
+                "support": e.support,
+                "contradict": e.contradict,
+                "injected": e.injected,
+                "status": e.status,
+            }
+            for e in ordered
+        ]
+
+        by_failure: dict[str, int] = {}
+        for e in exps:
+            by_failure[e.failure_type] = by_failure.get(e.failure_type, 0) + 1
+
+        return {
+            "file": _rel(DEFAULT_STORE_PATH),
+            "exists": DEFAULT_STORE_PATH.is_file(),
+            "total": len(exps),
+            "active": sum(1 for e in exps if e.status == "active"),
+            "by_failure": dict(sorted(by_failure.items())),
+            "items": items,
+        }
+
+    @app.get("/memory/preview")
+    def preview_memory(task: str = "", top_k: int = 3) -> dict:
+        """给定一句用户问题，返回会命中哪几条经验、渲染出来长什么样。
+
+        复用 memory.inject.render_for_task，不另写一套渲染，
+        否则"预览看到的"和"真正注入的"会慢慢分叉。
+        """
+        from memory.inject import render_for_task
+        from memory.store import DEFAULT_STORE_PATH, ExperienceStore
+
+        text = (task or "").strip()
+        if not text:
+            raise HTTPException(status_code=422, detail="task 不能为空")
+
+        store = ExperienceStore(DEFAULT_STORE_PATH)
+        rendered, ids = render_for_task(
+            store,
+            Task(id="preview", input=text),
+            top_k=max(1, min(int(top_k or 3), 10)),
+        )
+        return {
+            "task": text,
+            "hits": ids,
+            "hit_count": len(ids),
+            "chars": len(rendered),
+            "rendered": rendered,
+        }
+
+    @app.get("/datasets")
+    def list_datasets() -> dict:
+        """训练 / 评估 / 隔离三份 SFT 数据的规模，附质量报告的计数。"""
+        sft_dir = PROJECT_ROOT / "data" / "sft"
+        items = []
+        for name in ("train", "holdout", "quarantine"):
+            path = sft_dir / f"{name}.jsonl"
+            rows = 0
+            if path.is_file():
+                with path.open(encoding="utf-8") as f:
+                    rows = sum(1 for line in f if line.strip())
+            items.append(
+                {
+                    "name": name,
+                    "file": _rel(path),
+                    "exists": path.is_file(),
+                    "rows": rows,
+                    "bytes": path.stat().st_size if path.is_file() else 0,
+                }
+            )
+
+        counts: dict = {}
+        report = sft_dir / "report.json"
+        if report.is_file():
+            try:
+                counts = (json.loads(report.read_text(encoding="utf-8")) or {}).get("counts", {})
+            except (ValueError, OSError):
+                counts = {}
+
+        return {
+            "dir": _rel(sft_dir),
+            "exists": sft_dir.is_dir(),
+            "items": items,
+            "counts": counts,
+        }
+
+    @app.get("/datasets/{name}")
+    def download_dataset(name: str):
+        """下载一份产物。名字走白名单，不拼路径。"""
+        allowed = {
+            "train": ("train.jsonl", "application/x-ndjson"),
+            "holdout": ("holdout.jsonl", "application/x-ndjson"),
+            "quarantine": ("quarantine.jsonl", "application/x-ndjson"),
+            "report": ("report.json", "application/json"),
+        }
+        if name not in allowed:
+            raise HTTPException(status_code=404, detail=f"只有这些：{sorted(allowed)}")
+
+        filename, media = allowed[name]
+        path = PROJECT_ROOT / "data" / "sft" / filename
+        if not path.is_file():
+            raise HTTPException(
+                status_code=404,
+                detail="文件不存在。先在服务器上跑：docker compose exec agent-platform python scripts/build_sft.py",
+            )
+        return FileResponse(path, media_type=media, filename=filename)
 
     # 同源挂载界面：避免 CORS，也不必把页面和 API 拆成两个进程。
     # 只挂 /ui，不动根路径，/docs 与上面四条路由都不受影响。
