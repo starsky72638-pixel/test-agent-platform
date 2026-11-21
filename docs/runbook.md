@@ -149,7 +149,9 @@ Workflow 轨迹会**静默错配**（`wf_multi` 与 `shop_eval_multi` 都用 `M0
 `data/sft/{train,holdout,quarantine}.jsonl` + `report.json`。判定顺序是
 **结构校验 → split 分流 → 池内四分类**（`duplicate` / `rerun_variance` / `unresolved` / `true_conflict`），
 canonical 只按（源文件路径, 行号, sample_id）取第一条，不看答案长度。
-当前结果：67 条 → train 26 / holdout 0 / unknown 18 / 隔离 41。
+当前结果：72 条 → train 26 / holdout 4 / unknown 18 / 隔离 42。
+holdout 那 4 条来自 `runs/wf-shop-demo-*.jsonl` 蒸馏出的 `data/distill-wf-eval/`（W02–W05），
+是评估集唯一的独立来源；`data/distill-wf/` 那条 W01 与另一个 Workflow 同题不同答案，按 `true_conflict` 隔离。
 
 **经验库归并**（8 个实验目录 76 行 → 9 条唯一）：
 

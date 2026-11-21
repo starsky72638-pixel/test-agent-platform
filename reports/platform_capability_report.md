@@ -175,9 +175,10 @@ llm_call 事件 1 条 | prompt 400 字
 | `data/distill-main-a2/sft.jsonl` | **25** | 24 | 来自 `runs/main-a2/20261119-194423` 的 fit 组 | 同上 + `--out` |
 | `data/train_sft.jsonl` | **18** | 17 | 带 system prompt 的整理版，`meta.case_id/passed` | 手工/半自动整理 |
 | `data/pref_pairs.jsonl` | **1** | — | DPO 偏好对（`prompt` / `chosen` / `rejected` / `failure_type`） | 手工构造 |
-| `data/distill-wf/sft.jsonl` | **2** | 2 | `wf:branch-demo` / `wf:canvas-demo` 的 W01 | `p5c_probe.py wf-distill` |
+| `data/distill-wf/sft.jsonl` | **2** | 2 | `wf:branch-demo` / `wf:canvas-demo` 的 W01（P5-c 快照） | `p5c_probe.py wf-distill` |
+| `data/distill-wf-eval/sft.jsonl` | **5** | 5 | `wf:shop-demo` 的 W01–W05，来自 `runs/wf-shop-demo-20261120-231756.jsonl` | `distill.py --trace` |
 
-合计 SFT 65 条（不含 wf 的 2 条），空样本 0 条。
+合计 SFT 72 条（65 + wf 快照 2 + wf-eval 5），空样本 0 条。新的 `distill-wf-eval` 是 holdout 的唯一来源，见第 11.5 节。
 
 每份文件各有 1 条不含 `tool_calls`——这些是纯咨询类问题（不需要调工具就能答），不是缺字段。
 
@@ -373,22 +374,32 @@ meta    context_turns: 2
 
 canonical 只由 `(源文件路径, 行号, sample_id)` 决定——**不看答案长度、不做相似度、不掷随机数**。`unknown` 与 `holdout` 不参与训练侧的冲突裁决，否则一条来路不明的样本能拖走同问句的可训练样本。
 
-**实测**（`data/sft/report.json`，67 条输入 / 4 个文件）：
+**实测**（`data/sft/report.json`，72 条输入 / 5 个文件）：
 
 | 项 | 数量 |
 |---|---|
-| 有效 | 67 |
+| 有效 | 72 |
 | duplicate | 0 |
 | rerun_variance | 21 组 / 42 条 |
-| true_conflict | 1 组 / 2 条 |
+| true_conflict | 1 组 / 3 条 |
 | unresolved | 0 |
-| canonical | 26 |
+| canonical | 30 |
 | **train** | **26** |
-| **holdout** | **0** |
+| **holdout** | **4** |
 | unknown | 18 |
-| 隔离合计 | 41 |
+| 隔离合计 | 42 |
 
-`train` 从 P10-c 的 5 条提到 26 条，不是放宽标准，而是把「同一次实验的两次运行」从不该占用的冲突队列里拿出来。**`holdout` 为 0 是当前最实质的缺口**：那 2 条是 W01 由 `wf:branch-demo` 与 `wf:canvas-demo` 分别产出、答案不同，属 `true_conflict`，需人工裁决。
+`train` 从 P10-c 的 5 条提到 26 条，不是放宽标准，而是把「同一次实验的两次运行」从不该占用的冲突队列里拿出来。
+
+**`holdout` 从 0 到 4 的过程，是这一阶段唯一的新增数据来源**：原先评估集为空，因为输入里只有 `data/distill-wf/` 的 2 条 W01，且 `wf:branch-demo` 与 `wf:canvas-demo` 对同一题给了不同措辞，判 `true_conflict`。解决办法不是放宽冲突判定，而是补来源——`runs/wf-shop-demo-20261120-231756.jsonl` 里有 6 条评测轨迹（W01–W05 PASS、W06 `missing_tool`），此前从未被蒸馏。用 `--trace` 把它转成 `data/distill-wf-eval/`（5 条），holdout 才第一次有样本。
+
+四条分别是：W02（问 1002 快递）、W03（问 1001 金额）、W04（问 1001 状态与金额）、W05（查不存在的 9999）。每条都带 `source_trace`（如 `W04-a126d5de`），能回到具体一次执行。
+
+三个必须说清的口径：
+
+1. **W01 仍隔离，没有为了凑数放开**：现在冲突组是 3 条（两个 Workflow + 新蒸馏的那条）。它的两个答案是同一事实的两种措辞（都调 `get_order(1002)`、都答"已发货 + 429.0"），差异只在是否带单号前缀、状态是否加引号——但按规则"不同 Agent 不自动合并"，仍留给人审。若要做进评估集，需要一条显式裁决记录，本轮没做。
+2. **这 4 条是 Workflow 轨迹投影**：`assistant` 消息按节点逐条拆开（一次一个 `tool_calls`），不是模型一次规划出多个调用。它记录的是"该 Agent 实际怎么执行"，不是"最优解"。
+3. **评估集只有 4 条**，做统计没有意义。它的用途是"管线能跑通、能逐条追到轨迹"，不是"算通过率"。
 
 ### 11.6 本阶段累计
 
@@ -403,6 +414,7 @@ canonical 只由 `(源文件路径, 行号, sample_id)` 决定——**不看答�
 | P10-c | `420e8a3` | SFT 质量闸门首版 |
 | P10-c-fix | `80a074e` | 改为先按 split 分流、再判冲突 |
 | P10-c2 | `85e1b30` | 同源重跑识别与冲突四分类 |
+| 阶段 B | 本笔 | `data/distill-wf-eval/`：holdout 从 0 → 4（WF-eval 轨迹首次进蒸馏） |
 
 测试数从 P7 前的 404 涨到 **453**（2026-11-21 实测，与 README 声明一致）。中间各笔的增量为
 逐次叠加的小步，不具解释价值，此处不逐一列出——需要精确数字时以对应 commit 的 message 与 `pytest -q` 为准。

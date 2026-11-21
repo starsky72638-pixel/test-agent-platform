@@ -146,7 +146,7 @@ scripts/run_loop.py
 - **HTTP API 与画布**：`api/app.py` 监听 8020，`/health` 返回 `agents:11`（6 内置 + 5 个 `wf:*`）；
   `web/builder/` 能拖拽连线、生成 JSON、保存并直接运行
 - **数据回流**：`scripts/distill.py` 支持实验目录与任意轨迹文件两条输入；
-  `scripts/build_sft.py` 把 67 条候选分成 train 26 / holdout 0 / unknown 18 / 隔离 41
+  `scripts/build_sft.py` 把 72 条候选分成 train 26 / holdout 4 / unknown 18 / 隔离 42
 - **来源信息**：`runs/<stamp>/manifest.json` 与 distill 的 `provenance` 记数据集哈希、Git commit 与 dirty
 - **经验归并**：8 个库 76 行 → 9 条唯一经验（`data/memory/experiences.jsonl`），`wf:*` 默认读它
 

@@ -6,8 +6,13 @@
 默认输入（存在几个算几个）：
     data/distill/sft.jsonl            一次实验产物
     data/distill-main-a2/sft.jsonl    另一次实验产物
-    data/distill-wf/sft.jsonl         Workflow 轨迹产物
-    data/train_sft.jsonl              人工整理，来源与上面三份不同
+    data/distill-wf/sft.jsonl         Workflow 轨迹产物（P5-c 快照）
+    data/distill-wf-eval/sft.jsonl    Workflow 评测轨迹产物（holdout 来源）
+    data/train_sft.jsonl              人工整理，来源与上面四份不同
+
+`distill-wf` 与 `distill-wf-eval` 是两份、不是一份：前者是 P5-c 的历史快照（只有 W01 两条，
+且互为真冲突），后者由 `runs/wf-shop-demo-*.jsonl` 蒸馏而来（W01–W05 五条 PASS）。
+分开放是为了不覆盖历史证据——`distill-wf` 那条 W01 仍按 `true_conflict` 进隔离，不强行放行。
 
 输出：
     data/sft/train.jsonl       可训练
@@ -38,6 +43,7 @@ DEFAULT_INPUTS = (
     PROJECT_ROOT / "data" / "distill" / "sft.jsonl",
     PROJECT_ROOT / "data" / "distill-main-a2" / "sft.jsonl",
     PROJECT_ROOT / "data" / "distill-wf" / "sft.jsonl",
+    PROJECT_ROOT / "data" / "distill-wf-eval" / "sft.jsonl",
     PROJECT_ROOT / "data" / "train_sft.jsonl",
 )
 

@@ -374,3 +374,20 @@ def test_merge_memory_script_imports():
     from scripts import merge_memory
 
     assert merge_memory.DEFAULT_STORE_PATH.name == "experiences.jsonl"
+
+
+def test_default_inputs_include_workflow_eval_source():
+    """holdout 的唯一来源：wf-eval 那份必须在默认输入里。
+
+    没有它，holdout 恒为 0 —— 输入侧只有 distill-wf 的两条 W01，且互为真冲突。
+    同时钉住 distill-wf（P5-c 历史快照）仍留在清单里：它不参与放行，只作为记录进隔离，
+    删掉就等于抹掉历史证据。
+    """
+    from scripts import build_sft
+
+    dirs = [p.parent.name for p in build_sft.DEFAULT_INPUTS]
+    assert "distill-wf-eval" in dirs
+    assert "distill-wf" in dirs
+    # 顺序也有意义：wf-eval 排在 train_sft 之前，人审时先看到生成集
+    assert dirs.index("distill-wf-eval") < dirs.index("train_sft") if "train_sft" in dirs else True
+

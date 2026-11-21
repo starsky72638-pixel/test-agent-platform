@@ -118,11 +118,11 @@ $env:SHOP_PLAN="1"; .venv\Scripts\python.exe scripts\probe.py --task M08 --repea
 期望看到（当前真实输出）：
 
 ```
-输入 67 条（4 个文件）
-有效 67 | duplicate 0 | rerun_variance 21 组（42 条） | true_conflict 1 组（2 条） | unresolved 0 组
+输入 72 条（5 个文件）
+有效 72 | duplicate 0 | rerun_variance 21 组（42 条） | true_conflict 1 组（3 条） | unresolved 0 组
 缺字段 18 | tool_calls 异常 0
-canonical 26 | train 26 / holdout 0 / unknown 18 / 隔离 41
-隔离原因：rerun_variance=21  true_conflict=2  unknown_split=18
+canonical 30 | train 26 / holdout 4 / unknown 18 / 隔离 42
+隔离原因：rerun_variance=21  true_conflict=3  unknown_split=18
 可训练样本：26
 ```
 
@@ -139,7 +139,16 @@ canonical 26 | train 26 / holdout 0 / unknown 18 / 隔离 41
 .venv\Scripts\python.exe -c "import json;r=json.load(open('data/sft/report.json',encoding='utf-8'));print(r['counts']);print('groups',len(r['groups']),'reruns',len(r['reruns']))"
 ```
 
-**必须主动交代**：`holdout` 现在是 **0**。原有的 2 条是同一道题由两个 Workflow 分别产出、答案不同，被判真冲突隔离。所以这份数据**能训练但还无法评估**——没有训练过任何模型，也不宣称任何训练效果。
+**必须主动交代**：`holdout` 现在有 **4 条**（W02–W05，全来自 `wf:shop-demo` 的真实轨迹，
+每条带 `source_trace` 可回溯）。它们原先不存在——评估集此前是 0，因为输入里只有
+`distill-wf` 的 2 条 W01，且那两个 Workflow 对同一题给了不同措辞，被判真冲突。
+现在 W01 仍隔离（冲突组 3 条），**没有为了凑数放开它**。
+
+还有一点要讲清楚：这 4 条是从 Workflow 轨迹投影来的，`assistant` 消息**按节点逐条拆开**
+（一次一个 `tool_calls`），不是模型一次规划出的多调用。它是"该 Agent 实际执行的样子"，
+不是"最优解"。训练时学到的是"每步一调"，不是"一次规划"。
+
+**最后一句不能省**：全程没有训练过任何模型，也不宣称任何训练效果。
 
 ---
 

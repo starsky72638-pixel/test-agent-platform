@@ -106,7 +106,7 @@ POST /workflows            保存（覆盖时 version 自动 +1）
 .venv\Scripts\python.exe -m pytest tests -q
 ```
 
-当前 **453 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
+当前 **454 passed**。数字对不上说明改动破坏了既有契约，先查再往下走。
 
 ### 通过界面跑（可选）
 
@@ -391,7 +391,7 @@ reports/      实验报告
 4. **`support` 口径偏宽**：`pipeline/verify.py` 回填时未要求"基线失败、注入后才过"，已知缺陷未修。
 5. **词表判语义是死路**：判分靠规则 + 正则，`re:` 只是把枚举写紧凑，不是语义理解。
 6. **规模小**：7 个任务集共 65 条、单域、5 个工具、无并发、无真实流量。价值在方法，不在规模。
-7. **SFT 数据「能训练但无法评估」**：`build_sft.py` 当前产出 train 26 条、holdout **0** 条。holdout 原有的 2 条是同一道题由两个 Workflow 分别产出、答案不同，被判 `true_conflict` 进隔离等人工裁决。**且全程没有训练过任何模型**——只产出数据，不宣称训练效果。
+7. **SFT 数据规模很小，且从未训练**：`build_sft.py` 当前产出 train 26 条、holdout 4 条。holdout 来自 `wf:shop-demo` 的 W02–W05 真实轨迹（每条带 `source_trace`）；同一道题的 W01 由两个 Workflow 给出不同措辞，判 `true_conflict` 隔离，**没有为了凑数放开**。26 条只够验证管线跑通，不足以训练出可评估的模型；**全程没有训练过任何模型**，不宣称训练效果。
 8. **画布只能只读展示 `condition` / `memory` 节点**：在画布上改它们的连线再保存，会让 `next` 与 `branches` 不一致，加载时明确报错（不会静默损坏，但会拦住加载）。跨轮 `expect_order` 不可表达。
 
 ---

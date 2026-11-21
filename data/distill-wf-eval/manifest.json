@@ -1,0 +1,71 @@
+{
+  "run": "",
+  "traces": [
+    "runs\\wf-shop-demo-20261120-231756.jsonl"
+  ],
+  "groups": [
+    "fit"
+  ],
+  "min_answer": 6,
+  "tasks": 6,
+  "total": {
+    "sft": 5,
+    "failed": 1,
+    "duplicates": 0
+  },
+  "by_group": {
+    "trace": {
+      "traces": 6,
+      "sft": 5,
+      "failed": 1,
+      "dropped": {},
+      "duplicates": 0
+    }
+  },
+  "failure_types": {
+    "missing_tool": 1
+  },
+  "provenance": {
+    "schema_version": "1.0",
+    "kind": "distill",
+    "generated_at": "2026-11-21T13:49:56+08:00",
+    "code": {
+      "file": "scripts/distill.py",
+      "sha256": "55754c01897a4bb92d01ee9c86d0ba52f9992d89015ecb4ad82c9f6e711c74d5",
+      "git": {
+        "commit": "b8eefaf37dd9ed61b8a5c293b01ea1a8ed5d55cf",
+        "branch": "master",
+        "dirty": true,
+        "error": ""
+      }
+    },
+    "inputs": [
+      {
+        "path": "runs/wf-shop-demo-20261120-231756.jsonl",
+        "sha256": "85b6898baaff3e89a1de40e2588dcbd4808b39ec232849831d3cc3db1f8fec11",
+        "bytes": 33833,
+        "exists": true,
+        "traces": 6
+      }
+    ],
+    "outputs": {
+      "sft": 5,
+      "failed": 1
+    },
+    "by_group": {
+      "trace": {
+        "traces": 6,
+        "sft": 5,
+        "failed": 1,
+        "dropped": {},
+        "duplicates": 0
+      }
+    },
+    "agents": {
+      "wf:shop-demo": 6
+    },
+    "splits": {
+      "holdout": 6
+    }
+  }
+}
