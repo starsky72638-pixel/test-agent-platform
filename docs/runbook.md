@@ -82,7 +82,17 @@ Get-ChildItem Env:FAULT_*
 ```
 
 两阶段：fit 只跑不注入（学经验），holdout 跑两遍（基线 / 注入）。
-当前数据集 43 题 = fit 26 / holdout 17，单次全量约 **10.5 分钟**（2026-11-19 实测 631s）。
+这条命令默认使用 shop 域三个任务集（20 + 10 + 13 = **43 题**，fit 26 / holdout 17），
+单次全量约 **10.5 分钟**（2026-11-19 实测 631s）。其余任务集要靠 `--golden` 显式指定：
+
+| 任务集 | 条数 | 用途 |
+|---|---|---|
+| `data/shop_eval.jsonl` / `shop_eval_multi.jsonl` / `shop_eval_hard.jsonl` | 20 / 10 / 13 | 原生 Agent 主表 |
+| `data/customer_eval.jsonl` | 6 | customer 域 |
+| `data/wf_eval.jsonl` | 6 | Workflow 评测（W01–W06） |
+| `data/wf_learn.jsonl` | 7 | Workflow 闭环（fit 3 / holdout 4） |
+| `data/wf_multi.jsonl` | 3 | 多轮 + 槽位复用（M01–M03） |
+
 产物在 `runs/<out>/<stamp>/`：
 
 ```
@@ -91,6 +101,7 @@ holdout-baseline.jsonl    基线组
 holdout-injected.jsonl    注入组
 experiences.jsonl         本次学的经验（含每次回填的版本行）
 report.json               汇总（含逐题翻转、注入明细、覆盖率、可判分母）
+manifest.json             来源：Agent、数据集 SHA-256、split 条数、全部参数、Git commit/dirty
 ```
 
 **读结果的三步，顺序不能颠倒：**
@@ -117,6 +128,37 @@ report.json               汇总（含逐题翻转、注入明细、覆盖率、
 
 三道闸门：工具报错的轨迹不进 SFT；判分没过的轨迹不进 SFT（进 `failed.jsonl` 并带
 `failure_type` / `fail_turn`）；`(用户输入, 工具与参数序列, 答案)` 相同只留一条。
+
+**任意轨迹文件也能直接蒸馏**（Workflow 轨迹在 `runs/*.jsonl`，不符合实验目录约定）：
+
+```
+.venv\Scripts\python.exe scripts\distill.py --trace runs\wf-report-demo-20261121-103250.jsonl --golden data\wf_multi.jsonl --out data\distill-wf-probe
+```
+
+`--golden` 必须一起给：`distill` 按 `task_id` 查断言表，用默认的 shop 任务集去判
+Workflow 轨迹会**静默错配**（`wf_multi` 与 `shop_eval_multi` 都用 `M01/M02` 这种 id）。
+`manifest.json` 的 `provenance` 会记下输入轨迹的 SHA-256、条数、输出条数与代码 Git 状态。
+
+**生成训练集之前先过质量闸门**：
+
+```
+.venv\Scripts\python.exe scripts\build_sft.py
+```
+
+读 `data/distill{,-main-a2,-wf}/sft.jsonl` 与 `data/train_sft.jsonl`，产出
+`data/sft/{train,holdout,quarantine}.jsonl` + `report.json`。判定顺序是
+**结构校验 → split 分流 → 池内四分类**（`duplicate` / `rerun_variance` / `unresolved` / `true_conflict`），
+canonical 只按（源文件路径, 行号, sample_id）取第一条，不看答案长度。
+当前结果：67 条 → train 26 / holdout 0 / unknown 18 / 隔离 41。
+
+**经验库归并**（8 个实验目录 76 行 → 9 条唯一）：
+
+```
+.venv\Scripts\python.exe scripts\merge_memory.py --dry-run
+.venv\Scripts\python.exe scripts\merge_memory.py
+```
+
+先看后写；输入库只读，不删不改。写出的 `data/memory/experiences.jsonl` 就是 `wf:*` 的默认库。
 
 ## 6. 环境变量（对照实验只切这些，不回滚代码）
 

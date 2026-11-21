@@ -8,7 +8,9 @@
 |---|---|---|
 | Runtime | `core/` | 协议、注册、执行、崩溃隔离、轨迹落盘，**不 import 任何业务代码** |
 | Agent | `agents/` | 具体怎么想、怎么调工具。换 Agent 只加适配层，不动 Runtime |
-| Learning | `memory/` `pipeline/` `evaluator/` | 判分 → 提炼 → 闸门 → 存储 → 检索 → 注入，外加轨迹蒸馏 |
+| Workflow | `agentplatform/` | 把 Agent 画成一张 JSON 图：分支节点、记忆节点、参数抽取、跨轮上下文与槽位。产物同样是 `Trace`，走同一套判分 |
+| Learning | `memory/` `pipeline/` `evaluator/` | 判分 → 提炼 → 闸门 → 存储 → 检索 → 注入，外加轨迹蒸馏与 SFT 质量闸门 |
+| 门面 | `api/` `web/builder/` | HTTP（8020）与拖拽画布，只经 `agents/builtin` 造 Agent |
 
 购物客服 Agent 是第一个接入者，不是项目的全部。
 
@@ -349,9 +351,19 @@ reports/      实验报告
                           └─► scripts/distill 蒸馏 → SFT 样本 / 失败样本
 ```
 
-- 轨迹落盘：`runs/<批次>/<stamp>/{fit,holdout-baseline,holdout-injected}.jsonl`
-- 汇总：`report.json`（通过数、翻转明细、逐题注入字数、检索覆盖）
-- 经验库：`experiences.jsonl`（追加写，含 `support` / `injected` / `last_outcome`）
+轨迹落盘按入口分四处：
+
+| 入口 | 落盘位置 |
+|---|---|
+| `scripts/run_loop.py` | `runs/<stamp>/{fit,holdout-baseline,holdout-injected}.jsonl` + `report.json` + `manifest.json` + `experiences.jsonl` |
+| `scripts/run_shop.py` | `runs/<agent>-<stamp>.jsonl` |
+| `scripts/run_agent.py` | `runs/adhoc/<stamp>/<stamp>.jsonl` |
+| HTTP API（`POST /runs`） | `runs/api/` |
+
+- `report.json` 记通过数、翻转明细、逐题注入字数、检索覆盖
+- `manifest.json` 记 Agent、数据集路径与 SHA-256、实际 split 条数、全部运行参数、Git commit 与 dirty（见「实验来源」一节）
+- `experiences.jsonl` 追加写，含 `support` / `injected` / `last_outcome`；归并后落在 `data/memory/experiences.jsonl`
+- SFT 侧：`scripts/build_sft.py` 产出 `data/sft/{train,holdout,quarantine}.jsonl` + `report.json`
 - 判分是纯函数：**不调模型、只读落盘轨迹也能复算出主表通过数**（命令见 `docs/runbook.md`）
 
 一条必须守住的纪律：**注入 0 字的题不能算进提升归因**，它和基线条件相同，翻转只能是抖动。
@@ -362,22 +374,25 @@ reports/      实验报告
 
 | 等级 | 内容 |
 |---|---|
-| 有运行证据 | Runtime 统一执行与崩溃隔离（60 次执行 0 crashed）；Trace 记录与回读；五层判分；经验检索与注入；双跑对照；轨迹蒸馏（25 SFT + 1 失败） |
+| 有运行证据 | Runtime 统一执行与崩溃隔离；Trace 记录与回读；五层判分与失败定位到节点；Workflow 引擎（分支节点 / 记忆节点 / `{{extract.<字段>}}` 参数抽取 / 跨轮上下文 / 参数槽位复用）；HTTP API（`api/app.py`，8020）与画布 Builder（`web/builder/`）；经验提炼 → 归并 → 检索 → 注入（含 Workflow 侧注入）；轨迹蒸馏；SFT 质量闸门 |
 | 只有单测 | `main_agent` 接入（窗口裁剪、事实卡片），从未进过全量实跑 |
-| 效果未证明 | **Memory 提升正确率**：主表基线 16/17、注入 15/17、有效覆盖仅 2/17，且这 2 条基线本来就过 → 结论是 null，不是提升 |
-| 未实现 | Web UI / HTTP API、跨会话用户偏好、向量检索、RL/DPO/微调、并发与超时控制、多 Agent 协作 |
+| 效果未证明 | **Memory 提升正确率**：P7 在 `wf_learn` 上做到注入覆盖 4/4、每题 238 字，但基线 4/4、注入 4/4、翻转 0——不是"没注入"，而是**基线已满分，没有提升空间**。早期主表同样是 null（基线 16/17、注入 15/17、有效覆盖 2/17） |
+| 未实现 | 跨会话用户偏好（千人千面）、向量检索、RL / DPO / 模型微调（本机只调 API 模型，无训练环境）、并发与超时控制、多 Agent 协作 |
 
-完整数据与归因见 `reports/final_20261119.md`。
+证据分流在 `reports/`：能力与产物清单见 `platform_capability_report.md`，注入实验见 `p7_experiment.md`，早期主表与逐条翻转见 `final_20261119.md`。
 
 ---
 
 ## 7. 已知局限
 
 1. **`temperature=0` 不等于确定**：同一题同一模型在 PASS/FAIL 间翻转出现过，任何单次翻转都不能当结论。
-2. **检索覆盖是天花板**：26 条 fit 只提炼出 1 条经验，只命中 2 条 holdout 任务。检索没坏，是失败样本太少。
-3. **`support` 口径偏宽**：`pipeline/verify.py` 回填时未要求"基线失败、注入后才过"，已知缺陷未修。
-4. **词表判语义是死路**：判分靠规则 + 正则，`re:` 只是把枚举写紧凑，不是语义理解。
-5. **规模小**：43 题、单域、5 个工具、无并发、无真实流量。价值在方法，不在规模。
+2. **检索门槛过松，有实测误命中**：`W_SHAPE=0.15` 是常数垫底（形态已升级为门槛），只要有一个关键词重合，分数就 ≥0.15，轻松越过 `min_score=0.12`。实测 shop 库对 `customer` 任务集平均命中 1.67 条/任务、对 `wf` 任务集 2.0–2.33 条/任务；P7 里"不要调用 apply_refund"那条经验被注入到问金额的题上。**命中率高不等于检索准。**
+3. **没有「行为性失败 → 注入 → 改善」的正例**：现有失败几乎全是 `missing_tool`（画布缺节点），提炼出的经验对 LLM 行为没有影响；换成图配齐的任务后基线又是满分。两个方向都测不出差值，这是当前最实质的空白。
+4. **`support` 口径偏宽**：`pipeline/verify.py` 回填时未要求"基线失败、注入后才过"，已知缺陷未修。
+5. **词表判语义是死路**：判分靠规则 + 正则，`re:` 只是把枚举写紧凑，不是语义理解。
+6. **规模小**：7 个任务集共 65 条、单域、5 个工具、无并发、无真实流量。价值在方法，不在规模。
+7. **SFT 数据「能训练但无法评估」**：`build_sft.py` 当前产出 train 26 条、holdout **0** 条。holdout 原有的 2 条是同一道题由两个 Workflow 分别产出、答案不同，被判 `true_conflict` 进隔离等人工裁决。**且全程没有训练过任何模型**——只产出数据，不宣称训练效果。
+8. **画布只能只读展示 `condition` / `memory` 节点**：在画布上改它们的连线再保存，会让 `next` 与 `branches` 不一致，加载时明确报错（不会静默损坏，但会拦住加载）。跨轮 `expect_order` 不可表达。
 
 ---
 
@@ -385,7 +400,9 @@ reports/      实验报告
 
 | 文档 | 内容 |
 |---|---|
-| `docs/architecture.md` | 六模块调用链、判分优先级、A1/A2 归因边界、证据分级 |
+| `docs/architecture.md` | 模块调用链、判分优先级、证据分级、结构性限制 |
 | `docs/runbook.md` | 全流程命令、probe 判读、环境变量、接新 Agent 五步、异常对照 |
-| `docs/demo.md` | 三条可现场演示的最小流程（含"不要演示什么"） |
-| `reports/final_20261119.md` | 最终实验报告：主表、逐条翻转归因、已知缺陷、答辩能说/不能说 |
+| `docs/demo.md` | 可现场演示的流程（含"不要演示什么"） |
+| `reports/platform_capability_report.md` | 平台能力与数据产物总账：Runtime / Trace / Evaluator / Memory / SFT / Workflow，含 P6–P10 实测 |
+| `reports/p7_experiment.md` | Workflow 经验注入实验：真实数字、轨迹证据、天花板结论 |
+| `reports/final_20261119.md` | 早期主表：逐条翻转归因、已知缺陷、答辩能说/不能说 |

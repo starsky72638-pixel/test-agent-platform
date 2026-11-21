@@ -9,14 +9,17 @@
 ## 分层与依赖方向
 
 ```
-agents/            两个 Agent：shop（有全量运行证据）· main_agent（仅单测）
-   ↑ 只能单向依赖
-core/              Agent 协议 · 执行循环 · 轨迹
+api/ · web/        HTTP 门面（8020）· 画布 Builder（零依赖原生 JS + SVG）
+   ↑
+agents/            原生 Agent：shop（全量证据）· main_agent（仅单测）· customer
+agentplatform/     Workflow 引擎：定义 / 校验 / 拓扑 / 执行 / Agent 适配 / 存储
+   ↑ 只能单向依赖：core 不认识上面任何一层
+core/              Agent 协议 · 执行循环 · 轨迹（Turn + Event 双层）
    ↑
 evaluator/         轨迹 → 判定（只读轨迹，不调 Agent）
-memory/            经验：提炼 · 过滤 · 存储 · 检索 · 注入
-pipeline/          把上面三块串成闭环
-scripts/           命令行入口（probe / run_loop / distill / run_shop）
+memory/            经验：提炼 · 过滤 · 存储 · 归并 · 检索 · 注入
+pipeline/          串成闭环：learn / verify / sft / provenance
+scripts/           命令行入口（run_shop / run_loop / run_agent / distill / build_sft / merge_memory）
 ```
 
 依赖方向的硬约束：**`core/` 不 import `evaluator/`、`memory/`、`agents/`**。
@@ -24,18 +27,20 @@ scripts/           命令行入口（probe / run_loop / distill / run_shop）
 不是 Runtime 主动去查经验库。这条保证了：删掉 `agents/` 与 `demos/` 之后，
 `core/` 的测试仍然能独立跑通。
 
-## 六层各自负责什么
+## 各层各自负责什么
 
 | 层 | 文件 | 职责 | 不负责 |
 |---|---|---|---|
-| 接入 | `core/protocol.py`、`core/registry.py`、`agents/builtin.py` | 规定 `name` + `run(task, ctx) -> Trace`；按名字造 Agent | 不知道任何业务 |
+| 接入 | `core/protocol.py`、`core/registry.py`、`agents/builtin.py` | 规定 `name` + `run(task, ctx) -> Trace`；按名字造 Agent，`wf:<id>` 前缀动态路由到磁盘定义 | 不知道任何业务 |
 | 执行 | `core/runner.py`、`core/task.py`、`core/context.py` | 调 Agent、串任务、把崩溃隔离成 `status=crashed`；提供与业务无关的上下文机制（槽位反填/渲染） | 不实现 ReAct 循环，不知道哪个参数属于哪个槽 |
-| 轨迹 | `core/trace.py`、`runs/<stamp>/*.jsonl` | `Trace / Turn / ToolCall` 三层结构、落盘（`save_traces`）与回读（`load_traces`） | 不判分 |
-| 判定 | `evaluator/verdict.py`、`matching.py` | 逐轮断言、事实溯源（`grounded_claims`）、失败分类 | 不改轨迹 |
-| 经验 | `memory/{extract,quality,store,retrieve,inject}.py` | 失败 → 可执行动作 → 过闸门 → 存储 → 检索 → 注入 | 不认识具体业务词 |
-| 回流 | `pipeline/{learn,verify}.py`、`scripts/distill.py` | 学习/验证两阶段、轨迹 → SFT 与失败样本 | 不做训练 |
+| 轨迹 | `core/trace.py`、`runs/**/*.jsonl` | `Turn`（对话语义）+ `Event`（执行语义）两层结构、落盘（`save_traces`）与回读（`load_traces`） | 不判分 |
+| 判定 | `evaluator/verdict.py`、`matching.py` | 逐轮断言、事实溯源（`grounded_claims`）、失败分类、`fail_nodes` 定位 | 不改轨迹 |
+| 经验 | `memory/{extract,quality,store,retrieve,inject}.py` | 失败 → 可执行动作 → 过闸门 → 存储 → 归并 → 检索 → 注入 | 不认识具体业务词 |
+| 工作流 | `agentplatform/{definition,schema,topology,executor,adapter,store}.py` | 把 JSON 图编译成节点流：激活集驱动、`condition` 分支、`memory` 节点、`{{extract.*}}`、跨轮 ctx 与 slots | 不知道业务，不判分，`Turn.calls` 刻意留空 |
+| 回流 | `pipeline/{learn,verify,sft,provenance}.py`、`scripts/{distill,build_sft,merge_memory}.py` | 学习/验证两阶段、轨迹 → SFT 与失败样本、质量闸门、来源信息 | 不做训练 |
+| 门面 | `api/app.py`、`web/builder/` | HTTP（8020）与画布，只经 `agents/builtin` 造 Agent | 不参与执行与判分 |
 
-## 六个模块的调用链（函数级，对应真实代码）
+## 一次 `run_loop` 的调用链（函数级，对应真实代码）
 
 ```
 scripts/run_loop.py
@@ -44,7 +49,7 @@ scripts/run_loop.py
  │   └─ core/runner.run_tasks()               runner.py:138
  │       └─ run_task()                        runner.py:82，崩溃隔离 105-122
  │           └─ agent.run(task, ctx)          协议 core/protocol.py:65
- │               └─ Trace                     core/trace.py:144（Trace / Turn / ToolCall）
+ │               └─ Trace                     core/trace.py（Turn 对话层 + Event 执行层）
  │       → evaluator.evaluate(trace, task)    只读 Trace，不回写
  │       → memory/extract.py                  失败类型 → 可执行动作
  │       → memory/quality.py                  闸门：不合格的丢弃并写明原因
@@ -110,7 +115,11 @@ scripts/run_loop.py
 | 跨轮槽位 | 有：映射表在 `agents/shop/view/slots.py`，机制在 `core/context.py` | 有：`view/memory.py` 委托同一份 `core/context.py`，只是映射表不同 |
 | 事实卡片 | 无 | 上限 8 条，跨轮保留已查实体 |
 | 循环 | ReAct + 结构化计划 + 恢复分类 + 步数耗尽收尾 | 原有 ReAct，无计划 |
-| 运行证据 | `runs/main-a2` 全量 60 次执行 | **无**。只有 `tests/test_main_adapter.py` |
+| 运行证据 | `runs/full-cold`、`runs/main-a2`、`runs/full-plan` 三批全量（各 60 次执行） | **无**。只有 `tests/test_main_adapter.py` |
+
+**目录名有坑，写报告时别按名字猜**：`runs/main-a2/20261119-194423` 里的 `agent` 字段是
+`shop-cold`，不是 `main_agent`。历史上按目录名归档过一次，结论错了；以 `report.json`
+里的 `agent` 为准。
 
 两者走同一个协议、同一份经验挂载措辞（`agents/experience.py`），跑同一套判定，
 产出同构的 `Trace`。**这目前是协议级证据，不是"第二个 Agent 跑通了"的证据**：
@@ -128,20 +137,31 @@ scripts/run_loop.py
   步数耗尽时用已有结果收尾，不交白卷
 - 闭环链路本身：fit 失败 → 提炼 → 闸门 → 入库 → holdout 检索 → 注入 → 回填，
   每一环都在 `report.json` 里有对应字段
-- 数据回流：`scripts/distill.py` → 25 条 SFT + 1 条失败样本（`data/distill-main-a2`）
+- **Workflow 引擎**：`wf:canvas-demo` 在 `wf_eval` 上 4/6（两条 `missing_tool` 均指向画布缺节点）；
+  `wf:shop-demo` 5/6；`wf:branch-demo` 走 true 支时另一支**零事件**；
+  `condition` / `memory` 事件不计入工具判分（`all_calls()` 只取 `tool_call`）
+- **参数抽取**：`{{extract.order_id}}` 上线后 `wf_eval` 从 1/3 变 2/3，W03 的 `wrong_arg` 消失
+- **跨轮上下文与槽位**：`wf_multi` 3/3，`turns=6`、`calls=12`；M03 第二轮输入「那物流到哪了」
+  里没有任何数字，两个工具仍拿到 `1002`，轨迹有 `slot_reuse` 事件（`from_turn=0`）
+- **HTTP API 与画布**：`api/app.py` 监听 8020，`/health` 返回 `agents:11`（6 内置 + 5 个 `wf:*`）；
+  `web/builder/` 能拖拽连线、生成 JSON、保存并直接运行
+- **数据回流**：`scripts/distill.py` 支持实验目录与任意轨迹文件两条输入；
+  `scripts/build_sft.py` 把 67 条候选分成 train 26 / holdout 0 / unknown 18 / 隔离 41
+- **来源信息**：`runs/<stamp>/manifest.json` 与 distill 的 `provenance` 记数据集哈希、Git commit 与 dirty
+- **经验归并**：8 个库 76 行 → 9 条唯一经验（`data/memory/experiences.jsonl`），`wf:*` 默认读它
 
 **B. 已实现，但只有单元测试**
 
 - `main_agent` 接入（裁剪 / 事实卡片 / 槽位委托）：`tests/test_main_adapter.py`
 - 依赖方向护栏（`core.registry.DEFAULT` 恒空、`core/` 不 import 业务）
-- 经验质量闸门的多条规则：真实数据只产生过 1 条经验，多数规则未被真实样本命中
-- `Trace` 回放：`load_traces`（`core/trace.py:268`）可用，主表还没用它做过二次分析
+- 经验质量闸门的多条规则：真实数据只产生过 9 条唯一经验，多数规则未被真实样本命中
+- `Trace` 回放：`load_traces`（`core/trace.py`）可用，主表还没用它做过二次分析
 
 **C. 未实现**
 
 - 跨会话用户偏好（千人千面）：零
 - 向量检索：零，检索是形态硬门槛 + 字符二元组
-- RL / reward 模型 / 模型微调：零。全程调 API 模型，没有权重
+- RL / reward 模型 / 模型微调：零。全程调 API 模型，没有权重，**本机也没有训练环境**
 - 并发执行、超时控制、重试退避策略：零
 - 多 Agent 协作：零
 
@@ -162,7 +182,8 @@ scripts/run_loop.py
 
 必须写清楚，否则整份文档会被一句话推翻。
 
-主表（`runs/main-a2/20261119-194423`，43 题，fit 26 / holdout 17）：
+主表（`runs/main-a2/20261119-194423`，`agent` 字段是 **`shop-cold`**，不是 `main_agent`；
+任务集 = shop 20 + multi 10 + hard 13 = 43 题，fit 26 / holdout 17）：
 
 - 基线 **16/17**，注入 **15/17**，差值 **-1**
 - **有效注入覆盖 2/17**：只有 S12、S20 检索到了经验（各 213 字）
@@ -182,9 +203,11 @@ scripts/run_loop.py
    只能靠改正则救，改的是数据不是判定器。
 5. **`temperature=0` 不等于确定**：同一题同一模型，基线在 FAIL/PASS 之间翻转出现过，
    所以任何单次翻转都不能当结论，必须重复对照。
-6. **检索覆盖是天花板，不是调参问题**：fit 26 条只失败 1 条、只提炼出 1 条经验，
-   holdout 只有 2 条命中。样本结构决定了主表不可能体现出经验效果，
-   换检索算法不解决这个问题——要么让 fit 出现更多种失败，要么承认测不出来。
+6. **天花板换过位置，两个阶段要分开说**：早期主表的天花板是"经验太少"——fit 26 条只失败
+   1 条、只提炼出 1 条经验，holdout 只有 2 条命中，那批数据不可能体现经验效果。
+   P7 在 `wf_learn` 上做到了**覆盖 4/4、每题 238 字**，说明覆盖本身不是天花板；
+   那一次的天花板变成了"基线已满分"（4/4 vs 4/4）。所以现在缺的不是更严或更宽的检索，
+   是**既有区分度、又能被经验纠正的任务**。
 7. **`support` 口径偏宽（已知缺陷，未修）**：注入后该任务通过就 `support += 1`
    （`memory/store.py:148-151`），不要求"基线本来失败"。本次 S12/S20 基线本来就过，
    support 仍从 1 涨到 3。这个数会进检索排序（`memory/retrieve.py:134`），

@@ -219,6 +219,11 @@ llm_call 事件 1 条 | prompt 400 字
 
 ## 8. 当前能力缺口
 
+> 本节写于 P5-c，保留原文以便对照。到 P10 为止：缺口 4 已在 P6 修掉；
+> 「Workflow 默认读不到经验」已在 P10-b 修掉（`wf:*` 默认注入 `data/memory/experiences.jsonl`，
+> 实测 `hit_count ≥ 1`）；缺口 2 由 P7 推进为「注入已发生、但基线满分无提升空间」。
+> 逐项现状见**第 11 节**。
+
 1. **检索门槛过松，已有跨域误命中的实测数字**：shop 库对 `customer` 任务集平均命中 1.67 条/任务、对 `wf` 任务集 2.0–2.33 条/任务。`W_SHAPE=0.15` 常数垫底 + 单个关键词重合即可越过 0.12 阈值。命中率高不等于检索准。
 2. **没有「模型行为性失败 → 注入 → 改善」的正例**。P7 把缺口的形态推进了一步：注入现在**确实发生了**（4/4 覆盖、238 字），但仍无改善——不是"没注入"，而是"基线已满分、无提升空间"（见第 5 节 P7 补充与 `reports/p7_experiment.md`）。
 3. **Workflow 侧的失败类型与 Memory 适用范围不匹配**：`wf_eval` 的两条失败是图配置缺失（缺节点、参数写死），提炼出的经验对 LLM 行为无影响（P6 修掉了「参数写死」那一条，剩「缺节点」1 条）。
@@ -293,3 +298,111 @@ llm_call 事件 1 条 | prompt 400 字
 - `wf:demo` 与 `wf:branch-demo` 的 `order_id` 仍是写死的 1002（它们是示例，不是评测对象）。
 - 只剩 1 条失败，且是「图缺节点」类。要让 `wf_eval` 进一步有区分度，得先给画布加 `get_logistics` 节点并扩任务集（原计划第 2、3 步）。
 - 经验检索门槛仍未收紧（第 8 节缺口 1）。
+
+## 11. P7–P10：注入、多轮、可追溯、数据闸门（均已完成，实测）
+
+第 1–10 节记录到 P6。P7 之后又有四项能力落地，此前只散落在 commit message 与对话里，这里补齐。
+
+### 11.1 P7：Workflow 消费 Runtime 经验
+
+**改动**：`llm` 节点支持 `config.inject_experience`；`WorkflowAgent` 把 `ctx.experience` 交给 `Executor`，在开了开关的节点把经验原样前置到 prompt。空经验不拼——基线组因此与"没有 runtime 经验"逐字一致。
+
+**实验**（`runs/20261121-000424`，`wf:report-demo` × `wf_learn`，注入旧库 `runs/full-cold/20261118-000730`）：
+
+| 项 | 基线 | 注入 |
+|---|---|---|
+| 通过 | 4/4 | 4/4 |
+| 检索覆盖 | — | **4/4** |
+| 每题注入 | 0 字 | **238 字 / 2 条经验** |
+| 侧耗时 | 36.8 s | 50.0 s（+35.8%） |
+
+**结论**：注入通道打通（`【历史经验】` 表头在注入组轨迹出现 4 次、基线组 0 次），但**差值 0**。原因不是没注入，是基线已满分、没有提升空间。同时暴露 1 例同域误命中：`exp-56d434f43f4a`（"不要调用 apply_refund"）被注入到问金额/问状态的题上。详见 `reports/p7_experiment.md`。
+
+### 11.2 P8：跨轮上下文与参数槽位
+
+**P8-a**：一条 Task 只建一个 `ctx`，逐轮传入。四个键各有归属——`input` 每轮覆盖、`nodes` 每轮清空、`history` 按轮按值归档、`experience` 整条任务共用。`trace.meta["context_turns"]` 记录实际归档轮数。
+
+**P8-b**：新增 `slots`。每轮先抽本轮输入，抽到就写槽并记轮次；**抽不到才沿用**历史值，并发一条 `KIND_SLOT_REUSE` 事件（含 `field` / `value` / `source` / `from_turn` / `reused_from_previous_turn`）。冷启动无槽位仍抛 `ExtractError` 落 `infra_error`，不猜默认值。slot 存在 ctx 里，换 Task 不继承。
+
+**实测**（`wf:report-demo` × `data/wf_multi.jsonl`）：3/3 PASS、`turns=6`、`calls=12`。
+
+轨迹级证据（M03，`runs/wf-report-demo-20261121-003837.jsonl`）：
+
+```
+seq 13  slot_reuse  turn=1  {field: order_id, value: "1002", from_turn: 0, reused_from_previous_turn: true}
+seq 17  tool_call   turn=1  get_order      {"order_id": "1002"}
+seq 20  tool_call   turn=1  get_logistics  {"order_id": "1002"}
+meta    context_turns: 2
+```
+
+第二轮输入是「那物流到哪了」，**一个数字都没有**，两个工具仍拿到 `1002`——只能来自槽位。`slot_reuse` 的 `node_id` 为空、`started_at` 为 0，因为它是轮级事件；判分器只认 `tool_call`，所以调用数没有虚增。
+
+### 11.3 P10-a：实验与蒸馏产物的来源信息
+
+新增 `pipeline/provenance.py`：
+
+| 产物 | 位置 | 记录内容 |
+|---|---|---|
+| 实验 manifest | `runs/<stamp>/manifest.json`，建目录即写 | Agent、数据集路径 + SHA-256 + 字节数、split 实际条数与 task_id、7 项运行参数、Git commit / branch / dirty |
+| distill provenance | 原 `manifest.json` 的 `provenance` 键 | 输入轨迹路径 + SHA-256 + 条数、输出条数、`agents` / `splits` 分布、代码文件 SHA-256 与 Git 状态 |
+
+三条硬规则：取不到写 `null`；`dirty` 是**三态**（Git 失败时 `commit` 与 `dirty` 同时为 `null` 并保留 `error`，不伪装成 clean）；写盘失败抛 `ManifestError`，`run_loop` 打印警告后继续。
+
+**实测**：`data/sft` 是同源核对，另用 `distill --trace runs/wf-report-demo-20261121-103250.jsonl --golden data/wf_multi.jsonl` 验证——`provenance.inputs[0].traces=3`、`outputs={'sft':3,'failed':0}`、`agents={'wf:report-demo':3}`，且独立复算 `sha_ok True`（哈希来自真实字节，不是抄的）。
+
+### 11.4 P10-b：经验库归并与默认注入
+
+**问题**：9 条唯一经验散在 8 个实验目录（76 行，11 份重复写入），而 `agents/builtin.py` 给 `wf:*` 只注入工具池、**不传 `memory_store`**，所以线上 Workflow 的 memory 节点恒 0 命中。
+
+**做法**：`memory/store.py` 增加 `DEFAULT_STORE_PATH` 与 `merge_files`（按 `exp_id` 取 `(updated_at, version)` 最大的一份，**不累加** `support/contradict`，`.tmp` + `replace` 原子写，输入只读）；`_workflow_factory` 默认注入该库；`run_loop --store default` 显式选用（**默认仍是一次实验一个新库**，因为 `record_outcome` 会累加反证，共库会破坏可复现性）。
+
+**实测**：`merge_memory.py` 8 库 76 行 → **9 条**（`data/memory/experiences.jsonl` 共 9 行 9 唯一 id）；`wf:branch-demo` 真跑轨迹里 `"hit_count": 0` 零次、`"hit_count": 1..9` 一次，全文含 `【历史经验】`——**经验第一次真正进了线上 Workflow 的 prompt**。
+
+### 11.5 P10-c / P10-c2：SFT 质量闸门与冲突四分类
+
+`pipeline/sft.py` 只做判定不做 IO，`scripts/build_sft.py` 负责读写。判定顺序是：
+
+**结构校验 → split 分流 → 池内四分类**
+
+| 类别 | 条件 | 处理 |
+|---|---|---|
+| `duplicate` | 同 `task_id` + `agent` + `split`，答案一致 | 留 canonical，其余记 `duplicate` |
+| `rerun_variance` | 同 `task_id` + `agent` + `split`，答案不同 | 留第一条 canonical，其余记 rerun 并带 `canonical_sample_id`，**原样本不删** |
+| `unresolved` | 来源含 `unknown`，无法判断同源 | 整组隔离，不猜 |
+| `true_conflict` | 不同 Agent / 不同 `task_id` / 手工集与生成集答案不一致 | 整组隔离，等人工 |
+
+canonical 只由 `(源文件路径, 行号, sample_id)` 决定——**不看答案长度、不做相似度、不掷随机数**。`unknown` 与 `holdout` 不参与训练侧的冲突裁决，否则一条来路不明的样本能拖走同问句的可训练样本。
+
+**实测**（`data/sft/report.json`，67 条输入 / 4 个文件）：
+
+| 项 | 数量 |
+|---|---|
+| 有效 | 67 |
+| duplicate | 0 |
+| rerun_variance | 21 组 / 42 条 |
+| true_conflict | 1 组 / 2 条 |
+| unresolved | 0 |
+| canonical | 26 |
+| **train** | **26** |
+| **holdout** | **0** |
+| unknown | 18 |
+| 隔离合计 | 41 |
+
+`train` 从 P10-c 的 5 条提到 26 条，不是放宽标准，而是把「同一次实验的两次运行」从不该占用的冲突队列里拿出来。**`holdout` 为 0 是当前最实质的缺口**：那 2 条是 W01 由 `wf:branch-demo` 与 `wf:canvas-demo` 分别产出、答案不同，属 `true_conflict`，需人工裁决。
+
+### 11.6 本阶段累计
+
+| 阶段 | 提交 | 内容 |
+|---|---|---|
+| P7-0 / P7-a | `60ed32b` | `inject_experience`、`report-demo`、`wf_learn` |
+| P7 文档 | `3844e13` | `p7_experiment.md` |
+| P8-a | `e6310c6` | 跨轮 ctx、按轮归档、任务间隔离 |
+| P8-b | `15cb36e` | `slots` + `slot_reuse` 事件 |
+| P10-a | `c09db7f` | `manifest.json` / distill `provenance` |
+| P10-b | `b02e585` | 经验归并（76 行 → 9 条）+ `wf:*` 默认注入 |
+| P10-c | `420e8a3` | SFT 质量闸门首版 |
+| P10-c-fix | `80a074e` | 改为先按 split 分流、再判冲突 |
+| P10-c2 | `85e1b30` | 同源重跑识别与冲突四分类 |
+
+测试数从 P7 前的 404 涨到 **453**（2026-11-21 实测，与 README 声明一致）。中间各笔的增量为
+逐次叠加的小步，不具解释价值，此处不逐一列出——需要精确数字时以对应 commit 的 message 与 `pytest -q` 为准。

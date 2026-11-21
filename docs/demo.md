@@ -1,13 +1,41 @@
 # 演示脚本
 
-三条演示，各自证明一件不同的事。全程用本地 mock 服务，不访问外网业务系统。
+五条演示，各自证明一件不同的事。演示零、四不需要模型额度；演示一至三走本地 mock 服务，不访问外网业务系统。
 
 前提：两个窗口。窗口 A 起服务（**不要设 `FAULT_*`**），窗口 B 执行命令。
 
 ```
 # 窗口 A
 .venv\Scripts\python.exe mock_server.py
+
+# 窗口 B 若要演示界面，再起 API
+.venv\Scripts\python.exe api\app.py
 ```
+
+---
+
+## 演示零：把 Agent 画出来、存下来、跑起来（约 4 分钟，零模型调用）
+
+**命题**：Agent 不是写死在代码里的——可视化成一张图，保存成 JSON，立刻能被 `wf:<id>` 寻址并执行。
+
+1. 浏览器打开 `http://127.0.0.1:8020/ui/builder/`，左侧拖 `Start → Tool → LLM → End`，连线。
+2. 点工具节点，参数面板选 `get_order`，`order_id` 填 `{{extract.order_id}}`（**这一步是重点**：参数随输入走，不是写死的）。
+3. 点「保存」，记下工作流 id（如 `my-demo`）。服务端落在 `data/workflows/<id>.json`。
+
+```
+.venv\Scripts\python.exe scripts\run_agent.py --agent wf:my-demo --question "帮我查下订单 1001 的金额" --max-steps 6
+```
+
+期望看到：`节点执行 4 个 | 事件 10 条`，事件里 `tool get_order {"order_id": "1001"}`，回答含 `899`。
+**要讲清的一点**：`轮次 1` 而事件 10 条——节点不写进 Turn，`Turn` 只表示"用户说了几轮"。
+
+同一份定义也能直接进评测，用的是和原生 Agent 完全相同的判分器：
+
+```
+.venv\Scripts\python.exe scripts\run_shop.py --agent wf:canvas-demo --golden data\wf_eval.jsonl --no-compare
+```
+
+期望：`通过 2/3`，`FAIL` 那条归因 `missing_tool`（画布没画物流节点），**不带 `[节点]` 后缀**——缺的是节点本身，没有哪个已存在节点该负责。
 
 ---
 
@@ -79,7 +107,43 @@ $env:SHOP_PLAN="1"; .venv\Scripts\python.exe scripts\probe.py --task M08 --repea
 
 ---
 
-## 讲的时候要主动交代的三件事
+## 演示四：轨迹变成数据之前，先过一道闸门（约 3 分钟，零模型调用）
+
+**命题**：不是"能产出 SFT"就算完——要能说清每条样本为什么进、为什么出。这一步不开源数据、不改判分，纯本地。
+
+```
+.venv\Scripts\python.exe scripts\build_sft.py
+```
+
+期望看到（当前真实输出）：
+
+```
+输入 67 条（4 个文件）
+有效 67 | duplicate 0 | rerun_variance 21 组（42 条） | true_conflict 1 组（2 条） | unresolved 0 组
+缺字段 18 | tool_calls 异常 0
+canonical 26 | train 26 / holdout 0 / unknown 18 / 隔离 41
+隔离原因：rerun_variance=21  true_conflict=2  unknown_split=18
+可训练样本：26
+```
+
+四分类要能口头解释清楚：
+
+| 类别 | 判据 | 处理 |
+|---|---|---|
+| `rerun_variance` | 同 `task_id`+`agent`+`split`，两次运行答案不同 | 保留第一条 canonical，其余留档并标 `canonical_sample_id`，**不删原始样本** |
+| `true_conflict` | 不同 Agent 对同一题给出不同答案 | 整组隔离，等人工裁决 |
+| `unknown_split` | 来源缺 `split`（手工集没有这两个字段） | 默认不进训练集 |
+| `duplicate` | 同源同答案 | 只留一条，其余进隔离并记原因 |
+
+```
+.venv\Scripts\python.exe -c "import json;r=json.load(open('data/sft/report.json',encoding='utf-8'));print(r['counts']);print('groups',len(r['groups']),'reruns',len(r['reruns']))"
+```
+
+**必须主动交代**：`holdout` 现在是 **0**。原有的 2 条是同一道题由两个 Workflow 分别产出、答案不同，被判真冲突隔离。所以这份数据**能训练但还无法评估**——没有训练过任何模型，也不宣称任何训练效果。
+
+---
+
+## 讲的时候要主动交代的事
 
 1. **训练侧样本覆盖不足**：fit 侧原本没有 `wrong_arg` 样本，自动提炼产不出对应经验，
    为此补了一道同型题 M10。这不是"系统自动发现"，是补数据。答辩被问到就如实说。
@@ -87,8 +151,15 @@ $env:SHOP_PLAN="1"; .venv\Scripts\python.exe scripts\probe.py --task M08 --repea
    把它算进提升里是错的。
 3. **主表对经验效果没有结论**：基线 16/17、注入 15/17、覆盖 2/17，三条翻转全是 0 字题。
    能说的只有"注入没造成整体损害"，不能说提升，也不能说有害。
-4. **`support` 有虚增**：注入后任务通过就 +1，不要求基线本来失败。本次 `support` 从 1 涨到 3，
-   而那两条题基线本来就过。这是已知缺陷，冻结代码期间未修。
+4. **`support` 有虚增**：注入后任务通过就 +1，不要求基线本来失败。已知缺陷，冻结期间未修。
 5. **第二个 Agent 只有单测**：`main_agent` 能构造、有 `test_main_adapter.py`，
    但从未进过 `run_loop`，没有基线数据，不能并列说"两个 Agent 都验证过"。
-6. **没做的**：跨会话用户偏好、向量检索、RL、微调。零就是零，不说"做了一部分"。
+   **另外注意目录名有坑**：`runs/main-a2/` 里跑的是 `shop-cold`，不是 `main_agent`，
+   以 `report.json` 的 `agent` 字段为准。
+6. **Workflow 的注入已经做过，效果是 0**：P7 在 `wf_learn` 上做到覆盖 4/4、每题 238 字，
+   基线 4/4 与注入 4/4 持平。原因不是没注入，是**基线已满分**。
+   同一批还抓到 1 例误命中（退款经验被注入到问金额的题）。这条要说，不要藏。
+7. **SFT 数据能训练但无法评估**：`train` 26 条、`holdout` 0 条。且**全程没有训练过模型**——
+   只产出数据，任何"提升 X%"的说法都不成立。
+8. **没做的**：跨会话用户偏好、向量检索、RL/DPO/模型微调（本机只调 API，无训练环境）、
+   并发与超时、多 Agent 协作。零就是零，不说"做了一部分"。
