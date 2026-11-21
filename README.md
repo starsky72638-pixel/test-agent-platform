@@ -401,8 +401,10 @@ reports/      实验报告
 | 文档 | 内容 |
 |---|---|
 | `docs/architecture.md` | 模块调用链、判分优先级、证据分级、结构性限制 |
+| `docs/architecture.svg` | 一页数据流图：入口 → 接入 → 执行 → 轨迹 → 判分 → 学习 → 数据，含三条硬边界；可直接拖进 PPT |
 | `docs/runbook.md` | 全流程命令、probe 判读、环境变量、接新 Agent 五步、异常对照 |
 | `docs/demo.md` | 可现场演示的流程（含"不要演示什么"） |
+| `reports/README.md` | 报告索引：每份报告覆盖哪个阶段、哪些数字已过期、数字该去哪找 |
 | `reports/platform_capability_report.md` | 平台能力与数据产物总账：Runtime / Trace / Evaluator / Memory / SFT / Workflow，含 P6–P10 实测 |
 | `reports/p7_experiment.md` | Workflow 经验注入实验：真实数字、轨迹证据、天花板结论 |
 | `reports/final_20261119.md` | 早期主表：逐条翻转归因、已知缺陷、答辩能说/不能说 |

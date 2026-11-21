@@ -1,6 +1,16 @@
 # 演示脚本
 
-五条演示，各自证明一件不同的事。演示零、四不需要模型额度；演示一至三走本地 mock 服务，不访问外网业务系统。
+五条演示，各自证明一件不同的事。
+
+| 演示 | 耗时 | 要不要模型额度 |
+|---|---|---|
+| 零 · 画布搭 Agent 并跑通 | 4 分钟 | **要**（保存与校验不花，运行那一步花） |
+| 一 · 跨轮不丢事实 | 3 分钟 | **要** |
+| 二 · 结构化计划 | 8 分钟 | **要** |
+| 三 · 轨迹变数据 | 1 分钟 | 不要（只读已有轨迹） |
+| 四 · SFT 质量闸门 | 3 分钟 | 不要（纯本地判定） |
+
+额度紧就先演三、四：它们一条链讲完"轨迹 → 蒸馏 → 闸门 → 三类输出"，全程不调模型。
 
 前提：两个窗口。窗口 A 起服务（**不要设 `FAULT_*`**），窗口 B 执行命令。
 
@@ -14,13 +24,13 @@
 
 ---
 
-## 演示零：把 Agent 画出来、存下来、跑起来（约 4 分钟，零模型调用）
+## 演示零：把 Agent 画出来、存下来、跑起来（约 4 分钟，运行那一步调一次模型）
 
 **命题**：Agent 不是写死在代码里的——可视化成一张图，保存成 JSON，立刻能被 `wf:<id>` 寻址并执行。
 
 1. 浏览器打开 `http://127.0.0.1:8020/ui/builder/`，左侧拖 `Start → Tool → LLM → End`，连线。
 2. 点工具节点，参数面板选 `get_order`，`order_id` 填 `{{extract.order_id}}`（**这一步是重点**：参数随输入走，不是写死的）。
-3. 点「保存」，记下工作流 id（如 `my-demo`）。服务端落在 `data/workflows/<id>.json`。
+3. 顶部 `id` 填 `my-demo`（只允许字母、数字、下划线、短横线），点「保存」。状态栏出现 `已保存 my-demo v1`，文件落在 `data/workflows/my-demo.json`；右上角下拉能看到它。
 
 ```
 .venv\Scripts\python.exe scripts\run_agent.py --agent wf:my-demo --question "帮我查下订单 1001 的金额" --max-steps 6
@@ -104,6 +114,14 @@ $env:SHOP_PLAN="1"; .venv\Scripts\python.exe scripts\probe.py --task M08 --repea
 产物在 `data/distill-main-a2/`：`sft.jsonl`（25 条，OpenAI tool_calls 形态）、
 `failed.jsonl`（1 条，带 `failure_type` 与 `fail_turn`）、`manifest.json`（计数与丢弃原因）。
 **不要覆盖 `data/distill/`**，那份是 11-18 那次实验（22 + 4）的历史证据。
+
+想演 Workflow 版（和演示零是同一类产物）：
+
+```
+.venv\Scripts\python.exe scripts\distill.py --trace runs\wf-shop-demo-20261120-231756.jsonl --golden data\wf_eval.jsonl --out data\distill-wf-eval
+```
+
+期望：`[trace] 轨迹 6 条 → SFT 5 条 / 失败 1 条`。`--golden` 必须给，否则会拿默认的 shop 任务集去判 wf 的轨迹（`M01` 这类 id 在两边都有，会静默错配）。
 
 ---
 
