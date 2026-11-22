@@ -314,5 +314,7 @@ $('#q').addEventListener('keydown', (e) => { if (e.key === 'Enter') preview(); }
 loadMemory().catch((e) => { $('#mems').innerHTML = '<div class="hint err">' + esc(e.message) + '</div>'; });
 loadDatasets().catch((e) => { $('#counts').innerHTML = '<div class="hint err">' + esc(e.message) + '</div>'; });
 </script>
+<!-- 新手导览：从第 8 步接上（经验库 → 数据集 → 质量报告） -->
+<script src="/ui/tour/tour.js"></script>
 </body>
 </html>
